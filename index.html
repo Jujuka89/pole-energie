@@ -6,8 +6,8 @@
 <title>Suivi des consommations d’énergie</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#d98e04;--gaz:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#f0a81c;--gaz:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
 *{box-sizing:border-box}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -22,7 +22,7 @@ section{margin-top:16px}
 .kpi b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.2}
 .kpi span{color:var(--mute);font-size:.88rem}
 .kpi.e{border-top:4px solid var(--elec)}.kpi.g{border-top:4px solid var(--gaz)}.kpi.c{border-top:4px solid var(--mute)}
-.delta{font-size:.88rem;font-weight:600}.up{color:var(--bad)}.down{color:var(--ok)}
+.delta{display:inline-block;font-size:.88rem;font-weight:700;padding:2px 10px;border-radius:999px}.up{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,transparent)}.down{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}.flat{color:var(--mute);background:var(--bg)}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
 .charts section{margin:0}
 .box{position:relative;height:280px}
@@ -31,8 +31,8 @@ label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:
 input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
 button{font:inherit;cursor:pointer;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 button.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
-button.link{border:0;background:none;color:var(--gaz);padding:2px 6px}
-:focus-visible{outline:2px solid var(--gaz);outline-offset:2px}
+button.link{border:0;background:none;color:var(--accent);padding:2px 6px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tools{display:flex;flex-wrap:wrap;gap:8px}
 .scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
@@ -139,7 +139,7 @@ function delta(k){
   a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});
   if(!s0)return '<span class="delta" style="color:var(--mute)">Pas de comparaison avec '+(year-1)+'</span>';
   const p=(s1-s0)/s0*100;
-  return `<span class="delta ${p>0?'up':'down'}">${p>0?'▲ +':'▼ '}${fmt(p,1)} % vs ${year-1} (mêmes mois)</span>`;
+  return `<span class="delta ${p>0?'up':p<0?'down':'flat'}">${p>0?'▲ +':p<0?'▼ ':''}${fmt(p,1)} % vs ${year-1} (mêmes mois)</span>`;
 }
 function kpis(){
   const e=val(year,'e'),g=val(year,'g'),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
