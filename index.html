@@ -6,8 +6,8 @@
 <title>Suivi des consommations d’énergie</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
 *{box-sizing:border-box}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -48,7 +48,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 <header>
   <div>
     <h1>Consommations d’énergie</h1>
-    <p class="sub">Électricité et gaz, relevés mensuels du lieu de travail</p>
+    <p class="sub">Électricité et calories, relevés mensuels du lieu de travail</p>
   </div>
   <label>Année affichée <select id="year"></select></label>
 </header>
@@ -67,7 +67,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
-  <section><h2>Gaz (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
+  <section><h2>Calories (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
 </div>
 
 <section id="formSec" hidden>
@@ -75,18 +75,18 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   <form id="form">
     <label>Mois <input type="month" id="m" required></label>
     <label>Électricité (kWh) <input type="number" id="e" min="0" step="any"></label>
-    <label>Gaz (kWh) <input type="number" id="g" min="0" step="any"></label>
+    <label>Calories (kWh) <input type="number" id="g" min="0" step="any"></label>
     <label>Coût électricité (€) <input type="number" id="ce" min="0" step="any"></label>
-    <label>Coût gaz (€) <input type="number" id="cg" min="0" step="any"></label>
+    <label>Coût calories (€) <input type="number" id="cg" min="0" step="any"></label>
     <div class="tools"><button class="main" type="submit">Enregistrer</button><button type="button" id="cancel" hidden>Annuler</button></div>
   </form>
-  <p class="note">Si vous saisissez un mois déjà présent, il est remplacé. Pour du gaz relevé en m³, multipliez par le coefficient de conversion de votre facture (environ 11 kWh/m³).</p>
+  <p class="note">Si vous saisissez un mois déjà présent, il est remplacé.</p>
 </section>
 
 <section>
   <h2>Relevés de l’année</h2>
   <div class="scroll"><table>
-    <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th><th></th></tr></thead>
+    <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Calories (kWh)</th><th>Coût élec. (€)</th><th>Coût calories (€)</th><th></th></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
 </section>
@@ -146,9 +146,9 @@ function kpis(){
   const e=val(year,'e'),g=val(year,'g'),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
   $('kpis').innerHTML=`
   <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}</div>
-  <div class="kpi g"><span>Gaz ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>
+  <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>
   <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>${count(c)} mois renseignés</span></div>
-  <div class="kpi c"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · gaz ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
+  <div class="kpi c"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · calories ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
 const pctPlugin={id:'pct',afterDatasetsDraw(ch){
@@ -202,7 +202,7 @@ $('rows').onclick=ev=>{
 };
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('exJson').onclick=()=>dl('data.json',JSON.stringify(data,null,2),'application/json');
-$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;gaz_kWh;cout_elec_eur;cout_gaz_eur\n'+data.map(d=>[d.m,d.e,d.g,d.ce,d.cg].map(v=>v??'').join(';')).join('\n'),'text/csv');
+$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;calories_kWh;cout_elec_eur;cout_calories_eur\n'+data.map(d=>[d.m,d.e,d.g,d.ce,d.cg].map(v=>v??'').join(';')).join('\n'),'text/csv');
 $('imp').onclick=()=>$('file').click();
 $('file').onchange=async ev=>{
   try{const arr=JSON.parse(await ev.target.files[0].text());
