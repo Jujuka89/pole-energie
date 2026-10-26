@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des consommations d’énergie</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#d98e04;--gaz:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#f0a81c;--gaz:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
+*{box-sizing:border-box}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
+#authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-bottom:20px}
+h1{font-size:1.6rem;margin:0;letter-spacing:-.01em}
+h2{font-size:1.05rem;margin:0 0 12px}
+.sub{color:var(--mute);margin:2px 0 0;font-size:.92rem}
+section,.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+section{margin-top:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi span{color:var(--mute);font-size:.88rem}
+.kpi.e{border-top:4px solid var(--elec)}.kpi.g{border-top:4px solid var(--gaz)}.kpi.c{border-top:4px solid var(--mute)}
+.delta{font-size:.88rem;font-weight:600}.up{color:var(--bad)}.down{color:var(--ok)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.charts section{margin:0}
+.box{position:relative;height:280px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+button{font:inherit;cursor:pointer;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+button.link{border:0;background:none;color:var(--gaz);padding:2px 6px}
+:focus-visible{outline:2px solid var(--gaz);outline-offset:2px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.85rem;color:var(--mute);font-weight:600}
+.empty{color:var(--mute);text-align:center;padding:20px}
+.note{color:var(--mute);font-size:.85rem;margin:12px 0 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <h1>Consommations d’énergie</h1>
+    <p class="sub">Électricité et gaz, relevés mensuels du lieu de travail</p>
+  </div>
+  <label>Année affichée <select id="year"></select></label>
+</header>
+
+<section id="authBar">
+  <form id="loginForm">
+    <label>E-mail <input type="email" id="lem" required autocomplete="username"></label>
+    <label>Mot de passe <input type="password" id="lpw" required autocomplete="current-password"></label>
+    <div class="tools"><button class="main" type="submit">Se connecter</button></div>
+  </form>
+  <div class="tools"><span id="who"></span><button id="logout" type="button" hidden>Se déconnecter</button></div>
+  <p id="status" class="note" role="status"></p>
+</section>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="charts" style="margin-top:16px">
+  <section><h2>Électricité (kWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
+  <section><h2>Gaz (kWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
+</div>
+
+<section id="formSec" hidden>
+  <h2 id="formTitle">Ajouter un relevé</h2>
+  <form id="form">
+    <label>Mois <input type="month" id="m" required></label>
+    <label>Électricité (kWh) <input type="number" id="e" min="0" step="any"></label>
+    <label>Gaz (kWh) <input type="number" id="g" min="0" step="any"></label>
+    <label>Coût électricité (€) <input type="number" id="ce" min="0" step="any"></label>
+    <label>Coût gaz (€) <input type="number" id="cg" min="0" step="any"></label>
+    <div class="tools"><button class="main" type="submit">Enregistrer</button><button type="button" id="cancel" hidden>Annuler</button></div>
+  </form>
+  <p class="note">Si vous saisissez un mois déjà présent, il est remplacé. Pour du gaz relevé en m³, multipliez par le coefficient de conversion de votre facture (environ 11 kWh/m³).</p>
+</section>
+
+<section>
+  <h2>Relevés de l’année</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Données</h2>
+  <div class="tools">
+    <button id="exJson">Exporter (JSON)</button>
+    <button id="exCsv">Exporter (CSV)</button>
+    <button id="imp">Importer (JSON)</button>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+  <p class="note">Les relevés sont stockés dans Firebase (Firestore) et partagés en temps réel. Seules les personnes connectées peuvent les modifier.</p>
+</section>
+</main>
+
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
+import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
+// À REMPLACER par la configuration de votre application web Firebase
+const firebaseConfig={apiKey:"VOTRE_API_KEY",authDomain:"VOTRE_PROJET.firebaseapp.com",projectId:"VOTRE_PROJET",appId:"VOTRE_APP_ID"};
+const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
+let unsub=null,first=true;
+const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const $=id=>document.getElementById(id);
+const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('fr-FR',{maximumFractionDigits:d});
+let data=[],year=new Date().getFullYear(),charts={};
+
+const status=t=>{$('status').textContent=t};
+function listen(){
+  if(unsub)unsub();
+  unsub=onSnapshot(collection(db,'releves'),snap=>{
+    data=snap.docs.map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
+    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();
+  },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
+}
+const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
+const sum=a=>a.reduce((s,v)=>s+(v||0),0);
+const count=a=>a.filter(v=>v!=null).length;
+
+function delta(k){
+  const a=val(year,k),b=val(year-1,k);let s1=0,s0=0;
+  a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});
+  if(!s0)return '<span class="delta" style="color:var(--mute)">Pas de comparaison avec '+(year-1)+'</span>';
+  const p=(s1-s0)/s0*100;
+  return `<span class="delta ${p>0?'up':'down'}">${p>0?'▲ +':'▼ '}${fmt(p,1)} % vs ${year-1} (mêmes mois)</span>`;
+}
+function kpis(){
+  const e=val(year,'e'),g=val(year,'g'),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
+  $('kpis').innerHTML=`
+  <div class="kpi e"><span>Électricité ${year}</span><b>${fmt(sum(e))} kWh</b><span>Moyenne ${fmt(count(e)?sum(e)/count(e):null)} kWh/mois</span><br>${delta('e')}</div>
+  <div class="kpi g"><span>Gaz ${year}</span><b>${fmt(sum(g))} kWh</b><span>Moyenne ${fmt(count(g)?sum(g)/count(g):null)} kWh/mois</span><br>${delta('g')}</div>
+  <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>${count(c)} mois renseignés</span></div>
+  <div class="kpi c"><span>Énergie totale ${year}</span><b>${fmt(sum(e)+sum(g))} kWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · gaz ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
+}
+function draw(id,k,color){
+  const css=getComputedStyle(document.documentElement),txt=css.getPropertyValue('--mute').trim(),grid=css.getPropertyValue('--line').trim();
+  const ds=[{label:String(year-1),data:val(year-1,k),backgroundColor:css.getPropertyValue('--prev').trim()},
+            {label:String(year),data:val(year,k),backgroundColor:css.getPropertyValue(color).trim()}];
+  if(charts[id]){charts[id].data.datasets=ds;charts[id].options.scales.x.ticks.color=txt;charts[id].update();return}
+  charts[id]=new Chart($(id),{type:'bar',data:{labels:MOIS,datasets:ds},options:{maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} kWh`}}},
+    scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,ticks:{color:txt},grid:{color:grid}}}}});
+}
+function table(){
+  const rows=data.filter(d=>d.m.startsWith(year+'-')).sort((a,b)=>b.m.localeCompare(a.m));
+  $('rows').innerHTML=rows.length?rows.map(d=>`<tr><td>${MOIS[+d.m.slice(5)-1]} ${d.m.slice(0,4)}</td><td>${fmt(d.e,1)}</td><td>${fmt(d.g,1)}</td><td>${fmt(d.ce,2)}</td><td>${fmt(d.cg,2)}</td>
+    <td><button class="link" data-edit="${d.m}">Modifier</button><button class="link" data-del="${d.m}">Supprimer</button></td></tr>`).join('')
+    :'<tr><td colspan="6" class="empty">Aucun relevé pour '+year+'. Ajoutez le premier avec le formulaire ci-dessus.</td></tr>';
+}
+function render(){
+  const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),new Date().getFullYear(),year])].sort((a,b)=>b-a);
+  $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
+  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');table();
+}
+const num=v=>v===''?null:+v;
+function reset(){$('form').reset();$('m').value=new Date().toISOString().slice(0,7);$('formTitle').textContent='Ajouter un relevé';$('cancel').hidden=true}
+$('form').onsubmit=async ev=>{
+  ev.preventDefault();
+  const r={m:$('m').value,e:num($('e').value),g:num($('g').value),ce:num($('ce').value),cg:num($('cg').value)};
+  year=+r.m.slice(0,4);
+  try{await setDoc(doc(db,'releves',r.m),{e:r.e,g:r.g,ce:r.ce,cg:r.cg});reset()}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}
+};
+$('cancel').onclick=reset;
+$('year').onchange=ev=>{year=+ev.target.value;render()};
+$('rows').onclick=ev=>{
+  const ed=ev.target.dataset.edit,del=ev.target.dataset.del;
+  if(ed){const d=data.find(x=>x.m===ed);$('m').value=d.m;$('e').value=d.e??'';$('g').value=d.g??'';$('ce').value=d.ce??'';$('cg').value=d.cg??'';
+    $('formTitle').textContent='Modifier le relevé de '+d.m;$('cancel').hidden=false;$('form').scrollIntoView({behavior:'smooth'})}
+  if(del&&confirm('Supprimer le relevé de '+del+' ?')){deleteDoc(doc(db,'releves',del)).catch(()=>alert('Suppression refusée : êtes-vous connecté avec un compte autorisé ?'))}
+};
+function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$('exJson').onclick=()=>dl('data.json',JSON.stringify(data,null,2),'application/json');
+$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;gaz_kWh;cout_elec_eur;cout_gaz_eur\n'+data.map(d=>[d.m,d.e,d.g,d.ce,d.cg].map(v=>v??'').join(';')).join('\n'),'text/csv');
+$('imp').onclick=()=>$('file').click();
+$('file').onchange=async ev=>{
+  try{const arr=JSON.parse(await ev.target.files[0].text());
+    if(!Array.isArray(arr)||arr.some(d=>!/^\d{4}-\d{2}$/.test(d.m)))throw 0;
+    const b=writeBatch(db);arr.forEach(r=>b.set(doc(db,'releves',r.m),{e:r.e??null,g:r.g??null,ce:r.ce??null,cg:r.cg??null}));await b.commit()
+  }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
+  ev.target.value='';
+};
+reset();render();
+onAuthStateChanged(auth,u=>{
+  document.body.classList.toggle('out',!u);
+  $('loginForm').hidden=!!u;$('logout').hidden=!u;$('formSec').hidden=!u;$('imp').hidden=!u;
+  $('who').textContent=u?u.email:'';listen();
+});
+$('loginForm').onsubmit=async ev=>{ev.preventDefault();try{await signInWithEmailAndPassword(auth,$('lem').value,$('lpw').value);$('lpw').value=''}catch(e){status('Connexion refusée : e-mail ou mot de passe incorrect.')}};
+$('logout').onclick=()=>signOut(auth);
+</script>
+</body>
+</html>
