@@ -107,8 +107,14 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
 import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
-// À REMPLACER par la configuration de votre application web Firebase
-const firebaseConfig={apiKey:"VOTRE_API_KEY",authDomain:"VOTRE_PROJET.firebaseapp.com",projectId:"VOTRE_PROJET",appId:"VOTRE_APP_ID"};
+const firebaseConfig={
+  apiKey:"AIzaSyCOTfF1ZkMJTQTbQ0kAE_Yv4Wut2P6d_QE",
+  authDomain:"pole-energie.firebaseapp.com",
+  projectId:"pole-energie",
+  storageBucket:"pole-energie.firebasestorage.app",
+  messagingSenderId:"559838678306",
+  appId:"1:559838678306:web:52f2fae0a91d7bf448a97b"
+};
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 let unsub=null,first=true;
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
