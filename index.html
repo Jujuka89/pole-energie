@@ -149,13 +149,27 @@ function kpis(){
   <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>${count(c)} mois renseignés</span></div>
   <div class="kpi c"><span>Énergie totale ${year}</span><b>${fmt(sum(e)+sum(g))} kWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · gaz ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
 }
+const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
+const pctPlugin={id:'pct',afterDatasetsDraw(ch){
+  const [prev,cur]=ch.data.datasets,meta=ch.getDatasetMeta(1),ctx=ch.ctx,css=getComputedStyle(document.documentElement);
+  const rot=ch.chartArea.width/12<44;
+  ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
+  meta.data.forEach((bar,i)=>{
+    const q=pct(cur.data[i],prev.data[i]);if(q==null)return;
+    const r=Math.round(q);ctx.fillStyle=css.getPropertyValue(r>0?'--bad':r<0?'--ok':'--mute').trim();
+    const t=(r>0?'+':'')+r+'%';
+    if(rot){ctx.save();ctx.translate(bar.x,bar.y-5);ctx.rotate(-Math.PI/2);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t,0,0);ctx.restore()}
+    else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(t,bar.x,bar.y-4)}
+  });
+  ctx.restore();
+}};
 function draw(id,k,color){
   const css=getComputedStyle(document.documentElement),txt=css.getPropertyValue('--mute').trim(),grid=css.getPropertyValue('--line').trim();
   const ds=[{label:String(year-1),data:val(year-1,k),backgroundColor:css.getPropertyValue('--prev').trim()},
             {label:String(year),data:val(year,k),backgroundColor:css.getPropertyValue(color).trim()}];
   if(charts[id]){charts[id].data.datasets=ds;charts[id].options.scales.x.ticks.color=txt;charts[id].update();return}
-  charts[id]=new Chart($(id),{type:'bar',data:{labels:MOIS,datasets:ds},options:{maintainAspectRatio:false,
-    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} kWh`}}},
+  charts[id]=new Chart($(id),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[pctPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:34}},
+    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} kWh`,afterLabel:c=>{if(c.datasetIndex!==1)return;const q=pct(c.parsed.y,c.chart.data.datasets[0].data[c.dataIndex]);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs '+(year-1)}}}},
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,ticks:{color:txt},grid:{color:grid}}}}});
 }
 function table(){
