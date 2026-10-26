@@ -66,8 +66,8 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 <div class="kpis" id="kpis"></div>
 
 <div class="charts" style="margin-top:16px">
-  <section><h2>Électricité (kWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
-  <section><h2>Gaz (kWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
+  <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
+  <section><h2>Gaz (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
 </div>
 
 <section id="formSec" hidden>
@@ -119,6 +119,7 @@ const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 let unsub=null,first=true;
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const $=id=>document.getElementById(id);
+const mwh=v=>v==null?'–':(v/1000).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('fr-FR',{maximumFractionDigits:d});
 let data=[],year=new Date().getFullYear(),charts={};
 
@@ -144,10 +145,10 @@ function delta(k){
 function kpis(){
   const e=val(year,'e'),g=val(year,'g'),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
   $('kpis').innerHTML=`
-  <div class="kpi e"><span>Électricité ${year}</span><b>${fmt(sum(e))} kWh</b><span>Moyenne ${fmt(count(e)?sum(e)/count(e):null)} kWh/mois</span><br>${delta('e')}</div>
-  <div class="kpi g"><span>Gaz ${year}</span><b>${fmt(sum(g))} kWh</b><span>Moyenne ${fmt(count(g)?sum(g)/count(g):null)} kWh/mois</span><br>${delta('g')}</div>
+  <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}</div>
+  <div class="kpi g"><span>Gaz ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>
   <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>${count(c)} mois renseignés</span></div>
-  <div class="kpi c"><span>Énergie totale ${year}</span><b>${fmt(sum(e)+sum(g))} kWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · gaz ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
+  <div class="kpi c"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · gaz ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
 const pctPlugin={id:'pct',afterDatasetsDraw(ch){
@@ -165,12 +166,12 @@ const pctPlugin={id:'pct',afterDatasetsDraw(ch){
 }};
 function draw(id,k,color){
   const css=getComputedStyle(document.documentElement),txt=css.getPropertyValue('--mute').trim(),grid=css.getPropertyValue('--line').trim();
-  const ds=[{label:String(year-1),data:val(year-1,k),backgroundColor:css.getPropertyValue('--prev').trim()},
-            {label:String(year),data:val(year,k),backgroundColor:css.getPropertyValue(color).trim()}];
+  const ds=[{label:String(year-1),data:val(year-1,k).map(v=>v==null?null:v/1000),backgroundColor:css.getPropertyValue('--prev').trim()},
+            {label:String(year),data:val(year,k).map(v=>v==null?null:v/1000),backgroundColor:css.getPropertyValue(color).trim()}];
   if(charts[id]){charts[id].data.datasets=ds;charts[id].options.scales.x.ticks.color=txt;charts[id].update();return}
   charts[id]=new Chart($(id),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[pctPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:34}},
-    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} kWh`,afterLabel:c=>{if(c.datasetIndex!==1)return;const q=pct(c.parsed.y,c.chart.data.datasets[0].data[c.dataIndex]);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs '+(year-1)}}}},
-    scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,ticks:{color:txt},grid:{color:grid}}}}});
+    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y,2)} MWh`,afterLabel:c=>{if(c.datasetIndex!==1)return;const q=pct(c.parsed.y,c.chart.data.datasets[0].data[c.dataIndex]);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs '+(year-1)}}}},
+    scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
 function table(){
   const rows=data.filter(d=>d.m.startsWith(year+'-')).sort((a,b)=>b.m.localeCompare(a.m));
