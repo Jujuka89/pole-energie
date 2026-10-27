@@ -42,6 +42,15 @@ th:first-child,td:first-child{text-align:left}
 th{font-size:.85rem;color:var(--mute);font-weight:600}
 .empty{color:var(--mute);text-align:center;padding:20px}
 .note{color:var(--mute);font-size:.85rem;margin:12px 0 0}
+.proj{border:1px solid var(--line);border-radius:8px;padding:14px;margin-top:12px}
+.proj h3{margin:0;font-size:1.05rem}.proj p{margin:6px 0}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0}.bar i{display:block;height:100%;background:var(--ok)}
+.task{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.task.done .t{text-decoration:line-through;color:var(--mute)}.task .d{margin-left:auto;color:var(--mute);font-size:.85rem}
+.late{color:var(--bad)!important;font-weight:600}
+.addt{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.addt input[type=text]{flex:1;min-width:160px}
+.badge{font-size:.78rem;padding:2px 10px;border-radius:999px;background:var(--bg);color:var(--mute)}.badge.ok{color:var(--ok);font-weight:600}
+body.out .edit-only{display:none!important}
 </style>
 </head>
 <body>
@@ -52,7 +61,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
     <h1>Consommations d’énergie</h1>
     <p class="sub">Électricité et calories, relevés mensuels</p>
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
@@ -77,7 +86,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
-<section id="authBar">
+<div id="slotRel"><section id="authBar">
   <form id="loginForm">
     <label>E-mail <input type="email" id="lem" required autocomplete="username"></label>
     <label>Mot de passe <input type="password" id="lpw" required autocomplete="current-password"></label>
@@ -85,7 +94,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   </form>
   <div class="tools"><span id="who"></span><button id="logout" type="button" hidden>Se déconnecter</button></div>
   <p id="status" class="note" role="status"></p>
-</section>
+</section></div>
 <section id="formSec" hidden>
   <h2 id="formTitle">Ajouter un relevé</h2>
   <form id="form">
@@ -123,11 +132,36 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   <p class="note">Les relevés sont stockés dans Firebase (Firestore) et partagés en temps réel. Seules les personnes connectées peuvent les modifier.</p>
 </section>
 </div>
+<div id="vProj" hidden>
+<header>
+  <div>
+    <h1>Projets</h1>
+    <p class="sub">Suivi des projets et des tâches à effectuer</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<div id="slotProj"></div>
+<section id="projForm" hidden>
+  <h2>Nouveau projet</h2>
+  <form id="pForm">
+    <label>Nom du projet <input id="pn" required maxlength="120"></label>
+    <label>Responsable <input id="pr" maxlength="80"></label>
+    <label>Échéance <input type="date" id="pd"></label>
+    <label style="grid-column:1/-1">Description <input id="pdesc" maxlength="300"></label>
+    <div class="tools"><button class="main" type="submit">Ajouter le projet</button></div>
+  </form>
+</section>
+<section>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets</h2>
+    <label>Afficher <select id="pf"><option value="cours">En cours</option><option value="fini">Terminés</option><option value="tous">Tous</option></select></label></div>
+  <div id="projList"></div>
+</section>
+</div>
 </main>
 
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch,addDoc,updateDoc} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyCOTfF1ZkMJTQTbQ0kAE_Yv4Wut2P6d_QE",
@@ -341,6 +375,44 @@ $('pdf').onclick=()=>{
   doc.text('Coût = MWh x prix du mois (ou prix par défaut). Variations calculées sur les mêmes mois que l\'année précédente.',M,43+12*8+14);
   doc.save('rapport-energie-'+year+'.pdf');
 };
+
+let projets=[],user=null,unsubP=null;
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dfr=v=>v?new Date(v+'T00:00').toLocaleDateString('fr-FR'):'';
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const refus=()=>alert('Action refusée : êtes-vous connecté avec un compte autorisé ?');
+function listenProj(){
+  if(unsubP)unsubP();
+  unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj()},
+    ()=>{projets=[];$('projList').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
+}
+function card(p){
+  const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,done=n&&k===n,pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done,dis=user?'':'disabled';
+  const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.echeance?`<span class="${late?'late':''}">Échéance : ${dfr(p.echeance)}${late?' (dépassée)':''}</span>`:''].filter(Boolean).join(' · ');
+  return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
+    <div><span class="badge ${done?'ok':''}">${done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
+    ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    ${t.map(x=>`<div class="task ${x.fait?'done':''}"><input type="checkbox" data-tog="${p.id}|${x.id}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span><span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${p.id}|${x.id}" aria-label="Supprimer la tâche">✕</button></div>`).join('')}
+    <div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><button data-addt="${p.id}">Ajouter la tâche</button></div></article>`;
+}
+function renderProj(){
+  const f=$('pf').value;
+  const l=projets.filter(p=>{const t=p.taches||[],d=t.length&&t.every(x=>x.fait);return f==='tous'||(f==='fini'?d:!d)}).sort((a,b)=>(a.echeance||'9999').localeCompare(b.echeance||'9999'));
+  $('projList').innerHTML=l.length?l.map(card).join(''):'<p class="empty">Aucun projet à afficher.</p>';
+}
+$('pf').onchange=renderProj;
+$('pForm').onsubmit=async ev=>{ev.preventDefault();
+  try{await addDoc(collection(db,'projets'),{nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),taches:[],cree:Date.now()});$('pForm').reset()}catch(e){refus()}};
+const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid);return updateDoc(doc(db,'projets',pid),{taches:fn(p.taches||[])}).catch(()=>{refus();renderProj()})};
+$('projList').onclick=ev=>{const d=ev.target.dataset;
+  if(d.delp&&confirm('Supprimer ce projet et toutes ses tâches ?'))deleteDoc(doc(db,'projets',d.delp)).catch(refus);
+  if(d.delt){const[pid,tid]=d.delt.split('|');upd(pid,t=>t.filter(x=>x.id!==tid))}
+  if(d.addt){const pid=d.addt,txt=document.querySelector(`[data-nt="${pid}"]`).value.trim(),ech=document.querySelector(`[data-ntd="${pid}"]`).value||null;
+    if(txt)upd(pid,t=>[...t,{id:uid(),t:txt,fait:false,ech}])}};
+$('projList').onchange=ev=>{const v=ev.target.dataset.tog;if(!v)return;const[pid,tid]=v.split('|'),c=ev.target.checked;upd(pid,t=>t.map(x=>x.id===tid?{...x,fait:c}:x))};
+$('projList').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
 $('cancel').onclick=reset;
 $('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
 $('year').onchange=$('year2').onchange=ev=>{year=+ev.target.value;render()};
@@ -361,11 +433,11 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const r=location.hash==='#releves';$('vDash').hidden=r;$('vRel').hidden=!r;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
+function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;(pj?$('slotProj'):$('slotRel')).appendChild($('authBar'));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 reset();render();route();
 onAuthStateChanged(auth,u=>{
-  document.body.classList.toggle('out',!u);
+  document.body.classList.toggle('out',!u);user=u;$('projForm').hidden=!u;listenProj();
   $('loginForm').hidden=!!u;$('logout').hidden=!u;$('formSec').hidden=!u;$('imp').hidden=!u;
   $('who').textContent=u?u.email:'';listen();
 });
