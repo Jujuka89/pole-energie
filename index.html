@@ -55,7 +55,9 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
-<div class="kpis" id="kpis"></div>
+<div class="kpis" id="kpisTop"></div>
+<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div></section>
+<div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
   <section><h2>Calories (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
@@ -178,11 +180,12 @@ const dc=(a,b,k)=>{const r=cmp(a,b);return r?pillCost(r):delta(k)+(manque(k)?hin
 function kpis(){
   const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g'),pe=prix(e,ce),pg=prix(g,cg),
   c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g'),c1=tc(ce1,cg1);
-  $('kpis').innerHTML=`
+  $('kpisTop').innerHTML=`
   <div class="kpi c top"><div class="split">
     <div><span>Énergie totale ${year}</span><b>${mwh(tot)} MWh</b><span>Électricité ${fmt(tot?sum(e)/tot*100:null)} % · calories ${fmt(tot?sum(g)/tot*100:null)} %</span></div>
     <div><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span>${deltaCost(c,c1,'e')}</div>
-  </div></div>
+  </div></div>`;
+  $('kpis').innerHTML=`
   <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${dc(ce,ce1,'e')}</div>
   <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${dc(cg,cg1,'g')}</div>`;
 }
@@ -200,6 +203,21 @@ const pctPlugin={id:'pct',afterDatasetsDraw(ch){
   });
   ctx.restore();
 }};
+function cumul(y){const e=val(y,'e'),g=val(y,'g');let last=-1;for(let i=0;i<12;i++)if(e[i]!=null||g[i]!=null)last=i;let a=0,b=0;
+  return Array.from({length:12},(_,i)=>{if(i>last)return null;a+=e[i]||0;b+=g[i]||0;return{e:a/1000,g:b/1000,t:(a+b)/1000}})}
+function drawCumul(){
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
+  const c=cumul(year),p=cumul(year-1);
+  const ds=[
+    {label:'Total '+(year-1),data:p.map(o=>o&&o.t),borderColor:col('--prev'),backgroundColor:col('--prev'),borderDash:[6,4],pointRadius:0,borderWidth:2},
+    {label:'Électricité',data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
+    {label:'Calories',data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
+    {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
+  if(charts.cC){charts.cC.data.datasets=ds;charts.cC.options.scales.x.ticks.color=txt;charts.cC.update();return}
+  charts.cC=new Chart($('cC'),{type:'line',data:{labels:MOIS,datasets:ds},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`}}},
+    scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
+}
 function draw(id,k,color){
   const css=getComputedStyle(document.documentElement),txt=css.getPropertyValue('--mute').trim(),grid=css.getPropertyValue('--line').trim();
   const ds=[{label:String(year-1),data:val(year-1,k).map(v=>v==null?null:v/1000),backgroundColor:css.getPropertyValue('--prev').trim()},
@@ -218,7 +236,7 @@ function table(){
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=$('year2').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');table();$('pdf').textContent='Télécharger le rapport PDF '+year;
+  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');drawCumul();table();$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
 function reset(){$('form').reset();$('m').value=new Date().toISOString().slice(0,7);$('formTitle').textContent='Ajouter un relevé';$('cancel').hidden=true}
