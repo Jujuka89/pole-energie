@@ -81,6 +81,14 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
     <div class="tools"><button class="main" type="submit">Enregistrer</button><button type="button" id="cancel" hidden>Annuler</button></div>
   </form>
   <p class="note">Si vous saisissez un mois déjà présent, il est remplacé.</p>
+  <h2 style="margin-top:20px">Prix au MWh</h2>
+  <form id="prixForm">
+    <label>Électricité (€/MWh) <input type="number" id="pe" min="0" step="any"></label>
+    <label>Calories (€/MWh) <input type="number" id="pg" min="0" step="any"></label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="force"> Toujours utiliser ces prix (ignorer les coûts saisis)</label>
+    <div class="tools"><button class="main" type="submit">Enregistrer les prix</button></div>
+  </form>
+  <p class="note">Quand un coût est vide, il est calculé : MWh × prix (affiché avec ~ dans le tableau).</p>
 </section>
 
 <section>
@@ -116,7 +124,7 @@ const firebaseConfig={
   appId:"1:559838678306:web:52f2fae0a91d7bf448a97b"
 };
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
-let unsub=null,first=true;
+let unsub=null,first=true,prices={};
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const $=id=>document.getElementById(id);
 const mwh=v=>v==null?'–':(v/1000).toLocaleString('fr-FR',{maximumFractionDigits:0});
@@ -127,11 +135,17 @@ const status=t=>{$('status').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    data=snap.docs.map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};
+    $('pe').value=prices.e??'';$('pg').value=prices.g??'';$('force').checked=!!prices.force;
+    data=snap.docs.filter(d=>d.id!=='_prix').map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
 const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
+const costOf=(d,k)=>{const c=d['c'+k],pr=prices[k],est=d[k]!=null&&pr?d[k]/1000*pr:null;
+  if(prices.force&&est!=null)return{v:est,est:true};if(c!=null)return{v:c,est:false};return est!=null?{v:est,est:true}:null};
+const costArr=(y,k)=>Array.from({length:12},(_,i)=>{const d=data.find(x=>x.m===`${y}-${String(i+1).padStart(2,'0')}`);const r=d&&costOf(d,k);return r?r.v:null});
+const cc=(d,k)=>{const r=costOf(d,k);return r?(r.est?`<i title="Estimé avec le prix au MWh">~${fmt(r.v,0)}</i>`:fmt(r.v,2)):'–'};
 const sum=a=>a.reduce((s,v)=>s+(v||0),0);
 const count=a=>a.filter(v=>v!=null).length;
 
@@ -144,11 +158,11 @@ function delta(k){
 }
 const prix=(cons,cost)=>{let k=0,c=0;cons.forEach((v,i)=>{if(v!=null&&cost[i]!=null){k+=v;c+=cost[i]}});return k?c/(k/1000):null};
 function kpis(){
-  const e=val(year,'e'),g=val(year,'g'),ce=val(year,'ce'),cg=val(year,'cg'),pe=prix(e,ce),pg=prix(g,cg),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
+  const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g'),pe=prix(e,ce),pg=prix(g,cg),c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0));
   $('kpis').innerHTML=`
   <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}</div>
   <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>
-  <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span><br><span>Coûts saisis : élec. ${count(ce)}/${count(e)} mois · calories ${count(cg)}/${count(g)} mois</span></div>
+  <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span><br><span>Coûts pris en compte : élec. ${count(ce)}/${count(e)} mois · calories ${count(cg)}/${count(g)} mois</span></div>
   <div class="kpi c"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · calories ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
@@ -176,7 +190,7 @@ function draw(id,k,color){
 }
 function table(){
   const rows=data.filter(d=>d.m.startsWith(year+'-')).sort((a,b)=>b.m.localeCompare(a.m));
-  $('rows').innerHTML=rows.length?rows.map(d=>`<tr><td>${MOIS[+d.m.slice(5)-1]} ${d.m.slice(0,4)}</td><td>${fmt(d.e,1)}</td><td>${fmt(d.g,1)}</td><td>${fmt(d.ce,2)}</td><td>${fmt(d.cg,2)}</td>
+  $('rows').innerHTML=rows.length?rows.map(d=>`<tr><td>${MOIS[+d.m.slice(5)-1]} ${d.m.slice(0,4)}</td><td>${fmt(d.e,1)}</td><td>${fmt(d.g,1)}</td><td>${cc(d,'e')}</td><td>${cc(d,'g')}</td>
     <td><button class="link" data-edit="${d.m}">Modifier</button><button class="link" data-del="${d.m}">Supprimer</button></td></tr>`).join('')
     :'<tr><td colspan="6" class="empty">Aucun relevé pour '+year+'. Ajoutez le premier avec le formulaire ci-dessus.</td></tr>';
 }
@@ -194,6 +208,7 @@ $('form').onsubmit=async ev=>{
   try{await setDoc(doc(db,'releves',r.m),{e:r.e,g:r.g,ce:r.ce,cg:r.cg});reset()}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}
 };
 $('cancel').onclick=reset;
+$('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value),force:$('force').checked})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
 $('year').onchange=ev=>{year=+ev.target.value;render()};
 $('rows').onclick=ev=>{
   const ed=ev.target.dataset.edit,del=ev.target.dataset.del;
