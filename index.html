@@ -56,7 +56,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
-<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div></section>
+<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
@@ -205,6 +205,21 @@ const pctPlugin={id:'pct',afterDatasetsDraw(ch){
 }};
 function cumul(y){const e=val(y,'e'),g=val(y,'g');let last=-1;for(let i=0;i<12;i++)if(e[i]!=null||g[i]!=null)last=i;let a=0,b=0;
   return Array.from({length:12},(_,i)=>{if(i>last)return null;a+=e[i]||0;b+=g[i]||0;return{e:a/1000,g:b/1000,t:(a+b)/1000}})}
+const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),ctx=ch.ctx,ds=ch.data.datasets;
+  const items=[];
+  [['Total',5,0],['Calories',4,2],['Élec.',3,1]].forEach(([nom,ci,pi])=>{
+    const cur=ds[ci].data;let l=-1;cur.forEach((v,i)=>{if(v!=null)l=i});if(l<0)return;
+    const pv=ds[pi].data[l];if(pv==null)return;
+    const d=cur[l]-pv,q=pv?d/pv*100:null,sg=Math.round(d)>0?'+':'';
+    const pt=ch.getDatasetMeta(ci).data[l];
+    items.push({x:pt.x,y:pt.y,c:col(Math.round(d)>0?'--bad':Math.round(d)<0?'--ok':'--mute'),t:`${nom} ${sg}${fmt(d)} MWh${q==null?'':` (${sg}${fmt(q,1)} %)`}`});
+  });
+  items.sort((a,b)=>a.y-b.y);for(let i=1;i<items.length;i++)if(items[i].y-items[i-1].y<14)items[i].y=items[i-1].y+14;
+  ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+  items.forEach(o=>{ctx.fillStyle=o.c;ctx.fillText(o.t,o.x+9,o.y)});
+  ctx.restore();
+}};
 function drawCumul(){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
   const c=cumul(year),p=cumul(year-1);
@@ -216,7 +231,7 @@ function drawCumul(){
     {label:'Calories '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
     {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
   if(charts.cC){charts.cC.data.datasets=ds;charts.cC.options.scales.x.ticks.color=txt;charts.cC.update();return}
-  charts.cC=new Chart($('cC'),{type:'line',data:{labels:MOIS,datasets:ds},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+  charts.cC=new Chart($('cC'),{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin],options:{maintainAspectRatio:false,layout:{padding:{right:150}},interaction:{mode:'index',intersect:false},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`}}},
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
