@@ -93,7 +93,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
     <label>Prix calories (€/MWh) <input type="number" id="cg" min="0" step="any"></label>
     <div class="tools"><button class="main" type="submit">Enregistrer</button><button type="button" id="cancel" hidden>Annuler</button></div>
   </form>
-  <p class="note">Si vous saisissez un mois déjà présent, il est remplacé. Coût = MWh × prix du mois ; si le prix est vide, le prix par défaut ci-dessous est utilisé.</p>
+  <p class="note">Si le mois existe déjà, seuls les champs remplis sont mis à jour : les champs vides conservent leur valeur. Pour effacer une valeur, utilisez « Modifier » dans le tableau. Coût = MWh × prix du mois ; si le prix est vide, le prix par défaut ci-dessous est utilisé.</p>
   <h2 style="margin-top:20px">Prix par défaut au MWh</h2>
   <form id="prixForm">
     <label>Électricité (€/MWh) <input type="number" id="pe" min="0" step="any"></label>
@@ -226,7 +226,10 @@ $('form').onsubmit=async ev=>{
   ev.preventDefault();
   const r={m:$('m').value,e:num($('e').value),g:num($('g').value),ce:num($('ce').value),cg:num($('cg').value)};
   year=+r.m.slice(0,4);
-  try{await setDoc(doc(db,'releves',r.m),{e:r.e,g:r.g,ce:r.ce,cg:r.cg});reset()}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}
+  const editing=!$('cancel').hidden,all={e:r.e,g:r.g,ce:r.ce,cg:r.cg};
+  const upd=editing?all:Object.fromEntries(Object.entries(all).filter(([,v])=>v!=null));
+  if(!editing&&!Object.keys(upd).length){alert('Renseignez au moins une valeur.');return}
+  try{await setDoc(doc(db,'releves',r.m),upd,{merge:!editing});reset()}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}
 };
 
 function chartImg(k,col,title){
