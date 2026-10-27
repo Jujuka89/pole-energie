@@ -23,7 +23,7 @@ section{margin-top:16px}
 .kpi b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.2}
 .kpi span{color:var(--mute);font-size:.88rem}
 .kpi.e{border-top:4px solid var(--elec)}.kpi.g{border-top:4px solid var(--gaz)}.kpi.c{border-top:4px solid var(--mute)}
-.delta{display:inline-block;font-size:.88rem;font-weight:700;padding:2px 10px;border-radius:999px}.up{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,transparent)}.down{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}.flat{color:var(--mute);background:var(--bg)}
+.delta{display:inline-block;margin-top:4px;font-size:.88rem;font-weight:700;padding:2px 10px;border-radius:999px}.up{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,transparent)}.down{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}.flat{color:var(--mute);background:var(--bg)}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
 .charts section{margin:0}
 .box{position:relative;height:280px}
@@ -161,16 +161,20 @@ function delta(k){
   return `<span class="delta ${p>0?'up':p<0?'down':'flat'}">${p>0?'▲ +':p<0?'▼ ':''}${fmt(p,1)} % vs ${year-1} (mêmes mois)</span>`;
 }
 const prix=(cons,cost)=>{let k=0,c=0;cons.forEach((v,i)=>{if(v!=null&&cost[i]!=null){k+=v;c+=cost[i]}});return k?c/(k/1000):null};
+const tc=(x,y)=>x.map((v,i)=>v==null&&y[i]==null?null:(v||0)+(y[i]||0));
+const cmp=(a,b)=>{let s1=0,s0=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});return s0?{d:s1-s0,q:(s1-s0)/s0*100}:null};
+function deltaCost(a,b){const r=cmp(a,b);if(!r)return '';const {d,q}=r;
+  return `<br><span class="delta ${d>0?'up':d<0?'down':'flat'}">Coût ${d>0?'▲ +':d<0?'▼ ':''}${fmt(d)} € (${d>0?'+':''}${fmt(q,1)} %)</span>`}
 function kpis(){
   const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g'),pe=prix(e,ce),pg=prix(g,cg),
-  c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g);
+  c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g'),c1=tc(ce1,cg1);
   $('kpis').innerHTML=`
   <div class="kpi c top"><div class="split">
     <div><span>Énergie totale ${year}</span><b>${mwh(tot)} MWh</b><span>Électricité ${fmt(tot?sum(e)/tot*100:null)} % · calories ${fmt(tot?sum(g)/tot*100:null)} %</span></div>
-    <div><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span></div>
+    <div><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span>${deltaCost(c,c1)}</div>
   </div></div>
-  <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}</div>
-  <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>`;
+  <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}${deltaCost(ce,ce1)}</div>
+  <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}${deltaCost(cg,cg1)}</div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
 const pctPlugin={id:'pct',afterDatasetsDraw(ch){
@@ -231,26 +235,27 @@ $('pdf').onclick=()=>{
   if(!data.some(d=>d.m.startsWith(year+'-'))){alert('Aucun relevé pour '+year+'.');return}
   const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),M=14;
   const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g');
-  const tot=sum(e)+sum(g),ctot=sum(ce)+sum(cg);
+  const tot=sum(e)+sum(g),ctot=sum(ce)+sum(cg),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g');
   const pf=t=>String(t).replace(/[\u202f\u00a0]/g,' ').replace(/–/g,'-');
   const MW=v=>pf(mwh(v)),N=(v,d=0)=>pf(fmt(v,d));
   const vt=k=>{const a=val(year,k),b=val(year-1,k);let s1=0,s0=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});
     if(!s0)return 'pas de comparaison avec '+(year-1);const q=(s1-s0)/s0*100;return (q>0?'+':'')+N(q,1)+' % vs '+(year-1)+' (memes mois)'};
+  const vc=(a,b)=>{const r=cmp(a,b);if(!r)return '';const sg=r.d>0?'+':'';return 'Coût : '+sg+N(r.d)+' EUR ('+sg+N(r.q,1)+' %) vs '+(year-1)};
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text('Rapport énergie '+year,M,22);
   doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100);doc.text('Généré le '+new Date().toLocaleDateString('fr-FR'),M,28);
   const box=(x,y,label,value,sub,col)=>{
-    doc.setFillColor(...col);doc.rect(x,y,2,27,'F');
+    doc.setFillColor(...col);doc.rect(x,y,2,31,'F');
     doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text(label,x+5,y+5);
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(value,x+5,y+14);
-    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.forEach((t,i)=>doc.text(t,x+5,y+20+i*4.5));
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.filter(Boolean).forEach((t,i)=>doc.text(t,x+5,y+20+i*4.5));
   };
   const grey=[102,112,117],ver=[31,157,85],rou=[224,49,49];
   box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Calories '+N(tot?sum(g)/tot*100:null)+' %'],grey);
-  box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Calories '+N(sum(cg))+' EUR'],grey);
-  box(M,68,'Électricité',MW(sum(e))+' MWh',['Moyenne '+MW(count(e)?sum(e)/count(e):null)+' MWh/mois',vt('e')],ver);
-  box(M+94,68,'Calories',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g')],rou);
-  doc.addImage(chartImg('e','#1f9d55','Électricité (MWh par mois)'),'PNG',M,102,182,77);
-  doc.addImage(chartImg('g','#e03131','Calories (MWh par mois)'),'PNG',M,183,182,77);
+  box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Calories '+N(sum(cg))+' EUR',vc(tc(ce,cg),tc(ce1,cg1))],grey);
+  box(M,70,'Électricité',MW(sum(e))+' MWh',['Moyenne '+MW(count(e)?sum(e)/count(e):null)+' MWh/mois',vt('e'),vc(ce,ce1)],ver);
+  box(M+94,70,'Calories',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g'),vc(cg,cg1)],rou);
+  doc.addImage(chartImg('e','#1f9d55','Électricité (MWh par mois)'),'PNG',M,105,182,77);
+  doc.addImage(chartImg('g','#e03131','Calories (MWh par mois)'),'PNG',M,185,182,77);
   doc.addPage();
   doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20);doc.text('Détail mensuel '+year,M,22);
   const X=[M,62,92,127,162,196],H=['Mois','Élec. (MWh)','Calories (MWh)','Coût élec. (EUR)','Coût cal. (EUR)','Coût total (EUR)'];
