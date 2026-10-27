@@ -142,12 +142,13 @@ function delta(k){
   const p=(s1-s0)/s0*100;
   return `<span class="delta ${p>0?'up':p<0?'down':'flat'}">${p>0?'▲ +':p<0?'▼ ':''}${fmt(p,1)} % vs ${year-1} (mêmes mois)</span>`;
 }
+const prix=(cons,cost)=>{let k=0,c=0;cons.forEach((v,i)=>{if(v!=null&&cost[i]!=null){k+=v;c+=cost[i]}});return k?c/(k/1000):null};
 function kpis(){
-  const e=val(year,'e'),g=val(year,'g'),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
+  const e=val(year,'e'),g=val(year,'g'),ce=val(year,'ce'),cg=val(year,'cg'),pe=prix(e,ce),pg=prix(g,cg),c=val(year,'ce').map((v,i)=>v==null&&val(year,'cg')[i]==null?null:(v||0)+(val(year,'cg')[i]||0));
   $('kpis').innerHTML=`
   <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}</div>
   <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>
-  <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>${count(c)} mois renseignés</span></div>
+  <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span><br><span>Coûts saisis : élec. ${count(ce)}/${count(e)} mois · calories ${count(cg)}/${count(g)} mois</span></div>
   <div class="kpi c"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · calories ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
