@@ -7,8 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#d99a00;--m2:#8b5cf6;--m3:#0d9488}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#f5b82e;--m2:#a78bfa;--m3:#2dd4bf}}
 *{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -52,6 +52,12 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .badge{font-size:.78rem;padding:2px 10px;border-radius:999px;background:var(--bg);color:var(--mute)}.badge.ok{color:var(--ok);font-weight:600}
 .stats{display:flex;flex-wrap:wrap;gap:8px 24px;margin:10px 0}.stats small{display:block;color:var(--mute);font-size:.75rem}.stats b{font-size:.95rem}.stars{color:#e0a100;letter-spacing:1px}
 .grp{margin:22px 0 0;font-size:1rem}
+.task{border-left:4px solid transparent;padding-left:8px}.task.m1{border-left-color:var(--m1)}.task.m2{border-left-color:var(--m2)}.task.m3{border-left-color:var(--m3)}
+.badge.m1,.tm.m1{color:var(--m1);background:color-mix(in srgb,var(--m1) 14%,transparent);border-color:var(--m1);font-weight:600}
+.badge.m2,.tm.m2{color:var(--m2);background:color-mix(in srgb,var(--m2) 14%,transparent);border-color:var(--m2);font-weight:600}
+.badge.m3,.tm.m3{color:var(--m3);background:color-mix(in srgb,var(--m3) 14%,transparent);border-color:var(--m3);font-weight:600}
+.tm{padding:2px 6px;font-size:.8rem}.grip{cursor:grab;color:var(--mute);user-select:none;letter-spacing:-2px}
+.task.dragging{opacity:.4}.task.ov-t{box-shadow:0 -2px 0 var(--accent)}.task.ov-b{box-shadow:0 2px 0 var(--accent)}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -386,6 +392,7 @@ function listenProj(){
     ()=>{projets=[];$('projList').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
 }
 const statutOf=p=>{if(p.statut==='a_realiser')return 'a';const t=p.taches||[];return t.length&&t.every(x=>x.fait)?'fini':'cours'};
+const MC={'Élec':'m1','CVC':'m2','Plombier':'m3'};
 function card(p){
   const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini',pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done,dis=user&&!a?'':'disabled';
   const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):'',p.echeance?`<span class="${late?'late':''}">Échéance : ${dfr(p.echeance)}${late?' (dépassée)':''}</span>`:''].filter(Boolean).join(' · ');
@@ -393,7 +400,7 @@ function card(p){
     <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
     ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):`<div class="bar"><i style="width:${pct}%"></i></div>`}
-    ${t.map(x=>`<div class="task ${x.fait?'done':''}"><input type="checkbox" data-tog="${p.id}|${x.id}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${x.m?`<span class="badge">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${p.id}|${x.id}" aria-label="Supprimer la tâche">✕</button></div>`).join('')}
+    ${t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-up="${k}" aria-label="Monter">▲</button><button class="link edit-only" data-dn="${k}" aria-label="Descendre">▼</button><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('')}
     <div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><select data-ntm="${p.id}"><option value="">Corps de métier</option><option>Élec</option><option>CVC</option><option>Plombier</option></select><button data-addt="${p.id}">Ajouter la tâche</button></div>${done?suivi(p):''}</article>`;
 }
 const stars=n=>`<span class="stars">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
@@ -431,16 +438,29 @@ const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={t
 $('projList').onclick=ev=>{const d=ev.target.dataset;
   if(d.start)updateDoc(doc(db,'projets',d.start),{statut:'en_cours',debut:today()}).catch(refus);
   if(d.delp&&confirm('Supprimer ce projet et toutes ses tâches ?'))deleteDoc(doc(db,'projets',d.delp)).catch(refus);
+  if(d.up||d.dn){const[pid,tid]=(d.up||d.dn).split('|'),k=d.up?-1:1;upd(pid,t=>{const i=t.findIndex(x=>x.id===tid),j=i+k;if(i<0||j<0||j>=t.length)return t;const c=t.slice();[c[i],c[j]]=[c[j],c[i]];return c})}
   if(d.delt){const[pid,tid]=d.delt.split('|');upd(pid,t=>t.filter(x=>x.id!==tid))}
   if(d.addt){const pid=d.addt,txt=document.querySelector(`[data-nt="${pid}"]`).value.trim(),ech=document.querySelector(`[data-ntd="${pid}"]`).value||null,m=document.querySelector(`[data-ntm="${pid}"]`).value||null;
     if(txt)upd(pid,t=>[...t,{id:uid(),t:txt,fait:false,ech,m}])}};
 $('projList').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   const w=(pid,o)=>updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()});
   if(d.tog){const[pid,tid]=d.tog.split('|'),c=ev.target.checked;upd(pid,t=>t.map(x=>x.id===tid?{...x,fait:c}:x))}
+  if(d.tm){const[pid,tid]=d.tm.split('|');upd(pid,t=>t.map(x=>x.id===tid?{...x,m:v||null}:x))}
   if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
   if(d.sdate)w(d.sdate,{termine:v||null});
   if(d.snom)w(d.snom,{suiviNom:v.trim()});
 };
+let drag=null;
+const clr=()=>document.querySelectorAll('.task.ov-t,.task.ov-b,.task.dragging').forEach(e=>e.classList.remove('ov-t','ov-b','dragging'));
+$('projList').ondragstart=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!r)return;drag=r.dataset.tk;ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',drag);r.classList.add('dragging')};
+$('projList').ondragover=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!drag||!r||r.dataset.tk.split('|')[0]!==drag.split('|')[0])return;
+  ev.preventDefault();document.querySelectorAll('.task.ov-t,.task.ov-b').forEach(e=>e.classList.remove('ov-t','ov-b'));
+  const b=r.getBoundingClientRect();r.classList.add(ev.clientY>b.top+b.height/2?'ov-b':'ov-t')};
+$('projList').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!drag||!r)return;ev.preventDefault();
+  const[pid,tid]=drag.split('|'),[pid2,tid2]=r.dataset.tk.split('|'),b=r.getBoundingClientRect(),after=ev.clientY>b.top+b.height/2;drag=null;clr();
+  if(pid!==pid2||tid===tid2)return;
+  upd(pid,t=>{const c=t.slice(),f=c.findIndex(x=>x.id===tid);if(f<0)return t;const[it]=c.splice(f,1);let to=c.findIndex(x=>x.id===tid2);if(to<0)return t;if(after)to++;c.splice(to,0,it);return c})};
+$('projList').ondragend=()=>{drag=null;clr()};
 $('projList').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
 $('cancel').onclick=reset;
 $('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
