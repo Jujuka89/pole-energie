@@ -9,7 +9,7 @@
 <style>
 :root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
 @media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
-*{box-sizing:border-box}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
+*{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
 main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
@@ -46,14 +46,34 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 </head>
 <body>
 <main>
+<div id="vDash">
 <header>
   <div>
     <h1>Consommations d’énergie</h1>
     <p class="sub">Électricité et calories, relevés mensuels du lieu de travail</p>
   </div>
-  <label>Année affichée <select id="year"></select></label>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a></div>
 </header>
+<p id="status2" class="note" role="status"></p>
+<div class="kpis" id="kpis"></div>
+<div class="charts" style="margin-top:16px">
+  <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
+  <section><h2>Calories (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
+</div>
+<section style="text-align:center">
+  <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
+  <p class="note">Rapport de l’année affichée : chiffres clés, graphes et tableau mensuel.</p>
+</section>
+</div>
 
+<div id="vRel" hidden>
+<header>
+  <div>
+    <h1>Relevés</h1>
+    <p class="sub">Consultation et saisie des relevés mensuels</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
 <section id="authBar">
   <form id="loginForm">
     <label>E-mail <input type="email" id="lem" required autocomplete="username"></label>
@@ -63,14 +83,6 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   <div class="tools"><span id="who"></span><button id="logout" type="button" hidden>Se déconnecter</button></div>
   <p id="status" class="note" role="status"></p>
 </section>
-
-<div class="kpis" id="kpis"></div>
-
-<div class="charts" style="margin-top:16px">
-  <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
-  <section><h2>Calories (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
-</div>
-
 <section id="formSec" hidden>
   <h2 id="formTitle">Ajouter un relevé</h2>
   <form id="form">
@@ -90,15 +102,13 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   </form>
   <p class="note">Appliqué aux mois sans prix saisi (affiché avec ~ dans le tableau).</p>
 </section>
-
 <section>
-  <h2>Relevés de l’année</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Relevés de l’année</h2><label>Année <select id="year2"></select></label></div>
   <div class="scroll"><table>
     <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Calories (kWh)</th><th>Prix élec. (€/MWh)</th><th>Prix calories (€/MWh)</th><th>Coût élec. (€)</th><th>Coût calories (€)</th><th></th></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
 </section>
-
 <section>
   <h2>Données</h2>
   <div class="tools">
@@ -109,10 +119,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   </div>
   <p class="note">Les relevés sont stockés dans Firebase (Firestore) et partagés en temps réel. Seules les personnes connectées peuvent les modifier.</p>
 </section>
-<section style="text-align:center">
-  <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
-  <p class="note">Rapport de l’année affichée : chiffres clés, graphes et tableau mensuel.</p>
-</section>
+</div>
 </main>
 
 <script type="module">
@@ -135,7 +142,7 @@ const mwh=v=>v==null?'–':(v/1000).toLocaleString('fr-FR',{maximumFractionDigit
 const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('fr-FR',{maximumFractionDigits:d});
 let data=[],year=new Date().getFullYear(),charts={};
 
-const status=t=>{$('status').textContent=t};
+const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
@@ -207,7 +214,7 @@ function table(){
 }
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),new Date().getFullYear(),year])].sort((a,b)=>b-a);
-  $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
+  $('year').innerHTML=$('year2').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
   kpis();draw('cE','e','--elec');draw('cG','g','--gaz');table();$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
@@ -274,7 +281,7 @@ $('pdf').onclick=()=>{
 };
 $('cancel').onclick=reset;
 $('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
-$('year').onchange=ev=>{year=+ev.target.value;render()};
+$('year').onchange=$('year2').onchange=ev=>{year=+ev.target.value;render()};
 $('rows').onclick=ev=>{
   const ed=ev.target.dataset.edit,del=ev.target.dataset.del;
   if(ed){const d=data.find(x=>x.m===ed);$('m').value=d.m;$('e').value=d.e??'';$('g').value=d.g??'';$('ce').value=d.ce??'';$('cg').value=d.cg??'';
@@ -292,7 +299,9 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-reset();render();
+function route(){const r=location.hash==='#releves';$('vDash').hidden=r;$('vRel').hidden=!r;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
+window.addEventListener('hashchange',route);
+reset();render();route();
 onAuthStateChanged(auth,u=>{
   document.body.classList.toggle('out',!u);
   $('loginForm').hidden=!!u;$('logout').hidden=!u;$('formSec').hidden=!u;$('imp').hidden=!u;
