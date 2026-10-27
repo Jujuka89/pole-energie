@@ -51,6 +51,10 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .addt{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.addt input[type=text]{flex:1;min-width:160px}
 .badge{font-size:.78rem;padding:2px 10px;border-radius:999px;background:var(--bg);color:var(--mute)}.badge.ok{color:var(--ok);font-weight:600}
 body.out .edit-only{display:none!important}
+.suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
+.suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
+.svgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;margin-top:12px}
+.sv.cur{color:var(--ink);font-weight:600}.sv.cur input{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 </style>
 </head>
 <body>
@@ -395,23 +399,44 @@ function card(p){
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}
     <div class="bar"><i style="width:${pct}%"></i></div>
     ${t.map(x=>`<div class="task ${x.fait?'done':''}"><input type="checkbox" data-tog="${p.id}|${x.id}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span><span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${p.id}|${x.id}" aria-label="Supprimer la tâche">✕</button></div>`).join('')}
-    <div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><button data-addt="${p.id}">Ajouter la tâche</button></div></article>`;
+    <div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><button data-addt="${p.id}">Ajouter la tâche</button></div>${done?suivi(p):''}</article>`;
+}
+function suivi(p){
+  const dis=user?'':'disabled',s=p.suivi||{},start=p.termine,n=Object.values(s).filter(v=>v!=null).length,now=new Date();
+  let cases='';
+  if(start){const d0=new Date(start+'T00:00');
+    cases=Array.from({length:13},(_,i)=>{const dt=new Date(d0.getFullYear(),d0.getMonth()+i,1);
+      const lab=i?`M+${i} · ${MOIS[dt.getMonth()]} ${dt.getFullYear()}`:'À la fin du projet';
+      const cur=i&&dt.getFullYear()===now.getFullYear()&&dt.getMonth()===now.getMonth();
+      return `<label class="sv ${cur?'cur':''}">${lab}<input type="number" step="any" data-sv="${p.id}|${i}" value="${s[i]??''}" ${dis}></label>`}).join('')}
+  return `<div class="suivi"><h4>Suivi sur 1 an après la fin du projet <span class="badge">${n}/13 valeurs</span></h4>
+    <div class="tools"><label>Compteur suivi <input type="text" data-snom="${p.id}" value="${esc(p.suiviNom||'')}" placeholder="Ex. Électricité atelier (kWh)" maxlength="120" ${dis}></label>
+    <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
+    ${start?`<div class="svgrid">${cases}</div>`:'<p class="note">Indiquez la date de fin du projet pour afficher les cases de suivi.</p>'}</div>`;
 }
 function renderProj(){
+  const a=document.activeElement,key=a&&a.closest&&a.closest('#projList')&&Object.entries(a.dataset)[0];
   const f=$('pf').value;
   const l=projets.filter(p=>{const t=p.taches||[],d=t.length&&t.every(x=>x.fait);return f==='tous'||(f==='fini'?d:!d)}).sort((a,b)=>(a.echeance||'9999').localeCompare(b.echeance||'9999'));
   $('projList').innerHTML=l.length?l.map(card).join(''):'<p class="empty">Aucun projet à afficher.</p>';
+  if(key){const el=document.querySelector('#projList [data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 $('pf').onchange=renderProj;
 $('pForm').onsubmit=async ev=>{ev.preventDefault();
   try{await addDoc(collection(db,'projets'),{nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),taches:[],cree:Date.now()});$('pForm').reset()}catch(e){refus()}};
-const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid);return updateDoc(doc(db,'projets',pid),{taches:fn(p.taches||[])}).catch(()=>{refus();renderProj()})};
+const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
 $('projList').onclick=ev=>{const d=ev.target.dataset;
   if(d.delp&&confirm('Supprimer ce projet et toutes ses tâches ?'))deleteDoc(doc(db,'projets',d.delp)).catch(refus);
   if(d.delt){const[pid,tid]=d.delt.split('|');upd(pid,t=>t.filter(x=>x.id!==tid))}
   if(d.addt){const pid=d.addt,txt=document.querySelector(`[data-nt="${pid}"]`).value.trim(),ech=document.querySelector(`[data-ntd="${pid}"]`).value||null;
     if(txt)upd(pid,t=>[...t,{id:uid(),t:txt,fait:false,ech}])}};
-$('projList').onchange=ev=>{const v=ev.target.dataset.tog;if(!v)return;const[pid,tid]=v.split('|'),c=ev.target.checked;upd(pid,t=>t.map(x=>x.id===tid?{...x,fait:c}:x))};
+$('projList').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
+  const w=(pid,o)=>updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()});
+  if(d.tog){const[pid,tid]=d.tog.split('|'),c=ev.target.checked;upd(pid,t=>t.map(x=>x.id===tid?{...x,fait:c}:x))}
+  if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
+  if(d.sdate)w(d.sdate,{termine:v||null});
+  if(d.snom)w(d.snom,{suiviNom:v.trim()});
+};
 $('projList').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
 $('cancel').onclick=reset;
 $('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
