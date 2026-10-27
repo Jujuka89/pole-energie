@@ -351,7 +351,7 @@ $('pdf').onclick=()=>{
   const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),M=14;
   const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g');
   const tot=sum(e)+sum(g),ctot=sum(ce)+sum(cg),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g');
-  const pf=t=>String(t).replace(/[\u202f\u00a0]/g,' ').replace(/–/g,'-');
+  const pf=t=>String(t).replace(/[\u202f\u00a0]/g,' ').replace(/[–\u2212]/g,'-');
   const MW=v=>pf(mwh(v)),N=(v,d=0)=>pf(fmt(v,d));
   const vt=k=>{const a=val(year,k),b=val(year-1,k);let s1=0,s0=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});
     if(!s0)return 'pas de comparaison avec '+(year-1);const q=(s1-s0)/s0*100;return (q>0?'+':'')+N(q,1)+' % vs '+(year-1)+' (memes mois)'};
@@ -363,7 +363,7 @@ $('pdf').onclick=()=>{
     doc.setFillColor(...col);doc.rect(x,y,2,31,'F');
     doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text(label,x+5,y+5);
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(value,x+5,y+14);
-    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.filter(Boolean).forEach((t,i)=>doc.text(t,x+5,y+20+i*4.5));
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.filter(Boolean).forEach((t,i)=>{const m=/^(Coût : )?([+-])/.exec(t);doc.setTextColor(...(m?(m[2]==='+'?[225,29,46]:[15,157,58]):[100,100,100]));doc.text(t,x+5,y+20+i*4.5)});
   };
   const grey=[102,112,117],ver=[43,125,233],rou=[224,49,49];
   box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Calories '+N(tot?sum(g)/tot*100:null)+' %',vE],grey);
