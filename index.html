@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suivi des consommations d’énergie</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
 @media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
@@ -108,6 +109,10 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
   </div>
   <p class="note">Les relevés sont stockés dans Firebase (Firestore) et partagés en temps réel. Seules les personnes connectées peuvent les modifier.</p>
 </section>
+<section style="text-align:center">
+  <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
+  <p class="note">Rapport de l’année affichée : chiffres clés, graphes et tableau mensuel.</p>
+</section>
 </main>
 
 <script type="module">
@@ -199,7 +204,7 @@ function table(){
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');table();
+  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');table();$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
 function reset(){$('form').reset();$('m').value=new Date().toISOString().slice(0,7);$('formTitle').textContent='Ajouter un relevé';$('cancel').hidden=true}
@@ -208,6 +213,59 @@ $('form').onsubmit=async ev=>{
   const r={m:$('m').value,e:num($('e').value),g:num($('g').value),ce:num($('ce').value),cg:num($('cg').value)};
   year=+r.m.slice(0,4);
   try{await setDoc(doc(db,'releves',r.m),{e:r.e,g:r.g,ce:r.ce,cg:r.cg});reset()}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}
+};
+
+function chartImg(k,col,title){
+  const cv=document.createElement('canvas');cv.width=900;cv.height=380;
+  const f=v=>v==null?null:v/1000;
+  const ch=new Chart(cv,{type:'bar',data:{labels:MOIS,datasets:[
+      {label:String(year-1),data:val(year-1,k).map(f),backgroundColor:'#b9bfc2'},
+      {label:String(year),data:val(year,k).map(f),backgroundColor:col}]},
+    plugins:[pctPlugin,{id:'bg',beforeDraw(c){c.ctx.save();c.ctx.fillStyle='#fff';c.ctx.fillRect(0,0,c.width,c.height);c.ctx.restore()}}],
+    options:{responsive:false,animation:false,devicePixelRatio:2,layout:{padding:{top:34}},
+      plugins:{legend:{labels:{color:'#333'}},title:{display:true,text:title,color:'#111',font:{size:16}}},
+      scales:{x:{ticks:{color:'#333'},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#333'},grid:{color:'#ddd'},title:{display:true,text:'MWh',color:'#333'}}}}});
+  const img=ch.toBase64Image();ch.destroy();return img;
+}
+$('pdf').onclick=()=>{
+  if(!data.some(d=>d.m.startsWith(year+'-'))){alert('Aucun relevé pour '+year+'.');return}
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),M=14;
+  const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g');
+  const tot=sum(e)+sum(g),ctot=sum(ce)+sum(cg);
+  const pf=t=>String(t).replace(/[\u202f\u00a0]/g,' ').replace(/–/g,'-');
+  const MW=v=>pf(mwh(v)),N=(v,d=0)=>pf(fmt(v,d));
+  const vt=k=>{const a=val(year,k),b=val(year-1,k);let s1=0,s0=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});
+    if(!s0)return 'pas de comparaison avec '+(year-1);const q=(s1-s0)/s0*100;return (q>0?'+':'')+N(q,1)+' % vs '+(year-1)+' (memes mois)'};
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(20);doc.text('Rapport énergie '+year,M,22);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(100);doc.text('Généré le '+new Date().toLocaleDateString('fr-FR'),M,28);
+  const box=(x,y,label,value,sub,col)=>{
+    doc.setFillColor(...col);doc.rect(x,y,2,27,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text(label,x+5,y+5);
+    doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(value,x+5,y+14);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.forEach((t,i)=>doc.text(t,x+5,y+20+i*4.5));
+  };
+  const grey=[102,112,117],ver=[31,157,85],rou=[224,49,49];
+  box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Calories '+N(tot?sum(g)/tot*100:null)+' %'],grey);
+  box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Calories '+N(sum(cg))+' EUR'],grey);
+  box(M,68,'Électricité',MW(sum(e))+' MWh',['Moyenne '+MW(count(e)?sum(e)/count(e):null)+' MWh/mois',vt('e')],ver);
+  box(M+94,68,'Calories',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g')],rou);
+  doc.addImage(chartImg('e','#1f9d55','Électricité (MWh par mois)'),'PNG',M,102,182,77);
+  doc.addImage(chartImg('g','#e03131','Calories (MWh par mois)'),'PNG',M,183,182,77);
+  doc.addPage();
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20);doc.text('Détail mensuel '+year,M,22);
+  const X=[M,62,92,127,162,196],H=['Mois','Élec. (MWh)','Calories (MWh)','Coût élec. (EUR)','Coût cal. (EUR)','Coût total (EUR)'];
+  const row=(y,c,bold)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(9.5);c.forEach((t,i)=>doc.text(t,X[i],y,{align:i?'right':'left'}))};
+  doc.setTextColor(100);row(32,H,true);doc.setDrawColor(200);doc.line(M,35,196,35);doc.setTextColor(20);
+  MOIS.forEach((m,i)=>{
+    const ct=ce[i]==null&&cg[i]==null?null:(ce[i]||0)+(cg[i]||0),y=43+i*8;
+    row(y,[m,MW(e[i]),MW(g[i]),ce[i]==null?'-':N(ce[i]),cg[i]==null?'-':N(cg[i]),ct==null?'-':N(ct)]);
+    doc.setDrawColor(235);doc.line(M,y+2.5,196,y+2.5);
+  });
+  doc.setDrawColor(120);doc.line(M,43+12*8-4.5,196,43+12*8-4.5);
+  row(43+12*8+2,['Total',MW(sum(e)),MW(sum(g)),N(sum(ce)),N(sum(cg)),N(ctot)],true);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(120);
+  doc.text('Coût = MWh x prix du mois (ou prix par défaut). Variations calculées sur les mêmes mois que l\'année précédente.',M,43+12*8+14);
+  doc.save('rapport-energie-'+year+'.pdf');
 };
 $('cancel').onclick=reset;
 $('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
