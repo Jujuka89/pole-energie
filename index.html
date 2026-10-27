@@ -7,8 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d}}
 *{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -80,7 +80,7 @@ body.out .edit-only{display:none!important}
 </div>
 <section style="text-align:center">
   <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
-  <p class="note">Rapport de l’année affichée : chiffres clés, graphes et tableau mensuel.</p>
+  <p class="note">Rapport de l’année affichée : chiffres clés et graphes.</p>
 </section>
 </div>
 
@@ -365,27 +365,13 @@ $('pdf').onclick=()=>{
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(value,x+5,y+14);
     doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.filter(Boolean).forEach((t,i)=>doc.text(t,x+5,y+20+i*4.5));
   };
-  const grey=[102,112,117],ver=[31,157,85],rou=[224,49,49];
+  const grey=[102,112,117],ver=[43,125,233],rou=[224,49,49];
   box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Calories '+N(tot?sum(g)/tot*100:null)+' %',vE],grey);
   box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Calories '+N(sum(cg))+' EUR',vc(tc(ce,cg),tc(ce1,cg1),'t')],grey);
   box(M,70,'Électricité',MW(sum(e))+' MWh',['Moyenne '+MW(count(e)?sum(e)/count(e):null)+' MWh/mois',vt('e'),vc(ce,ce1,'e')],ver);
   box(M+94,70,'Calories',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g'),vc(cg,cg1,'g')],rou);
-  doc.addImage(chartImg('e','#1f9d55','Électricité (MWh par mois)'),'PNG',M,105,182,77);
+  doc.addImage(chartImg('e','#2b7de9','Électricité (MWh par mois)'),'PNG',M,105,182,77);
   doc.addImage(chartImg('g','#e03131','Calories (MWh par mois)'),'PNG',M,185,182,77);
-  doc.addPage();
-  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20);doc.text('Détail mensuel '+year,M,22);
-  const X=[M,62,92,127,162,196],H=['Mois','Élec. (MWh)','Calories (MWh)','Coût élec. (EUR)','Coût cal. (EUR)','Coût total (EUR)'];
-  const row=(y,c,bold)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(9.5);c.forEach((t,i)=>doc.text(t,X[i],y,{align:i?'right':'left'}))};
-  doc.setTextColor(100);row(32,H,true);doc.setDrawColor(200);doc.line(M,35,196,35);doc.setTextColor(20);
-  MOIS.forEach((m,i)=>{
-    const ct=ce[i]==null&&cg[i]==null?null:(ce[i]||0)+(cg[i]||0),y=43+i*8;
-    row(y,[m,MW(e[i]),MW(g[i]),ce[i]==null?'-':N(ce[i]),cg[i]==null?'-':N(cg[i]),ct==null?'-':N(ct)]);
-    doc.setDrawColor(235);doc.line(M,y+2.5,196,y+2.5);
-  });
-  doc.setDrawColor(120);doc.line(M,43+12*8-4.5,196,43+12*8-4.5);
-  row(43+12*8+2,['Total',MW(sum(e)),MW(sum(g)),N(sum(ce)),N(sum(cg)),N(ctot)],true);
-  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(120);
-  doc.text('Coût = MWh x prix du mois (ou prix par défaut). Variations calculées sur les mêmes mois que l\'année précédente.',M,43+12*8+14);
   doc.save('rapport-energie-'+year+'.pdf');
 };
 
