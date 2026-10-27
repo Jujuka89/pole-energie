@@ -18,7 +18,7 @@ h2{font-size:1.05rem;margin:0 0 12px}
 .sub{color:var(--mute);margin:2px 0 0;font-size:.92rem}
 section,.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
 section{margin-top:16px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.kpi.top,.kpi.cost{grid-column:1/-1}@media (max-width:560px){.kpis{grid-template-columns:1fr}}
 .kpi b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.2}
 .kpi span{color:var(--mute);font-size:.88rem}
 .kpi.e{border-top:4px solid var(--elec)}.kpi.g{border-top:4px solid var(--gaz)}.kpi.c{border-top:4px solid var(--mute)}
@@ -160,10 +160,10 @@ const prix=(cons,cost)=>{let k=0,c=0;cons.forEach((v,i)=>{if(v!=null&&cost[i]!=n
 function kpis(){
   const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g'),pe=prix(e,ce),pg=prix(g,cg),c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0));
   $('kpis').innerHTML=`
+  <div class="kpi c top"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · calories ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>
   <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}</div>
   <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}</div>
-  <div class="kpi c"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span><br><span>Coûts pris en compte : élec. ${count(ce)}/${count(e)} mois · calories ${count(cg)}/${count(g)} mois</span></div>
-  <div class="kpi c"><span>Énergie totale ${year}</span><b>${mwh(sum(e)+sum(g))} MWh</b><span>Électricité ${fmt(sum(e)+sum(g)?sum(e)/(sum(e)+sum(g))*100:null)} % · calories ${fmt(sum(e)+sum(g)?sum(g)/(sum(e)+sum(g))*100:null)} %</span></div>`;
+  <div class="kpi c cost"><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span><br><span>Coûts pris en compte : élec. ${count(ce)}/${count(e)} mois · calories ${count(cg)}/${count(g)} mois</span></div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
 const pctPlugin={id:'pct',afterDatasetsDraw(ch){
