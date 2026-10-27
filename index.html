@@ -210,8 +210,10 @@ function drawCumul(){
   const c=cumul(year),p=cumul(year-1);
   const ds=[
     {label:'Total '+(year-1),data:p.map(o=>o&&o.t),borderColor:col('--prev'),backgroundColor:col('--prev'),borderDash:[6,4],pointRadius:0,borderWidth:2},
-    {label:'Électricité',data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
-    {label:'Calories',data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
+    {label:'Électricité '+(year-1),data:p.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderDash:[3,4],pointRadius:0,borderWidth:2},
+    {label:'Calories '+(year-1),data:p.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderDash:[3,4],pointRadius:0,borderWidth:2},
+    {label:'Électricité '+year,data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
+    {label:'Calories '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
     {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
   if(charts.cC){charts.cC.data.datasets=ds;charts.cC.options.scales.x.ticks.color=txt;charts.cC.update();return}
   charts.cC=new Chart($('cC'),{type:'line',data:{labels:MOIS,datasets:ds},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
