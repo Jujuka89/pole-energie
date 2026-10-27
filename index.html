@@ -51,6 +51,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .addt{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.addt input[type=text]{flex:1;min-width:160px}
 .badge{font-size:.78rem;padding:2px 10px;border-radius:999px;background:var(--bg);color:var(--mute)}.badge.ok{color:var(--ok);font-weight:600}
 .stats{display:flex;flex-wrap:wrap;gap:8px 24px;margin:10px 0}.stats small{display:block;color:var(--mute);font-size:.75rem}.stats b{font-size:.95rem}.stars{color:#e0a100;letter-spacing:1px}
+.grp{margin:22px 0 0;font-size:1rem}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -147,7 +148,7 @@ body.out .edit-only{display:none!important}
 </header>
 <div id="slotProj"></div>
 <section id="projForm" hidden>
-  <h2>Nouveau projet</h2>
+  <h2>Nouveau projet à réaliser</h2>
   <form id="pForm">
     <label>Nom du projet <input id="pn" required maxlength="120"></label>
     <label>Responsable <input id="pr" maxlength="80"></label>
@@ -162,7 +163,7 @@ body.out .edit-only{display:none!important}
 </section>
 <section>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets</h2>
-    <label>Afficher <select id="pf"><option value="cours">En cours</option><option value="fini">Terminés</option><option value="tous">Tous</option></select></label></div>
+    <label>Afficher <select id="pf"><option value="tous">Tous</option><option value="a">À réaliser</option><option value="cours">En cours</option><option value="fini">Terminés</option></select></label></div>
   <div id="projList"></div>
 </section>
 </div>
@@ -396,13 +397,14 @@ function listenProj(){
   unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj()},
     ()=>{projets=[];$('projList').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
 }
+const statutOf=p=>{if(p.statut==='a_realiser')return 'a';const t=p.taches||[];return t.length&&t.every(x=>x.fait)?'fini':'cours'};
 function card(p){
-  const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,done=n&&k===n,pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done,dis=user?'':'disabled';
-  const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.echeance?`<span class="${late?'late':''}">Échéance : ${dfr(p.echeance)}${late?' (dépassée)':''}</span>`:''].filter(Boolean).join(' · ');
+  const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini',pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done,dis=user&&!a?'':'disabled';
+  const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):'',p.echeance?`<span class="${late?'late':''}">Échéance : ${dfr(p.echeance)}${late?' (dépassée)':''}</span>`:''].filter(Boolean).join(' · ');
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
-    <div><span class="badge ${done?'ok':''}">${done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
+    <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
-    <div class="bar"><i style="width:${pct}%"></i></div>
+    ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):`<div class="bar"><i style="width:${pct}%"></i></div>`}
     ${t.map(x=>`<div class="task ${x.fait?'done':''}"><input type="checkbox" data-tog="${p.id}|${x.id}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${x.m?`<span class="badge">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${p.id}|${x.id}" aria-label="Supprimer la tâche">✕</button></div>`).join('')}
     <div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><select data-ntm="${p.id}"><option value="">Corps de métier</option><option>Élec</option><option>CVC</option><option>Plombier</option></select><button data-addt="${p.id}">Ajouter la tâche</button></div>${done?suivi(p):''}</article>`;
 }
@@ -429,15 +431,17 @@ function suivi(p){
 function renderProj(){
   const a=document.activeElement,key=a&&a.closest&&a.closest('#projList')&&Object.entries(a.dataset)[0];
   const f=$('pf').value;
-  const l=projets.filter(p=>{const t=p.taches||[],d=t.length&&t.every(x=>x.fait);return f==='tous'||(f==='fini'?d:!d)}).sort((a,b)=>(a.echeance||'9999').localeCompare(b.echeance||'9999'));
-  $('projList').innerHTML=l.length?l.map(card).join(''):'<p class="empty">Aucun projet à afficher.</p>';
+  const lab={a:'À réaliser',cours:'En cours',fini:'Terminés'},srt=projets.slice().sort((x,y)=>(x.echeance||'9999').localeCompare(y.echeance||'9999'));
+  const html=['a','cours','fini'].filter(g=>f==='tous'||f===g).map(g=>{const l=srt.filter(x=>statutOf(x)===g);return l.length?`<h3 class="grp">${lab[g]} (${l.length})</h3>${l.map(card).join('')}`:''}).join('');
+  $('projList').innerHTML=html||'<p class="empty">Aucun projet à afficher.</p>';
   if(key){const el=document.querySelector('#projList [data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 $('pf').onchange=renderProj;
 $('pForm').onsubmit=async ev=>{ev.preventDefault();
-  try{await addDoc(collection(db,'projets'),{nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value),taches:[],cree:Date.now()});$('pForm').reset()}catch(e){refus()}};
-const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
+  try{await addDoc(collection(db,'projets'),{nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value),statut:'a_realiser',taches:[],cree:Date.now()});$('pForm').reset()}catch(e){refus()}};
+const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(p.statut!=='a_realiser'&&t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
 $('projList').onclick=ev=>{const d=ev.target.dataset;
+  if(d.start)updateDoc(doc(db,'projets',d.start),{statut:'en_cours',debut:today()}).catch(refus);
   if(d.delp&&confirm('Supprimer ce projet et toutes ses tâches ?'))deleteDoc(doc(db,'projets',d.delp)).catch(refus);
   if(d.delt){const[pid,tid]=d.delt.split('|');upd(pid,t=>t.filter(x=>x.id!==tid))}
   if(d.addt){const pid=d.addt,txt=document.querySelector(`[data-nt="${pid}"]`).value.trim(),ech=document.querySelector(`[data-ntd="${pid}"]`).value||null,m=document.querySelector(`[data-ntm="${pid}"]`).value||null;
