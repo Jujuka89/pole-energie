@@ -58,6 +58,13 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .badge.m3,.tm.m3{color:var(--m3);background:color-mix(in srgb,var(--m3) 14%,transparent);border-color:var(--m3);font-weight:600}
 .tm{padding:2px 6px;font-size:.8rem}.grip{cursor:grab;color:var(--mute);user-select:none;letter-spacing:-2px}
 .task.dragging{opacity:.4}.task.ov-t{box-shadow:0 -2px 0 var(--accent)}.task.ov-b{box-shadow:0 2px 0 var(--accent)}
+details.pr{border-bottom:1px solid var(--line)}
+details.pr>summary{list-style:none;cursor:pointer}details.pr>summary::-webkit-details-marker{display:none}
+.prow{display:grid;grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 95px max-content;gap:10px;align-items:center;padding:7px 4px;font-size:.92rem;min-width:780px}
+.prow.head{font-size:.75rem;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line)}
+.pn{font-weight:600}.pn::before{content:'▸ ';color:var(--mute)}details[open] .pn::before{content:'▾ '}
+details.pr[open]>summary{background:var(--bg)}details.pr .proj{margin:8px 0 12px}
+.prow button{padding:3px 10px;font-size:.85rem}.badge:empty{display:none}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -153,9 +160,10 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <div id="slotProj"></div>
-<section id="projForm" hidden>
-  <h2>Nouveau projet à réaliser</h2>
-  <form id="pForm">
+<section>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets à réaliser <span id="nA" class="badge"></span></h2><button class="main edit-only" id="newP" type="button">Nouveau projet</button></div>
+  <div id="projForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
+    <form id="pForm">
     <label>Nom du projet <input id="pn" required maxlength="120"></label>
     <label>Responsable <input id="pr" maxlength="80"></label>
     <label>Échéance <input type="date" id="pd"></label>
@@ -166,10 +174,12 @@ body.out .edit-only{display:none!important}
     <label style="grid-column:1/-1">Description <input id="pdesc" maxlength="300"></label>
     <div class="tools"><button class="main" type="submit">Ajouter le projet</button></div>
   </form>
+  </div>
+  <div class="scroll" style="margin-top:10px"><div id="aList"></div></div>
 </section>
 <section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets</h2>
-    <label>Afficher <select id="pf"><option value="tous">Tous</option><option value="a">À réaliser</option><option value="cours">En cours</option><option value="fini">Terminés</option></select></label></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets en cours et terminés</h2>
+    <label>Afficher <select id="pf"><option value="tous">Tous</option><option value="cours">En cours</option><option value="fini">Terminés</option></select></label></div>
   <div id="projList"></div>
 </section>
 </div>
@@ -423,26 +433,35 @@ function suivi(p){
     <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
     ${start?`<div class="svgrid">${cases}</div>`:'<p class="note">Indiquez la date de fin du projet pour afficher les cases de suivi.</p>'}</div>`;
 }
+const openA=new Set();
+const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
+const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?stars(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${p.echeance?dfr(p.echeance):'–'}</span><span><button class="main edit-only" data-start="${p.id}">Commencer le projet</button></span></summary>${card(p)}</details>`;
+$('aList').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}},true);
 function renderProj(){
-  const a=document.activeElement,key=a&&a.closest&&a.closest('#projList')&&Object.entries(a.dataset)[0];
+  const a=document.activeElement,key=a&&a.closest&&a.closest('#projList,#aList')&&Object.entries(a.dataset)[0];
   const f=$('pf').value;
-  const lab={a:'À réaliser',cours:'En cours',fini:'Terminés'},srt=projets.slice().sort((x,y)=>(x.echeance||'9999').localeCompare(y.echeance||'9999'));
-  const html=['a','cours','fini'].filter(g=>f==='tous'||f===g).map(g=>{const l=srt.filter(x=>statutOf(x)===g);return l.length?`<h3 class="grp">${lab[g]} (${l.length})</h3>${l.map(card).join('')}`:''}).join('');
-  $('projList').innerHTML=html||'<p class="empty">Aucun projet à afficher.</p>';
-  if(key){const el=document.querySelector('#projList [data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
+  const lab={cours:'En cours',fini:'Terminés'},srt=projets.slice().sort((x,y)=>(x.echeance||'9999').localeCompare(y.echeance||'9999'));
+  const html=['cours','fini'].filter(g=>f==='tous'||f===g).map(g=>{const l=srt.filter(x=>statutOf(x)===g);return l.length?`<h3 class="grp">${lab[g]} (${l.length})</h3>${l.map(card).join('')}`:''}).join('');
+  $('projList').innerHTML=html||'<p class="empty">Aucun projet en cours ou terminé.</p>';
+  const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
+  $('nA').textContent=A.length||'';
+  $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Échéance</span><span></span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Nouveau projet » pour en ajouter.</p>';
+  if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 $('pf').onchange=renderProj;
 $('pForm').onsubmit=async ev=>{ev.preventDefault();
-  try{await addDoc(collection(db,'projets'),{nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value),statut:'a_realiser',taches:[],cree:Date.now()});$('pForm').reset()}catch(e){refus()}};
+  try{await addDoc(collection(db,'projets'),{nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value),statut:'a_realiser',taches:[],cree:Date.now()});$('pForm').reset();$('projForm').hidden=true;$('newP').textContent='Nouveau projet'}catch(e){refus()}};
+$('newP').onclick=()=>{const f=$('projForm');f.hidden=!f.hidden;$('newP').textContent=f.hidden?'Nouveau projet':'Annuler';if(!f.hidden)$('pn').focus()};
 const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(p.statut!=='a_realiser'&&t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
-$('projList').onclick=ev=>{const d=ev.target.dataset;
+$('vProj').onclick=ev=>{const d=ev.target.dataset;
+  if(d.start){ev.preventDefault();}
   if(d.start)updateDoc(doc(db,'projets',d.start),{statut:'en_cours',debut:today()}).catch(refus);
   if(d.delp&&confirm('Supprimer ce projet et toutes ses tâches ?'))deleteDoc(doc(db,'projets',d.delp)).catch(refus);
   if(d.up||d.dn){const[pid,tid]=(d.up||d.dn).split('|'),k=d.up?-1:1;upd(pid,t=>{const i=t.findIndex(x=>x.id===tid),j=i+k;if(i<0||j<0||j>=t.length)return t;const c=t.slice();[c[i],c[j]]=[c[j],c[i]];return c})}
   if(d.delt){const[pid,tid]=d.delt.split('|');upd(pid,t=>t.filter(x=>x.id!==tid))}
   if(d.addt){const pid=d.addt,txt=document.querySelector(`[data-nt="${pid}"]`).value.trim(),ech=document.querySelector(`[data-ntd="${pid}"]`).value||null,m=document.querySelector(`[data-ntm="${pid}"]`).value||null;
     if(txt)upd(pid,t=>[...t,{id:uid(),t:txt,fait:false,ech,m}])}};
-$('projList').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
+$('vProj').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   const w=(pid,o)=>updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()});
   if(d.tog){const[pid,tid]=d.tog.split('|'),c=ev.target.checked;upd(pid,t=>t.map(x=>x.id===tid?{...x,fait:c}:x))}
   if(d.tm){const[pid,tid]=d.tm.split('|');upd(pid,t=>t.map(x=>x.id===tid?{...x,m:v||null}:x))}
@@ -452,16 +471,16 @@ $('projList').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
 };
 let drag=null;
 const clr=()=>document.querySelectorAll('.task.ov-t,.task.ov-b,.task.dragging').forEach(e=>e.classList.remove('ov-t','ov-b','dragging'));
-$('projList').ondragstart=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!r)return;drag=r.dataset.tk;ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',drag);r.classList.add('dragging')};
-$('projList').ondragover=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!drag||!r||r.dataset.tk.split('|')[0]!==drag.split('|')[0])return;
+$('vProj').ondragstart=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!r)return;drag=r.dataset.tk;ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',drag);r.classList.add('dragging')};
+$('vProj').ondragover=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!drag||!r||r.dataset.tk.split('|')[0]!==drag.split('|')[0])return;
   ev.preventDefault();document.querySelectorAll('.task.ov-t,.task.ov-b').forEach(e=>e.classList.remove('ov-t','ov-b'));
   const b=r.getBoundingClientRect();r.classList.add(ev.clientY>b.top+b.height/2?'ov-b':'ov-t')};
-$('projList').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!drag||!r)return;ev.preventDefault();
+$('vProj').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-tk]');if(!drag||!r)return;ev.preventDefault();
   const[pid,tid]=drag.split('|'),[pid2,tid2]=r.dataset.tk.split('|'),b=r.getBoundingClientRect(),after=ev.clientY>b.top+b.height/2;drag=null;clr();
   if(pid!==pid2||tid===tid2)return;
   upd(pid,t=>{const c=t.slice(),f=c.findIndex(x=>x.id===tid);if(f<0)return t;const[it]=c.splice(f,1);let to=c.findIndex(x=>x.id===tid2);if(to<0)return t;if(after)to++;c.splice(to,0,it);return c})};
-$('projList').ondragend=()=>{drag=null;clr()};
-$('projList').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
+$('vProj').ondragend=()=>{drag=null;clr()};
+$('vProj').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
 $('cancel').onclick=reset;
 $('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
 $('year').onchange=$('year2').onchange=ev=>{year=+ev.target.value;render()};
@@ -486,7 +505,7 @@ function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDa
 window.addEventListener('hashchange',route);
 reset();render();route();
 onAuthStateChanged(auth,u=>{
-  document.body.classList.toggle('out',!u);user=u;$('projForm').hidden=!u;listenProj();
+  document.body.classList.toggle('out',!u);user=u;if(!u)$('projForm').hidden=true;listenProj();
   $('loginForm').hidden=!!u;$('logout').hidden=!u;$('formSec').hidden=!u;$('imp').hidden=!u;
   $('who').textContent=u?u.email:'';listen();
 });
