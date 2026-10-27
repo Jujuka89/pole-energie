@@ -7,8 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#b3392f}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ee7a70}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#1f9d55;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#2f7d4f;--bad:#e11d2e}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#3ecf7a;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#5cc08a;--bad:#ff5a4d}}
 *{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -171,8 +171,10 @@ const prix=(cons,cost)=>{let k=0,c=0;cons.forEach((v,i)=>{if(v!=null&&cost[i]!=n
 const tc=(x,y)=>x.map((v,i)=>v==null&&y[i]==null?null:(v||0)+(y[i]||0));
 const cmp=(a,b)=>{let s1=0,s0=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});return s0?{d:s1-s0,q:(s1-s0)/s0*100}:null};
 const manque=k=>count(val(year,k))&&count(val(year-1,k));
-function deltaCost(a,b,k){const r=cmp(a,b);if(!r)return manque(k)?`<br><span class="delta flat">Coût vs ${year-1} : prix manquant</span>`:'';const {d,q}=r;
-  return `<br><span class="delta ${d>0?'up':d<0?'down':'flat'}">Coût ${d>0?'▲ +':d<0?'▼ ':''}${fmt(d)} € (${d>0?'+':''}${fmt(q,1)} %)</span>`}
+const hint=()=>`<br><span class="delta flat">Coût vs ${year-1} : prix manquant</span>`;
+const pillCost=({d,q})=>`<span class="delta ${d>0?'up':d<0?'down':'flat'}">Coût ${d>0?'▲ +':d<0?'▼ ':''}${fmt(d)} € (${d>0?'+':''}${fmt(q,1)} %) vs ${year-1}</span>`;
+function deltaCost(a,b,k){const r=cmp(a,b);return r?'<br>'+pillCost(r):manque(k)?hint():''}
+const dc=(a,b,k)=>{const r=cmp(a,b);return r?pillCost(r):delta(k)+(manque(k)?hint():'')};
 function kpis(){
   const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g'),pe=prix(e,ce),pg=prix(g,cg),
   c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g'),c1=tc(ce1,cg1);
@@ -181,8 +183,8 @@ function kpis(){
     <div><span>Énergie totale ${year}</span><b>${mwh(tot)} MWh</b><span>Électricité ${fmt(tot?sum(e)/tot*100:null)} % · calories ${fmt(tot?sum(g)/tot*100:null)} %</span></div>
     <div><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span><br><span>Prix moyen : élec. ${pe==null?'–':fmt(pe)} €/MWh · calories ${pg==null?'–':fmt(pg)} €/MWh</span>${deltaCost(c,c1,'e')}</div>
   </div></div>
-  <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${delta('e')}${deltaCost(ce,ce1,'e')}</div>
-  <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${delta('g')}${deltaCost(cg,cg1,'g')}</div>`;
+  <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${dc(ce,ce1,'e')}</div>
+  <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${dc(cg,cg1,'g')}</div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
 const pctPlugin={id:'pct',afterDatasetsDraw(ch){
