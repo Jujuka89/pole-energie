@@ -60,7 +60,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .task.dragging{opacity:.4}.task.ov-t{box-shadow:0 -2px 0 var(--accent)}.task.ov-b{box-shadow:0 2px 0 var(--accent)}
 details.pr{border-bottom:1px solid var(--line)}
 details.pr>summary{list-style:none;cursor:pointer}details.pr>summary::-webkit-details-marker{display:none}
-.prow{display:grid;grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 175px 160px;gap:10px;align-items:center;padding:7px 4px;font-size:.92rem;min-width:940px}
+.prow{display:grid;grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 175px;gap:10px;align-items:center;padding:7px 4px;font-size:.92rem;min-width:780px}
 .prow.head{font-size:.75rem;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line)}
 .pn{font-weight:600}.pn::before{content:'▸ ';color:var(--mute)}details[open] .pn::before{content:'▾ '}
 details.pr[open]>summary{background:var(--bg)}details.pr .proj{margin:8px 0 12px}
@@ -75,7 +75,7 @@ details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
 .cell{width:100%;min-width:100px;text-align:right}
 .cell.ce:not(:placeholder-shown){background:color-mix(in srgb,var(--elec) 14%,var(--card))}
 .cell.cg:not(:placeholder-shown){background:color-mix(in srgb,var(--gaz) 18%,var(--card))}
-.prow.b{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 175px;min-width:940px}
+.prow.b{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 175px;min-width:930px}
 .eur{color:var(--ok);font-weight:700;letter-spacing:1px}.eur .off{opacity:.25}
 .gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
 .gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}
@@ -453,7 +453,7 @@ function suivi(p){
 const openA=new Set();
 const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
 const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l=['Élec','CVC','Plombier'].filter(m=>st.has(m));return l.length?l.map(m=>`<span class="badge ${MC[m]}">${m}</span>`).join(' '):'–'};
-const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span><span><button class="main edit-only" data-start="${p.id}">Commencer le projet</button></span></summary>${card(p)}</details>`;
+const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
 $('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}},true);
 const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,done=statutOf(p)==='fini',pct=n?Math.round(k/n*100):0;
   return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge" title="${pct} %"><i style="width:${pct}%"></i></span><small>${done?'Terminé':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
@@ -466,7 +466,7 @@ function renderProj(){
   $('projList').innerHTML=html||'<p class="empty">Aucun projet en cours ou terminé.</p>';
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   $('nA').textContent=A.length||'';
-  $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span><span></span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Nouveau projet » pour en ajouter.</p>';
+  $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Nouveau projet » pour en ajouter.</p>';
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 $('pf').onchange=renderProj;
