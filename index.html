@@ -65,6 +65,9 @@ details.pr>summary{list-style:none;cursor:pointer}details.pr>summary::-webkit-de
 .pn{font-weight:600}.pn::before{content:'▸ ';color:var(--mute)}details[open] .pn::before{content:'▾ '}
 details.pr[open]>summary{background:var(--bg)}details.pr .proj{margin:8px 0 12px}
 .prow button{padding:3px 10px;font-size:.85rem}.badge:empty{display:none}
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.gbox{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.gbox h2{font-size:1.25rem;margin:0 0 4px}.gbox p{margin:8px 0}#gate form{grid-template-columns:1fr}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -73,7 +76,26 @@ body.out .edit-only{display:none!important}
 </style>
 </head>
 <body>
-<main>
+<div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gTitle">
+  <div class="gbox">
+    <h2 id="gTitle">Connexion</h2>
+    <p class="sub">Suivi des consommations d’énergie</p>
+    <form id="gLogin">
+      <label>E-mail <input type="email" id="gem" required autocomplete="username"></label>
+      <label>Mot de passe <input type="password" id="gpw" required autocomplete="current-password"></label>
+      <button class="main" type="submit">Se connecter</button>
+      <p class="note"><button type="button" class="link" data-g="create">Première connexion ? Créer mon mot de passe</button><br><button type="button" class="link" data-g="create">Mot de passe oublié ?</button></p>
+    </form>
+    <form id="gCreate" hidden>
+      <p>Saisissez l’adresse e-mail autorisée par votre administrateur. Vous recevrez un lien pour choisir votre mot de passe.</p>
+      <label>E-mail <input type="email" id="gem2" required autocomplete="email"></label>
+      <button class="main" type="submit">Recevoir le lien</button>
+      <p class="note"><button type="button" class="link" data-g="login">← J’ai déjà un mot de passe</button></p>
+    </form>
+    <p id="gMsg" class="note" role="status"></p>
+  </div>
+</div>
+<main hidden>
 <div id="vDash">
 <header>
   <div>
@@ -106,11 +128,7 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <div id="slotRel"><section id="authBar">
-  <form id="loginForm">
-    <label>E-mail <input type="email" id="lem" required autocomplete="username"></label>
-    <label>Mot de passe <input type="password" id="lpw" required autocomplete="current-password"></label>
-    <div class="tools"><button class="main" type="submit">Se connecter</button></div>
-  </form>
+  
   <div class="tools"><span id="who"></span><button id="logout" type="button" hidden>Se déconnecter</button></div>
   <p id="status" class="note" role="status"></p>
 </section></div>
@@ -189,7 +207,7 @@ body.out .edit-only{display:none!important}
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
 import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch,addDoc,updateDoc} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyCOTfF1ZkMJTQTbQ0kAE_Yv4Wut2P6d_QE",
   authDomain:"pole-energie.firebaseapp.com",
@@ -513,12 +531,26 @@ $('file').onchange=async ev=>{
 function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;(pj?$('slotProj'):$('slotRel')).appendChild($('authBar'));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 reset();render();route();
+auth.languageCode='fr';
+const FLAG='pole-energie-membre';
+const seen=()=>{try{return !!localStorage.getItem(FLAG)}catch(e){return false}};
+function setGate(m){$('gLogin').hidden=m!=='login';$('gCreate').hidden=m!=='create';$('gTitle').textContent=m==='login'?'Connexion':'Première connexion';$('gMsg').textContent='';(m==='login'?$('gem'):$('gem2')).focus()}
+$('gate').onclick=ev=>{if(ev.target.dataset.g)setGate(ev.target.dataset.g)};
+$('gLogin').onsubmit=async ev=>{ev.preventDefault();$('gMsg').textContent='';
+  try{await signInWithEmailAndPassword(auth,$('gem').value.trim(),$('gpw').value);$('gpw').value='';try{localStorage.setItem(FLAG,'1')}catch(e){}}
+  catch(e){$('gMsg').textContent=e.code==='auth/too-many-requests'?'Trop de tentatives : réessayez dans quelques minutes.':'E-mail ou mot de passe incorrect.'}};
+$('gCreate').onsubmit=async ev=>{ev.preventDefault();const em=$('gem2').value.trim(),send=o=>sendPasswordResetEmail(auth,em,o);
+  try{try{await send({url:location.href.split('#')[0]})}catch(e){if(/continue-uri/.test(e.code))await send();else throw e}}
+  catch(e){if(e.code==='auth/invalid-email'){$('gMsg').textContent='Adresse e-mail invalide.';return}
+    if(e.code!=='auth/user-not-found'){$('gMsg').textContent='Envoi impossible pour le moment : réessayez plus tard.';return}}
+  $('gMsg').textContent='Si cette adresse est autorisée, un e-mail vient de vous être envoyé. Ouvrez-le pour choisir votre mot de passe (pensez à vérifier vos courriers indésirables), puis revenez vous connecter.'};
 onAuthStateChanged(auth,u=>{
-  document.body.classList.toggle('out',!u);user=u;if(!u)$('projForm').hidden=true;listenProj();
-  $('loginForm').hidden=!!u;$('logout').hidden=!u;$('formSec').hidden=!u;$('imp').hidden=!u;
-  $('who').textContent=u?u.email:'';listen();
+  document.body.classList.toggle('out',!u);user=u;
+  document.querySelector('main').hidden=!u;$('gate').hidden=!!u;
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;data=[];projets=[];prices={};first=true;closeForm();setGate(seen()?'login':'create');return}
+  $('logout').hidden=false;$('formSec').hidden=false;$('imp').hidden=false;$('who').textContent=u.email;
+  listen();listenProj();route();
 });
-$('loginForm').onsubmit=async ev=>{ev.preventDefault();try{await signInWithEmailAndPassword(auth,$('lem').value,$('lpw').value);$('lpw').value=''}catch(e){status('Connexion refusée : e-mail ou mot de passe incorrect.')}};
 $('logout').onclick=()=>signOut(auth);
 </script>
 </body>
