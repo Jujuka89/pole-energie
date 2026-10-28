@@ -60,7 +60,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .task.dragging{opacity:.4}.task.ov-t{box-shadow:0 -2px 0 var(--accent)}.task.ov-b{box-shadow:0 2px 0 var(--accent)}
 details.pr{border-bottom:1px solid var(--line)}
 details.pr>summary{list-style:none;cursor:pointer}details.pr>summary::-webkit-details-marker{display:none}
-.prow{display:grid;grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 95px 260px;gap:10px;align-items:center;padding:7px 4px;font-size:.92rem;min-width:960px}
+.prow{display:grid;grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 175px 260px;gap:10px;align-items:center;padding:7px 4px;font-size:.92rem;min-width:1040px}
 .prow.head{font-size:.75rem;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line)}
 .pn{font-weight:600}.pn::before{content:'▸ ';color:var(--mute)}details[open] .pn::before{content:'▾ '}
 details.pr[open]>summary{background:var(--bg)}details.pr .proj{margin:8px 0 12px}
@@ -75,7 +75,7 @@ details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
 .cell{width:100%;min-width:100px;text-align:right}
 .cell.ce:not(:placeholder-shown){background:color-mix(in srgb,var(--elec) 14%,var(--card))}
 .cell.cg:not(:placeholder-shown){background:color-mix(in srgb,var(--gaz) 18%,var(--card))}
-.prow.b{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 95px 100px;min-width:960px}
+.prow.b{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 175px 100px;min-width:1040px}
 .eur{color:var(--ok);font-weight:700;letter-spacing:1px}.eur .off{opacity:.25}
 .gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
 .gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}
@@ -180,7 +180,6 @@ body.out .edit-only{display:none!important}
     <form id="pForm">
     <label>Nom du projet <input id="pn" required maxlength="120"></label>
     <label>Responsable <input id="pr" maxlength="80"></label>
-    <label>Échéance <input type="date" id="pd"></label>
     <label>Durée approximative <div style="display:flex;gap:6px"><input type="number" id="pdur" min="0" step="any" style="width:100%"><select id="pdu"><option>jours</option><option>semaines</option><option>mois</option></select></div></label>
     <label>Coût approximatif (€) <input type="number" id="pcout" min="0" step="any"></label>
     <label>Gains potentiels (sur 5) <select id="pgain"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
@@ -421,8 +420,8 @@ function listenProj(){
 const statutOf=p=>{if(p.statut==='a_realiser')return 'a';const t=p.taches||[];return t.length&&t.every(x=>x.fait)?'fini':'cours'};
 const MC={'Élec':'m1','CVC':'m2','Plombier':'m3'};
 function card(p){
-  const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini',pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done,dis=user&&!a?'':'disabled';
-  const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):'',p.echeance?`<span class="${late?'late':''}">Échéance : ${dfr(p.echeance)}${late?' (dépassée)':''}</span>`:''].filter(Boolean).join(' · ');
+  const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini',pct=n?Math.round(k/n*100):0,dis=user&&!a?'':'disabled';
+  const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):''].filter(Boolean).join(' · ');
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
     <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
@@ -453,25 +452,26 @@ function suivi(p){
 }
 const openA=new Set();
 const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
-const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${p.echeance?dfr(p.echeance):'–'}</span><span><button class="main edit-only" data-start="${p.id}">Commencer le projet</button> <button class="edit-only" data-editp="${p.id}">Modifier</button></span></summary>${card(p)}</details>`;
+const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l=['Élec','CVC','Plombier'].filter(m=>st.has(m));return l.length?l.map(m=>`<span class="badge ${MC[m]}">${m}</span>`).join(' '):'–'};
+const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span><span><button class="main edit-only" data-start="${p.id}">Commencer le projet</button> <button class="edit-only" data-editp="${p.id}">Modifier</button></span></summary>${card(p)}</details>`;
 $('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}},true);
-const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,done=statutOf(p)==='fini',pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done;
-  return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${late?'late':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${done?'Terminé':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span class="${late?'late':''}">${p.echeance?dfr(p.echeance):'–'}</span><span><button class="edit-only" data-editp="${p.id}">Modifier</button></span></summary>${card(p)}</details>`};
-const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Échéance</span><span></span></div>';
+const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,done=statutOf(p)==='fini',pct=n?Math.round(k/n*100):0;
+  return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge" title="${pct} %"><i style="width:${pct}%"></i></span><small>${done?'Terminé':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span><span><button class="edit-only" data-editp="${p.id}">Modifier</button></span></summary>${card(p)}</details>`};
+const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span><span></span></div>';
 function renderProj(){
   const a=document.activeElement,key=a&&a.closest&&a.closest('#projList,#aList')&&Object.entries(a.dataset)[0];
   const f=$('pf').value;
-  const lab={cours:'En cours',fini:'Terminés'},srt=projets.slice().sort((x,y)=>(x.echeance||'9999').localeCompare(y.echeance||'9999'));
+  const lab={cours:'En cours',fini:'Terminés'},srt=projets.slice().sort((x,y)=>(x.cree||0)-(y.cree||0));
   const html=['cours','fini'].filter(g=>f==='tous'||f===g).map(g=>{const l=srt.filter(x=>statutOf(x)===g);return l.length?`<h3 class="grp">${lab[g]} (${l.length})</h3>${HEAD_B}${l.map(rowB).join('')}`:''}).join('');
   $('projList').innerHTML=html||'<p class="empty">Aucun projet en cours ou terminé.</p>';
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   $('nA').textContent=A.length||'';
-  $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Échéance</span><span></span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Nouveau projet » pour en ajouter.</p>';
+  $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span><span></span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Nouveau projet » pour en ajouter.</p>';
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 $('pf').onchange=renderProj;
 let editP=null;
-const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),echeance:$('pd').value||null,desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
+const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
 function closeForm(){editP=null;$('pForm').reset();$('projForm').hidden=true;$('newP').textContent='Nouveau projet';$('pSubmit').textContent='Ajouter le projet';$('pTitle').textContent='Nouveau projet'}
 $('pForm').onsubmit=async ev=>{ev.preventDefault();
   try{if(editP)await updateDoc(doc(db,'projets',editP),pData());else await addDoc(collection(db,'projets'),{...pData(),statut:'a_realiser',taches:[],cree:Date.now()});closeForm()}catch(e){refus()}};
@@ -481,7 +481,7 @@ $('vProj').onclick=ev=>{const d=ev.target.dataset;
   if(d.start){ev.preventDefault();}
   if(d.back&&confirm('Remettre ce projet dans les projets à réaliser ?'))updateDoc(doc(db,'projets',d.back),{statut:'a_realiser'}).catch(refus);
   if(d.editp){const p=projets.find(x=>x.id===d.editp);if(!p)return;ev.preventDefault();editP=p.id;
-    $('pn').value=p.nom||'';$('pr').value=p.resp||'';$('pd').value=p.echeance||'';$('pdesc').value=p.desc||'';$('pdur').value=p.duree?p.duree.n:'';$('pdu').value=p.duree?p.duree.u:'jours';
+    $('pn').value=p.nom||'';$('pr').value=p.resp||'';$('pdesc').value=p.desc||'';$('pdur').value=p.duree?p.duree.n:'';$('pdu').value=p.duree?p.duree.u:'jours';
     $('pcout').value=p.cout??'';$('pgain').value=p.gain==null?'':String(p.gain);$('pconf').value=p.confort==null?'':String(p.confort);
     $('projForm').hidden=false;$('newP').textContent='Annuler';$('pSubmit').textContent='Enregistrer les modifications';$('pTitle').textContent='Modifier le projet';
     $('projForm').scrollIntoView({behavior:'smooth',block:'center'});$('pn').focus()}
