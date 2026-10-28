@@ -7,8 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#2b7de9;--m2:#8b5cf6;--m3:#0d9488}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#5aa2ff;--m2:#a78bfa;--m3:#2dd4bf}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#2b7de9;--m2:#8b5cf6;--m3:#0d9488;--s-cours:#e67700;--s-a:#64748b}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#5aa2ff;--m2:#a78bfa;--m3:#2dd4bf;--s-cours:#ffa94d;--s-a:#94a3b8}}
 *{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -80,6 +80,11 @@ details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
 .gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
 .gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}
 #foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:.9rem}
+section.st{--sc:var(--mute);border-left:6px solid var(--sc);background:color-mix(in srgb,var(--sc) 5%,var(--card))}
+.st-cours{--sc:var(--s-cours)}.st-fini{--sc:var(--ok)}.st-a{--sc:var(--s-a)}
+.stt{font-size:1.5rem;letter-spacing:-.01em;color:var(--sc);margin:0 0 12px}
+.stt .cnt{font-size:.95rem;vertical-align:middle;margin-left:8px;background:color-mix(in srgb,var(--sc) 18%,transparent);color:var(--sc);font-weight:700}
+.st .prow.head{color:var(--sc)}.st .empty{padding:14px 0}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -168,13 +173,16 @@ body.out .edit-only{display:none!important}
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
-<section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets en cours et terminés</h2>
-    <label>Afficher <select id="pf"><option value="tous">Tous</option><option value="cours">En cours</option><option value="fini">Terminés</option></select></label></div>
-  <div class="scroll"><div id="projList"></div></div>
+<section class="st st-cours">
+  <h2 class="stt">En cours <span class="badge cnt" id="nCours"></span></h2>
+  <div class="scroll"><div id="lCours"></div></div>
 </section>
-<section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets à réaliser <span id="nA" class="badge"></span></h2><button class="main edit-only" id="newP" type="button">Nouveau projet</button></div>
+<section class="st st-fini">
+  <h2 class="stt">Terminés <span class="badge cnt" id="nFini"></span></h2>
+  <div class="scroll"><div id="lFini"></div></div>
+</section>
+<section class="st st-a">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="stt" style="margin:0">À réaliser <span id="nA" class="badge cnt"></span></h2><button class="main edit-only" id="newP" type="button">Nouveau projet</button></div>
   <div id="projForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <h3 id="pTitle" style="margin:0 0 10px;font-size:1rem">Nouveau projet</h3>
     <form id="pForm">
@@ -415,7 +423,7 @@ const refus=()=>alert('Action refusée : êtes-vous connecté avec un compte aut
 function listenProj(){
   if(unsubP)unsubP();
   unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj()},
-    ()=>{projets=[];$('projList').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
+    ()=>{projets=[];$('lCours').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
 }
 const statutOf=p=>{if(p.statut==='a_realiser')return 'a';const t=p.taches||[];return t.length&&t.every(x=>x.fait)?'fini':'cours'};
 const MC={'Élec':'m1','CVC':'m2','Plombier':'m3'};
@@ -459,17 +467,16 @@ const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,done
   return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge" title="${pct} %"><i style="width:${pct}%"></i></span><small>${done?'Terminé':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
 const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>';
 function renderProj(){
-  const a=document.activeElement,key=a&&a.closest&&a.closest('#projList,#aList')&&Object.entries(a.dataset)[0];
-  const f=$('pf').value;
-  const lab={cours:'En cours',fini:'Terminés'},srt=projets.slice().sort((x,y)=>(x.cree||0)-(y.cree||0));
-  const html=['cours','fini'].filter(g=>f==='tous'||f===g).map(g=>{const l=srt.filter(x=>statutOf(x)===g);return l.length?`<h3 class="grp">${lab[g]} (${l.length})</h3>${HEAD_B}${l.map(rowB).join('')}`:''}).join('');
-  $('projList').innerHTML=html||'<p class="empty">Aucun projet en cours ou terminé.</p>';
+  const a=document.activeElement,key=a&&a.closest&&a.closest('#lCours,#lFini,#aList')&&Object.entries(a.dataset)[0];
+  const srt=projets.slice().sort((x,y)=>(x.cree||0)-(y.cree||0));
+  const fill=(id,nid,g,vide)=>{const l=srt.filter(x=>statutOf(x)===g);$(nid).textContent=l.length;$(id).innerHTML=l.length?HEAD_B+l.map(rowB).join(''):`<p class="empty">${vide}</p>`};
+  fill('lCours','nCours','cours','Aucun projet en cours.');
+  fill('lFini','nFini','fini','Aucun projet terminé.');
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
-  $('nA').textContent=A.length||'';
+  $('nA').textContent=A.length;
   $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Nouveau projet » pour en ajouter.</p>';
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
-$('pf').onchange=renderProj;
 let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
 function closeForm(){editP=null;$('pForm').reset();$('projForm').hidden=true;$('newP').textContent='Nouveau projet';$('pSubmit').textContent='Ajouter le projet';$('pTitle').textContent='Nouveau projet'}
