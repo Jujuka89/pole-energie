@@ -81,16 +81,19 @@ body.out .edit-only{display:none!important}
     <h2 id="gTitle">Connexion</h2>
     <p class="sub">Suivi des consommations d’énergie</p>
     <form id="gLogin">
+      <p class="note" style="margin-top:0">Première connexion ? Saisissez l’adresse e-mail et le mot de passe provisoire donnés par votre administrateur : vous choisirez ensuite votre propre mot de passe.</p>
       <label>E-mail <input type="email" id="gem" required autocomplete="username"></label>
       <label>Mot de passe <input type="password" id="gpw" required autocomplete="current-password"></label>
       <button class="main" type="submit">Se connecter</button>
-      <p class="note"><button type="button" class="link" data-g="create">Première connexion ? Créer mon mot de passe</button><br><button type="button" class="link" data-g="create">Mot de passe oublié ?</button></p>
+      <p class="note">Mot de passe oublié ? Contactez votre administrateur.</p>
     </form>
-    <form id="gCreate" hidden>
-      <p>Saisissez l’adresse e-mail autorisée par votre administrateur. Vous recevrez un lien pour choisir votre mot de passe.</p>
-      <label>E-mail <input type="email" id="gem2" required autocomplete="email"></label>
-      <button class="main" type="submit">Recevoir le lien</button>
-      <p class="note"><button type="button" class="link" data-g="login">← J’ai déjà un mot de passe</button></p>
+    <form id="gChange" hidden>
+      <p>Pour votre sécurité, choisissez dès maintenant votre mot de passe personnel (8 caractères minimum).</p>
+      <label>Mot de passe provisoire <input type="password" id="gcur" required autocomplete="current-password"></label>
+      <label>Nouveau mot de passe <input type="password" id="gnew" required minlength="8" autocomplete="new-password"></label>
+      <label>Confirmer le nouveau mot de passe <input type="password" id="gnew2" required minlength="8" autocomplete="new-password"></label>
+      <button class="main" type="submit">Enregistrer mon mot de passe</button>
+      <p class="note"><button type="button" class="link" data-g="out">Se déconnecter</button></p>
     </form>
     <p id="gMsg" class="note" role="status"></p>
   </div>
@@ -206,8 +209,8 @@ body.out .edit-only{display:none!important}
 
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch,addDoc,updateDoc} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
+import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch,addDoc,updateDoc,getDoc} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,EmailAuthProvider,reauthenticateWithCredential,updatePassword} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyCOTfF1ZkMJTQTbQ0kAE_Yv4Wut2P6d_QE",
   authDomain:"pole-energie.firebaseapp.com",
@@ -532,24 +535,36 @@ function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDa
 window.addEventListener('hashchange',route);
 reset();render();route();
 auth.languageCode='fr';
-const FLAG='pole-energie-membre';
-const seen=()=>{try{return !!localStorage.getItem(FLAG)}catch(e){return false}};
-function setGate(m){$('gLogin').hidden=m!=='login';$('gCreate').hidden=m!=='create';$('gTitle').textContent=m==='login'?'Connexion':'Première connexion';$('gMsg').textContent='';(m==='login'?$('gem'):$('gem2')).focus()}
-$('gate').onclick=ev=>{if(ev.target.dataset.g)setGate(ev.target.dataset.g)};
-$('gLogin').onsubmit=async ev=>{ev.preventDefault();$('gMsg').textContent='';
-  try{await signInWithEmailAndPassword(auth,$('gem').value.trim(),$('gpw').value);$('gpw').value='';try{localStorage.setItem(FLAG,'1')}catch(e){}}
-  catch(e){$('gMsg').textContent=e.code==='auth/too-many-requests'?'Trop de tentatives : réessayez dans quelques minutes.':'E-mail ou mot de passe incorrect.'}};
-$('gCreate').onsubmit=async ev=>{ev.preventDefault();const em=$('gem2').value.trim(),send=o=>sendPasswordResetEmail(auth,em,o);
-  try{try{await send({url:location.href.split('#')[0]})}catch(e){if(/continue-uri/.test(e.code))await send();else throw e}}
-  catch(e){if(e.code==='auth/invalid-email'){$('gMsg').textContent='Adresse e-mail invalide.';return}
-    if(e.code!=='auth/user-not-found'){$('gMsg').textContent='Envoi impossible pour le moment : réessayez plus tard.';return}}
-  $('gMsg').textContent='Si cette adresse est autorisée, un e-mail vient de vous être envoyé. Ouvrez-le pour choisir votre mot de passe (pensez à vérifier vos courriers indésirables), puis revenez vous connecter.'};
-onAuthStateChanged(auth,u=>{
-  document.body.classList.toggle('out',!u);user=u;
-  document.querySelector('main').hidden=!u;$('gate').hidden=!!u;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;data=[];projets=[];prices={};first=true;closeForm();setGate(seen()?'login':'create');return}
+let lastPw='';
+function setGate(m){$('gLogin').hidden=m!=='login';$('gChange').hidden=m!=='change';$('gTitle').textContent=m==='login'?'Connexion':'Choisissez votre mot de passe';$('gMsg').textContent='';(m==='login'?$('gem'):$('gnew')).focus()}
+$('gate').onclick=ev=>{if(ev.target.dataset.g==='out')signOut(auth)};
+$('gLogin').onsubmit=async ev=>{ev.preventDefault();$('gMsg').textContent='';lastPw=$('gpw').value;
+  try{await signInWithEmailAndPassword(auth,$('gem').value.trim(),lastPw);$('gpw').value=''}
+  catch(e){lastPw='';$('gMsg').textContent=e.code==='auth/too-many-requests'?'Trop de tentatives : réessayez dans quelques minutes.':'E-mail ou mot de passe incorrect.'}};
+$('gChange').onsubmit=async ev=>{ev.preventDefault();
+  const cur=$('gcur').value,nw=$('gnew').value,cf=$('gnew2').value,msg=t=>{$('gMsg').textContent=t};
+  if(nw.length<8)return msg('Le nouveau mot de passe doit contenir au moins 8 caractères.');
+  if(nw!==cf)return msg('Les deux mots de passe ne sont pas identiques.');
+  if(nw===cur)return msg('Choisissez un mot de passe différent du mot de passe provisoire.');
+  const u=auth.currentUser;
+  try{await reauthenticateWithCredential(u,EmailAuthProvider.credential(u.email,cur))}
+  catch(e){return msg(e.code==='auth/too-many-requests'?'Trop de tentatives : réessayez dans quelques minutes.':'Mot de passe provisoire incorrect.')}
+  try{await updatePassword(u,nw);await setDoc(doc(db,'utilisateurs',u.uid),{mdpChange:true,email:u.email,date:Date.now()})}
+  catch(e){return msg(e.code==='auth/weak-password'?'Mot de passe trop faible.':'Enregistrement impossible : vérifiez les règles Firestore (collection « utilisateurs »).')}
+  ['gcur','gnew','gnew2'].forEach(i=>$(i).value='');lastPw='';enter(u)};
+function enter(u){
+  document.querySelector('main').hidden=false;$('gate').hidden=true;
   $('logout').hidden=false;$('formSec').hidden=false;$('imp').hidden=false;$('who').textContent=u.email;
   listen();listenProj();route();
+}
+onAuthStateChanged(auth,async u=>{
+  document.body.classList.toggle('out',!u);user=u;
+  document.querySelector('main').hidden=true;
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;data=[];projets=[];prices={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
+  $('gate').hidden=true;
+  let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
+  if(user!==u)return;
+  if(ok)enter(u);else{$('gate').hidden=false;setGate('change');$('gcur').value=lastPw}
 });
 $('logout').onclick=()=>signOut(auth);
 </script>
