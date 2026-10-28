@@ -103,18 +103,18 @@ body.out .edit-only{display:none!important}
 <header>
   <div>
     <h1>Consommations d’énergie</h1>
-    <p class="sub">Électricité et calories, relevés mensuels</p>
+    <p class="sub">Électricité et gaz, relevés mensuels</p>
   </div>
   <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
-<section><h2>Énergie totale par mois : électricité + calories (MWh)</h2><div class="box"><canvas id="cT"></canvas></div></section>
+<section><h2>Énergie totale par mois : électricité + gaz (MWh)</h2><div class="box"><canvas id="cT"></canvas></div></section>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
-  <section><h2>Calories (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
+  <section><h2>Gaz (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
 </div>
 <section style="text-align:center">
   <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
@@ -140,16 +140,16 @@ body.out .edit-only{display:none!important}
   <form id="form">
     <label>Mois <input type="month" id="m" required></label>
     <label>Électricité (kWh) <input type="number" id="e" min="0" step="any"></label>
-    <label>Calories (kWh) <input type="number" id="g" min="0" step="any"></label>
+    <label>Gaz (kWh) <input type="number" id="g" min="0" step="any"></label>
     <label>Prix électricité (€/MWh) <input type="number" id="ce" min="0" step="any"></label>
-    <label>Prix calories (€/MWh) <input type="number" id="cg" min="0" step="any"></label>
+    <label>Prix gaz (€/MWh) <input type="number" id="cg" min="0" step="any"></label>
     <div class="tools"><button class="main" type="submit">Enregistrer</button><button type="button" id="cancel" hidden>Annuler</button></div>
   </form>
   <p class="note">Si le mois existe déjà, seuls les champs remplis sont mis à jour : les champs vides conservent leur valeur. Pour effacer une valeur, utilisez « Modifier » dans le tableau. Coût = MWh × prix du mois ; si le prix est vide, le prix par défaut ci-dessous est utilisé.</p>
   <h2 style="margin-top:20px">Prix par défaut au MWh</h2>
   <form id="prixForm">
     <label>Électricité (€/MWh) <input type="number" id="pe" min="0" step="any"></label>
-    <label>Calories (€/MWh) <input type="number" id="pg" min="0" step="any"></label>
+    <label>Gaz (€/MWh) <input type="number" id="pg" min="0" step="any"></label>
     <div class="tools"><button class="main" type="submit">Enregistrer les prix</button></div>
   </form>
   <p class="note">Appliqué aux mois sans prix saisi (affiché avec ~ dans le tableau).</p>
@@ -157,7 +157,7 @@ body.out .edit-only{display:none!important}
 <section>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Relevés de l’année</h2><label>Année <select id="year2"></select></label></div>
   <div class="scroll"><table>
-    <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Calories (kWh)</th><th>Prix élec. (€/MWh)</th><th>Prix calories (€/MWh)</th><th>Coût élec. (€)</th><th>Coût calories (€)</th><th></th></tr></thead>
+    <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Prix élec. (€/MWh)</th><th>Prix gaz (€/MWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th><th></th></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
 </section>
@@ -269,12 +269,12 @@ function kpis(){
   c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g'),c1=tc(ce1,cg1);
   $('kpisTop').innerHTML=`
   <div class="kpi c top"><div class="split">
-    <div><span>Énergie totale ${year}</span><b>${mwh(tot)} MWh</b><span>Électricité ${fmt(tot?sum(e)/tot*100:null)} % · calories ${fmt(tot?sum(g)/tot*100:null)} %</span>${deltaE(tc(e,g),tc(val(year-1,'e'),val(year-1,'g')))}</div>
-    <div><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Calories ${fmt(sum(cg))} €</span>${deltaCost(c,c1,'t')}</div>
+    <div><span>Énergie totale ${year}</span><b>${mwh(tot)} MWh</b><span>Électricité ${fmt(tot?sum(e)/tot*100:null)} % · gaz ${fmt(tot?sum(g)/tot*100:null)} %</span>${deltaE(tc(e,g),tc(val(year-1,'e'),val(year-1,'g')))}</div>
+    <div><span>Coût total ${year}</span><b>${count(c)?fmt(sum(c))+' €':'–'}</b><span>Électricité ${fmt(sum(ce))} € · Gaz ${fmt(sum(cg))} €</span>${deltaCost(c,c1,'t')}</div>
   </div></div>`;
   $('kpis').innerHTML=`
   <div class="kpi e"><span>Électricité ${year}</span><b>${mwh(sum(e))} MWh</b><span>Moyenne ${mwh(count(e)?sum(e)/count(e):null)} MWh/mois</span><br>${dc(ce,ce1,'e')}</div>
-  <div class="kpi g"><span>Calories ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${dc(cg,cg1,'g')}</div>`;
+  <div class="kpi g"><span>Gaz ${year}</span><b>${mwh(sum(g))} MWh</b><span>Moyenne ${mwh(count(g)?sum(g)/count(g):null)} MWh/mois</span><br>${dc(cg,cg1,'g')}</div>`;
 }
 const pct=(v,p)=>v==null||p==null||!p?null:(v-p)/p*100;
 const pctPlugin={id:'pct',afterDatasetsDraw(ch){
@@ -295,7 +295,7 @@ function cumul(y){const e=val(y,'e'),g=val(y,'g');let last=-1;for(let i=0;i<12;i
 const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),ctx=ch.ctx,ds=ch.data.datasets;
   const items=[];
-  [['Total',5,0],['Calories',4,2],['Élec.',3,1]].forEach(([nom,ci,pi])=>{
+  [['Total',5,0],['Gaz',4,2],['Élec.',3,1]].forEach(([nom,ci,pi])=>{
     const cur=ds[ci].data;let l=-1;cur.forEach((v,i)=>{if(v!=null)l=i});if(l<0)return;
     const pv=ds[pi].data[l];if(pv==null)return;
     const d=cur[l]-pv,q=pv?d/pv*100:null,sg=Math.round(d)>0?'+':'';
@@ -313,9 +313,9 @@ function drawCumul(){
   const ds=[
     {label:'Total '+(year-1),data:p.map(o=>o&&o.t),borderColor:col('--prev'),backgroundColor:col('--prev'),borderDash:[6,4],pointRadius:0,borderWidth:2},
     {label:'Électricité '+(year-1),data:p.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderDash:[3,4],pointRadius:0,borderWidth:2},
-    {label:'Calories '+(year-1),data:p.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderDash:[3,4],pointRadius:0,borderWidth:2},
+    {label:'Gaz '+(year-1),data:p.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderDash:[3,4],pointRadius:0,borderWidth:2},
     {label:'Électricité '+year,data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
-    {label:'Calories '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
+    {label:'Gaz '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
     {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
   if(charts.cC){charts.cC.data.datasets=ds;charts.cC.options.scales.x.ticks.color=txt;charts.cC.update();return}
   charts.cC=new Chart($('cC'),{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin],options:{maintainAspectRatio:false,layout:{padding:{right:150}},interaction:{mode:'index',intersect:false},
@@ -332,7 +332,7 @@ function drawTotal(){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line'),f=v=>v==null?null:v/1000;
   const pe=val(year-1,'e'),pg=val(year-1,'g'),prev=pe.map((v,i)=>v==null&&pg[i]==null?null:((v||0)+(pg[i]||0))/1000);
   const ds=[{label:'Électricité',data:val(year,'e').map(f),backgroundColor:col('--elec'),stack:'s'},
-    {label:'Calories',data:val(year,'g').map(f),backgroundColor:col('--gaz'),stack:'s'},
+    {label:'Gaz',data:val(year,'g').map(f),backgroundColor:col('--gaz'),stack:'s'},
     {type:'line',label:'Total '+(year-1),data:prev,borderColor:txt,backgroundColor:txt,borderDash:[5,4],borderWidth:2,pointRadius:3,order:-1}];
   if(charts.cT){charts.cT.data.datasets=ds;charts.cT.options.scales.x.ticks.color=txt;charts.cT.update();return}
   charts.cT=new Chart($('cT'),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[totPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},
@@ -403,12 +403,12 @@ $('pdf').onclick=()=>{
     doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.filter(Boolean).forEach((t,i)=>{const m=/^(Coût : )?([+-])/.exec(t);doc.setFont('helvetica',m?'bold':'normal');doc.setTextColor(...(m?(m[2]==='+'?[225,29,46]:[15,157,58]):[100,100,100]));doc.text(t,x+5,y+20+i*4.5)});
   };
   const grey=[102,112,117],ver=[43,125,233],rou=[224,49,49];
-  box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Calories '+N(tot?sum(g)/tot*100:null)+' %',vE],grey);
-  box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Calories '+N(sum(cg))+' EUR',vc(tc(ce,cg),tc(ce1,cg1),'t')],grey);
+  box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Gaz '+N(tot?sum(g)/tot*100:null)+' %',vE],grey);
+  box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Gaz '+N(sum(cg))+' EUR',vc(tc(ce,cg),tc(ce1,cg1),'t')],grey);
   box(M,70,'Électricité',MW(sum(e))+' MWh',['Moyenne '+MW(count(e)?sum(e)/count(e):null)+' MWh/mois',vt('e'),vc(ce,ce1,'e')],ver);
-  box(M+94,70,'Calories',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g'),vc(cg,cg1,'g')],rou);
+  box(M+94,70,'Gaz',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g'),vc(cg,cg1,'g')],rou);
   doc.addImage(chartImg('e','#2b7de9','Électricité (MWh par mois)'),'PNG',M,105,182,77);
-  doc.addImage(chartImg('g','#e03131','Calories (MWh par mois)'),'PNG',M,185,182,77);
+  doc.addImage(chartImg('g','#e03131','Gaz (MWh par mois)'),'PNG',M,185,182,77);
   doc.save('rapport-energie-'+year+'.pdf');
 };
 
@@ -522,7 +522,7 @@ $('rows').onclick=ev=>{
 };
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('exJson').onclick=()=>dl('data.json',JSON.stringify(data,null,2),'application/json');
-$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;calories_kWh;prix_elec_eur_MWh;prix_calories_eur_MWh\n'+data.map(d=>[d.m,d.e,d.g,d.ce,d.cg].map(v=>v??'').join(';')).join('\n'),'text/csv');
+$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;gaz_kWh;prix_elec_eur_MWh;prix_gaz_eur_MWh\n'+data.map(d=>[d.m,d.e,d.g,d.ce,d.cg].map(v=>v??'').join(';')).join('\n'),'text/csv');
 $('imp').onclick=()=>$('file').click();
 $('file').onchange=async ev=>{
   try{const arr=JSON.parse(await ev.target.files[0].text());
