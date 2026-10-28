@@ -68,6 +68,13 @@ details.pr[open]>summary{background:var(--bg)}details.pr .proj{margin:8px 0 12px
 #gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
 .gbox{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15)}
 .gbox h2{font-size:1.25rem;margin:0 0 4px}.gbox p{margin:8px 0}#gate form{grid-template-columns:1fr}
+details.yr{border:1px solid var(--line);border-radius:8px;margin-top:10px;padding:0 12px}
+details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
+.prixy{display:flex;flex-wrap:wrap;gap:12px;margin:4px 0 10px}.pxy{width:140px}
+.gt td,.gt th{padding:4px 6px}.gt tfoot td{font-weight:700;border-top:2px solid var(--line)}
+.cell{width:100%;min-width:100px;text-align:right}
+.cell.ce:not(:placeholder-shown){background:color-mix(in srgb,var(--elec) 14%,var(--card))}
+.cell.cg:not(:placeholder-shown){background:color-mix(in srgb,var(--gaz) 18%,var(--card))}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -135,31 +142,11 @@ body.out .edit-only{display:none!important}
   <div class="tools"><span id="who"></span><button id="logout" type="button" hidden>Se déconnecter</button></div>
   <p id="status" class="note" role="status"></p>
 </section></div>
-<section id="formSec" hidden>
-  <h2 id="formTitle">Ajouter un relevé</h2>
-  <form id="form">
-    <label>Mois <input type="month" id="m" required></label>
-    <label>Électricité (kWh) <input type="number" id="e" min="0" step="any"></label>
-    <label>Gaz (kWh) <input type="number" id="g" min="0" step="any"></label>
-    <label>Prix électricité (€/MWh) <input type="number" id="ce" min="0" step="any"></label>
-    <label>Prix gaz (€/MWh) <input type="number" id="cg" min="0" step="any"></label>
-    <div class="tools"><button class="main" type="submit">Enregistrer</button><button type="button" id="cancel" hidden>Annuler</button></div>
-  </form>
-  <p class="note">Si le mois existe déjà, seuls les champs remplis sont mis à jour : les champs vides conservent leur valeur. Pour effacer une valeur, utilisez « Modifier » dans le tableau. Coût = MWh × prix du mois ; si le prix est vide, le prix par défaut ci-dessous est utilisé.</p>
-  <h2 style="margin-top:20px">Prix par défaut au MWh</h2>
-  <form id="prixForm">
-    <label>Électricité (€/MWh) <input type="number" id="pe" min="0" step="any"></label>
-    <label>Gaz (€/MWh) <input type="number" id="pg" min="0" step="any"></label>
-    <div class="tools"><button class="main" type="submit">Enregistrer les prix</button></div>
-  </form>
-  <p class="note">Appliqué aux mois sans prix saisi (affiché avec ~ dans le tableau).</p>
-</section>
-<section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Relevés de l’année</h2><label>Année <select id="year2"></select></label></div>
-  <div class="scroll"><table>
-    <thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Prix élec. (€/MWh)</th><th>Prix gaz (€/MWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th><th></th></tr></thead>
-    <tbody id="rows"></tbody>
-  </table></div>
+
+<section id="gridsSec">
+  <h2>Relevés mensuels</h2>
+  <p class="note" style="margin:0 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
+  <div id="grids"></div>
 </section>
 <section>
   <h2>Données</h2>
@@ -232,16 +219,15 @@ function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
     const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};
-    $('pe').value=prices.e??'';$('pg').value=prices.g??'';
+    
     data=snap.docs.filter(d=>d.id!=='_prix').map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
 const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
-const costOf=(d,k)=>{const own=d['c'+k],p=own!=null?own:prices[k];return d[k]!=null&&p!=null?{v:d[k]/1000*p,est:own==null}:null};
+const priceOf=(y,k,d)=>{const a=prices.a&&prices.a[y]&&prices.a[y][k];return a!=null?a:(d&&d['c'+k]!=null?d['c'+k]:prices[k])};
+const costOf=(d,k)=>{const p=priceOf(+d.m.slice(0,4),k,d);return d[k]!=null&&p!=null?{v:d[k]/1000*p}:null};
 const costArr=(y,k)=>Array.from({length:12},(_,i)=>{const d=data.find(x=>x.m===`${y}-${String(i+1).padStart(2,'0')}`);const r=d&&costOf(d,k);return r?r.v:null});
-const cc=(d,k)=>{const r=costOf(d,k);return r?(r.est?`<i>~${fmt(r.v,0)}</i>`:fmt(r.v,0)):'–'};
-const pc=(d,k)=>d['c'+k]!=null?fmt(d['c'+k],2):prices[k]!=null?`<i>~${fmt(prices[k],2)}</i>`:'–';
 const sum=a=>a.reduce((s,v)=>s+(v||0),0);
 const count=a=>a.filter(v=>v!=null).length;
 
@@ -349,28 +335,36 @@ function draw(id,k,color){
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`,afterLabel:c=>{if(c.datasetIndex!==1)return;const q=pct(c.parsed.y,c.chart.data.datasets[0].data[c.dataIndex]);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs '+(year-1)}}}},
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
-function table(){
-  const rows=data.filter(d=>d.m.startsWith(year+'-')).sort((a,b)=>a.m.localeCompare(b.m));
-  $('rows').innerHTML=rows.length?rows.map(d=>`<tr><td>${MOIS[+d.m.slice(5)-1]} ${d.m.slice(0,4)}</td><td>${fmt(d.e,1)}</td><td>${fmt(d.g,1)}</td><td>${pc(d,'e')}</td><td>${pc(d,'g')}</td><td>${cc(d,'e')}</td><td>${cc(d,'g')}</td>
-    <td><button class="link" data-edit="${d.m}">Modifier</button><button class="link" data-del="${d.m}">Supprimer</button></td></tr>`).join('')
-    :'<tr><td colspan="8" class="empty">Aucun relevé pour '+year+'. Ajoutez le premier avec le formulaire ci-dessus.</td></tr>';
+
+const MOISL=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let gridKey='';
+function buildGrids(){
+  const ys=data.map(d=>+d.m.slice(0,4)),cur=new Date().getFullYear(),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
+  if(key===gridKey)return;gridKey=key;let h='';
+  for(let y=top;y>=bot;y--){
+    h+=`<details class="yr" ${y===cur?'open':''}><summary><b>${y}</b> <span class="badge" data-n="${y}"></span></summary>
+    <div class="prixy"><label>Prix électricité (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|e"></label><label>Prix gaz (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|g"></label></div>
+    <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th></tr></thead><tbody>
+    ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell ce" placeholder="–" data-c="${m}|e"></td><td><input type="number" min="0" step="any" class="cell cg" placeholder="–" data-c="${m}|g"></td><td data-cost="${m}|e"></td><td data-cost="${m}|g"></td></tr>`}).join('')}
+    </tbody><tfoot><tr><td>Total</td><td data-tot="${y}|e"></td><td data-tot="${y}|g"></td><td data-totc="${y}|e"></td><td data-totc="${y}|g"></td></tr></tfoot></table></div></details>`;
+  }
+  $('grids').innerHTML=h;
+}
+function grids(){
+  buildGrids();const act=document.activeElement,q=(a)=>document.querySelectorAll('#grids ['+a+']');
+  q('data-c').forEach(el=>{if(el===act)return;const[m,k]=el.dataset.c.split('|'),d=data.find(x=>x.m===m);el.value=d&&d[k]!=null?d[k]:''});
+  q('data-px').forEach(el=>{if(el===act)return;const[y,k]=el.dataset.px.split('|'),v=prices.a&&prices.a[y]&&prices.a[y][k];el.value=v!=null?v:''});
+  q('data-cost').forEach(el=>{const[m,k]=el.dataset.cost.split('|'),d=data.find(x=>x.m===m),r=d&&costOf(d,k);el.textContent=r?fmt(r.v,0):'–'});
+  q('data-tot').forEach(el=>{const[y,k]=el.dataset.tot.split('|');el.textContent=fmt(sum(val(+y,k)))});
+  q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);el.textContent=count(a)?fmt(sum(a)):'–'});
+  q('data-n').forEach(el=>{const y=+el.dataset.n,n=count(val(y,'e'))+count(val(y,'g'));el.textContent=n+'/24 relevés'});
 }
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),new Date().getFullYear(),year])].sort((a,b)=>b-a);
-  $('year').innerHTML=$('year2').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');drawCumul();drawTotal();table();$('pdf').textContent='Télécharger le rapport PDF '+year;
+  $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
+  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');drawCumul();drawTotal();grids();$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
-function reset(){$('form').reset();$('m').value=new Date().toISOString().slice(0,7);$('formTitle').textContent='Ajouter un relevé';$('cancel').hidden=true}
-$('form').onsubmit=async ev=>{
-  ev.preventDefault();
-  const r={m:$('m').value,e:num($('e').value),g:num($('g').value),ce:num($('ce').value),cg:num($('cg').value)};
-  year=+r.m.slice(0,4);
-  const editing=!$('cancel').hidden,all={e:r.e,g:r.g,ce:r.ce,cg:r.cg};
-  const upd=editing?all:Object.fromEntries(Object.entries(all).filter(([,v])=>v!=null));
-  if(!editing&&!Object.keys(upd).length){alert('Renseignez au moins une valeur.');return}
-  try{await setDoc(doc(db,'releves',r.m),upd,{merge:!editing});reset()}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}
-};
 
 function chartImg(k,col,title){
   const cv=document.createElement('canvas');cv.width=900;cv.height=380;
@@ -511,18 +505,17 @@ $('vProj').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-
   upd(pid,t=>{const c=t.slice(),f=c.findIndex(x=>x.id===tid);if(f<0)return t;const[it]=c.splice(f,1);let to=c.findIndex(x=>x.id===tid2);if(to<0)return t;if(after)to++;c.splice(to,0,it);return c})};
 $('vProj').ondragend=()=>{drag=null;clr()};
 $('vProj').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
-$('cancel').onclick=reset;
-$('prixForm').onsubmit=async ev=>{ev.preventDefault();try{await setDoc(doc(db,'releves','_prix'),{e:num($('pe').value),g:num($('pg').value)})}catch(e){alert('Enregistrement refusé : êtes-vous connecté avec un compte autorisé ?')}};
-$('year').onchange=$('year2').onchange=ev=>{year=+ev.target.value;render()};
-$('rows').onclick=ev=>{
-  const ed=ev.target.dataset.edit,del=ev.target.dataset.del;
-  if(ed){const d=data.find(x=>x.m===ed);$('m').value=d.m;$('e').value=d.e??'';$('g').value=d.g??'';$('ce').value=d.ce??'';$('cg').value=d.cg??'';
-    $('formTitle').textContent='Modifier le relevé de '+d.m;$('cancel').hidden=false;$('form').scrollIntoView({behavior:'smooth'})}
-  if(del&&confirm('Supprimer le relevé de '+del+' ?')){deleteDoc(doc(db,'releves',del)).catch(()=>alert('Suppression refusée : êtes-vous connecté avec un compte autorisé ?'))}
-};
+$('grids').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
+  if(t.dataset.c){const[m,k]=t.dataset.c.split('|'),ex=data.find(x=>x.m===m);if(v==null&&!(ex&&ex[k]!=null))return;
+    setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();grids()})}
+  if(t.dataset.px){const[y,k]=t.dataset.px.split('|');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
+$('grids').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
+  const k=ev.target.dataset.c.split('|')[1],tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
+$('year').onchange=ev=>{year=+ev.target.value;render()};
+
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('exJson').onclick=()=>dl('data.json',JSON.stringify(data,null,2),'application/json');
-$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;gaz_kWh;prix_elec_eur_MWh;prix_gaz_eur_MWh\n'+data.map(d=>[d.m,d.e,d.g,d.ce,d.cg].map(v=>v??'').join(';')).join('\n'),'text/csv');
+$('exCsv').onclick=()=>dl('energie.csv','mois;electricite_kWh;gaz_kWh\n'+data.map(d=>[d.m,d.e,d.g].map(v=>v??'').join(';')).join('\n'),'text/csv');
 $('imp').onclick=()=>$('file').click();
 $('file').onchange=async ev=>{
   try{const arr=JSON.parse(await ev.target.files[0].text());
@@ -533,7 +526,7 @@ $('file').onchange=async ev=>{
 };
 function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;(pj?$('slotProj'):$('slotRel')).appendChild($('authBar'));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
-reset();render();route();
+render();route();
 auth.languageCode='fr';
 let lastPw='';
 function setGate(m){$('gLogin').hidden=m!=='login';$('gChange').hidden=m!=='change';$('gTitle').textContent=m==='login'?'Connexion':'Choisissez votre mot de passe';$('gMsg').textContent='';(m==='login'?$('gem'):$('gnew')).focus()}
@@ -554,7 +547,7 @@ $('gChange').onsubmit=async ev=>{ev.preventDefault();
   ['gcur','gnew','gnew2'].forEach(i=>$(i).value='');lastPw='';enter(u)};
 function enter(u){
   document.querySelector('main').hidden=false;$('gate').hidden=true;
-  $('logout').hidden=false;$('formSec').hidden=false;$('imp').hidden=false;$('who').textContent=u.email;
+  $('logout').hidden=false;$('imp').hidden=false;$('who').textContent=u.email;
   listen();listenProj();route();
 }
 onAuthStateChanged(auth,async u=>{
