@@ -7,8 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e03131;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#d99a00;--m2:#8b5cf6;--m3:#0d9488}
-@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#ff6b6b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#f5b82e;--m2:#a78bfa;--m3:#2dd4bf}}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#2b7de9;--m2:#8b5cf6;--m3:#0d9488}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#5aa2ff;--m2:#a78bfa;--m3:#2dd4bf}}
 *{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
@@ -402,13 +402,13 @@ $('pdf').onclick=()=>{
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(value,x+5,y+14);
     doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100);sub.filter(Boolean).forEach((t,i)=>{const m=/^(Coût : )?([+-])/.exec(t);doc.setFont('helvetica',m?'bold':'normal');doc.setTextColor(...(m?(m[2]==='+'?[225,29,46]:[15,157,58]):[100,100,100]));doc.text(t,x+5,y+20+i*4.5)});
   };
-  const grey=[102,112,117],ver=[43,125,233],rou=[224,49,49];
+  const grey=[102,112,117],ver=[43,125,233],rou=[230,184,0];
   box(M,36,'Énergie totale',MW(tot)+' MWh',['Électricité '+N(tot?sum(e)/tot*100:null)+' %','Gaz '+N(tot?sum(g)/tot*100:null)+' %',vE],grey);
   box(M+94,36,'Coût total',N(ctot)+' EUR',['Électricité '+N(sum(ce))+' EUR','Gaz '+N(sum(cg))+' EUR',vc(tc(ce,cg),tc(ce1,cg1),'t')],grey);
   box(M,70,'Électricité',MW(sum(e))+' MWh',['Moyenne '+MW(count(e)?sum(e)/count(e):null)+' MWh/mois',vt('e'),vc(ce,ce1,'e')],ver);
   box(M+94,70,'Gaz',MW(sum(g))+' MWh',['Moyenne '+MW(count(g)?sum(g)/count(g):null)+' MWh/mois',vt('g'),vc(cg,cg1,'g')],rou);
   doc.addImage(chartImg('e','#2b7de9','Électricité (MWh par mois)'),'PNG',M,105,182,77);
-  doc.addImage(chartImg('g','#e03131','Gaz (MWh par mois)'),'PNG',M,185,182,77);
+  doc.addImage(chartImg('g','#e6b800','Gaz (MWh par mois)'),'PNG',M,185,182,77);
   doc.save('rapport-energie-'+year+'.pdf');
 };
 
