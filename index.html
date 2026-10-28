@@ -79,6 +79,7 @@ details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
 .eur{color:var(--ok);font-weight:700;letter-spacing:1px}.eur .off{opacity:.25}
 .gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
 .gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}
+#foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:.9rem}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -141,11 +142,7 @@ body.out .edit-only{display:none!important}
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
-<div id="slotRel"><section id="authBar">
-  
-  <div class="tools"><span id="who"></span><button id="logout" type="button" hidden>Se déconnecter</button></div>
-  <p id="status" class="note" role="status"></p>
-</section></div>
+<p id="status" class="note" role="status"></p>
 
 <section id="gridsSec">
   <h2>Relevés mensuels</h2>
@@ -171,7 +168,11 @@ body.out .edit-only{display:none!important}
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
-<div id="slotProj"></div>
+<section>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets en cours et terminés</h2>
+    <label>Afficher <select id="pf"><option value="tous">Tous</option><option value="cours">En cours</option><option value="fini">Terminés</option></select></label></div>
+  <div class="scroll"><div id="projList"></div></div>
+</section>
 <section>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets à réaliser <span id="nA" class="badge"></span></h2><button class="main edit-only" id="newP" type="button">Nouveau projet</button></div>
   <div id="projForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
@@ -190,12 +191,8 @@ body.out .edit-only{display:none!important}
   </div>
   <div class="scroll" style="margin-top:10px"><div id="aList"></div></div>
 </section>
-<section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Projets en cours et terminés</h2>
-    <label>Afficher <select id="pf"><option value="tous">Tous</option><option value="cours">En cours</option><option value="fini">Terminés</option></select></label></div>
-  <div class="scroll"><div id="projList"></div></div>
-</section>
 </div>
+<footer id="foot"><span id="who"></span><button id="logout" type="button">Se déconnecter</button></footer>
 </main>
 
 <script type="module">
@@ -427,7 +424,7 @@ function card(p){
   const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini',pct=n?Math.round(k/n*100):0,late=p.echeance&&p.echeance<today()&&!done,dis=user&&!a?'':'disabled';
   const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):'',p.echeance?`<span class="${late?'late':''}">Échéance : ${dfr(p.echeance)}${late?' (dépassée)':''}</span>`:''].filter(Boolean).join(' · ');
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
-    <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span><button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
+    <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':done?'Terminé':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
     ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):`<div class="bar"><i style="width:${pct}%"></i></div>`}
     ${t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-up="${k}" aria-label="Monter">▲</button><button class="link edit-only" data-dn="${k}" aria-label="Descendre">▼</button><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('')}
@@ -482,6 +479,7 @@ $('newP').onclick=()=>{if(!$('projForm').hidden){closeForm();return}$('projForm'
 const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(p.statut!=='a_realiser'&&t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
 $('vProj').onclick=ev=>{const d=ev.target.dataset;
   if(d.start){ev.preventDefault();}
+  if(d.back&&confirm('Remettre ce projet dans les projets à réaliser ?'))updateDoc(doc(db,'projets',d.back),{statut:'a_realiser'}).catch(refus);
   if(d.editp){const p=projets.find(x=>x.id===d.editp);if(!p)return;ev.preventDefault();editP=p.id;
     $('pn').value=p.nom||'';$('pr').value=p.resp||'';$('pd').value=p.echeance||'';$('pdesc').value=p.desc||'';$('pdur').value=p.duree?p.duree.n:'';$('pdu').value=p.duree?p.duree.u:'jours';
     $('pcout').value=p.cout??'';$('pgain').value=p.gain==null?'':String(p.gain);$('pconf').value=p.confort==null?'':String(p.confort);
@@ -532,7 +530,7 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;(pj?$('slotProj'):$('slotRel')).appendChild($('authBar'));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
+function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 render();route();
 auth.languageCode='fr';
