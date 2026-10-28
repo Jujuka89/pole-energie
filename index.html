@@ -78,7 +78,7 @@ details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
 .prow.b{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 175px;min-width:930px}
 .eur{color:var(--ok);font-weight:700;letter-spacing:1px}.eur .off{opacity:.25}
 .gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
-.gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}
+.gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}.gauge.cours i,.bar.cours i{background:var(--s-cours)}.sv .dl{color:var(--mute);font-weight:400;font-size:.75rem}
 #foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:.9rem}
 section.st{--sc:var(--mute);border-left:6px solid var(--sc);background:color-mix(in srgb,var(--sc) 5%,var(--card))}
 .st-cours{--sc:var(--s-cours)}.st-fini{--sc:var(--s-ctrl)}.st-clos{--sc:var(--ok)}.st-a{--sc:var(--s-a)}
@@ -437,7 +437,7 @@ function card(p){
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
     <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}${st==='fini'?'<button class="main edit-only" data-close="'+p.id+'">Clôturer le projet</button>':''}${st==='clos'?'<button class="link edit-only" data-reopen="'+p.id+'">Rouvrir</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
-    ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):`<div class="bar"><i style="width:${pct}%"></i></div>`}
+    ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):`<div class="bar ${st==='cours'?'cours':''}"><i style="width:${pct}%"></i></div>`}
     ${t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-up="${k}" aria-label="Monter">▲</button><button class="link edit-only" data-dn="${k}" aria-label="Descendre">▼</button><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('')}
     <div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><select data-ntm="${p.id}"><option value="">Corps de métier</option><option>Élec</option><option>CVC</option><option>Plombier</option></select><button data-addt="${p.id}">Ajouter la tâche</button></div>${done?suivi(p):''}</article>`;
 }
@@ -450,15 +450,17 @@ function stats(p){const it=[];
   if(p.confort!=null)it.push(['Confort',stars(p.confort)+' '+p.confort+'/5']);
   return it.length?`<div class="stats">${it.map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div>`:''}
 function suivi(p){
-  const dis=user?'':'disabled',s=p.suivi||{},start=p.termine,n=Object.values(s).filter(v=>v!=null).length,now=new Date();
+  const dis=user?'':'disabled',s=p.suivi||{},start=p.termine,n=Object.values(s).filter(v=>v!=null).length,now=new Date(),fl=Object.keys(s).filter(k=>s[k]!=null&&s[k]!=='').map(Number).sort((a,b)=>a-b),tot=fl.length>1&&fl[0]===0?s[fl[fl.length-1]]-s[0]:null;
   let cases='';
   if(start){const d0=new Date(start+'T00:00');
+    const V=i=>s[i]!=null&&s[i]!==''?+s[i]:null;
     cases=Array.from({length:13},(_,i)=>{const dt=new Date(d0.getFullYear(),d0.getMonth()+i,1);
       const lab=i?`M+${i} · ${MOIS[dt.getMonth()]} ${dt.getFullYear()}`:'À la fin du projet';
       const cur=i&&dt.getFullYear()===now.getFullYear()&&dt.getMonth()===now.getMonth();
-      return `<label class="sv ${cur?'cur':''}">${lab}<input type="number" step="any" data-sv="${p.id}|${i}" value="${s[i]??''}" ${dis}></label>`}).join('')}
-  return `<div class="suivi"><h4>Suivi sur 1 an après la fin du projet <span class="badge">${n}/13 valeurs</span></h4>
-    <div class="tools"><label>Compteur suivi <input type="text" data-snom="${p.id}" value="${esc(p.suiviNom||'')}" placeholder="Ex. Électricité atelier (kWh)" maxlength="120" ${dis}></label>
+      let dl='';if(i&&V(i)!=null){let j=i-1;while(j>=0&&V(j)==null)j--;if(j>=0){const d=V(i)-V(j);dl=`<small class="dl">Conso : ${d>0?'+':''}${fmt(d,1)}${i-j>1?' (sur '+(i-j)+' mois)':''}</small>`}}
+      return `<label class="sv ${cur?'cur':''}">${lab}<input type="number" step="any" placeholder="valeur" data-sv="${p.id}|${i}" value="${s[i]??''}" ${dis}>${dl}</label>`}).join('')}
+  return `<div class="suivi"><h4>Suivi sur 1 an après la fin du projet : valeur du compteur <span class="badge">${n}/13 valeurs</span>${tot!=null?` <span class="badge">Depuis la fin : ${tot>0?'+':''}${fmt(tot,1)}</span>`:''}</h4>
+    <div class="tools"><label>Compteur suivi <input type="text" data-snom="${p.id}" value="${esc(p.suiviNom||'')}" placeholder="Nom du compteur (ex. Électricité atelier, kWh)" maxlength="120" ${dis}></label>
     <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
     ${start?`<div class="svgrid">${cases}</div>`:'<p class="note">Indiquez la date de fin du projet pour afficher les cases de suivi.</p>'}</div>`;
 }
@@ -468,7 +470,7 @@ const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l
 const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
 $('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}},true);
 const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0;
-  return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
+  return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${st==='cours'?'cours':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
 const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>';
 function renderProj(){
   const a=document.activeElement,key=a&&a.closest&&a.closest('#lCours,#lFini,#lClos,#aList')&&Object.entries(a.dataset)[0];
