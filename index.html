@@ -350,7 +350,7 @@ function draw(id,k,color){
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
 function table(){
-  const rows=data.filter(d=>d.m.startsWith(year+'-')).sort((a,b)=>b.m.localeCompare(a.m));
+  const rows=data.filter(d=>d.m.startsWith(year+'-')).sort((a,b)=>a.m.localeCompare(b.m));
   $('rows').innerHTML=rows.length?rows.map(d=>`<tr><td>${MOIS[+d.m.slice(5)-1]} ${d.m.slice(0,4)}</td><td>${fmt(d.e,1)}</td><td>${fmt(d.g,1)}</td><td>${pc(d,'e')}</td><td>${pc(d,'g')}</td><td>${cc(d,'e')}</td><td>${cc(d,'g')}</td>
     <td><button class="link" data-edit="${d.m}">Modifier</button><button class="link" data-del="${d.m}">Supprimer</button></td></tr>`).join('')
     :'<tr><td colspan="8" class="empty">Aucun relevé pour '+year+'. Ajoutez le premier avec le formulaire ci-dessus.</td></tr>';
