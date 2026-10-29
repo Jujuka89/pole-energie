@@ -127,7 +127,7 @@ body.out .edit-only{display:none!important}
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
-<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><div class="box"><canvas id="cT"></canvas></div></section>
+<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain ou perte par rapport à l’année précédente, sur les mêmes mois : vert = moins consommé, rouge = plus consommé.</p></section>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
@@ -321,9 +321,17 @@ function drawCumul(){
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
 const totPlugin={id:'tot',afterDatasetsDraw(ch){
-  const ctx=ch.ctx,[e,g]=ch.data.datasets,m=ch.getDatasetMeta(0);
-  ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.textAlign='center';ctx.textBaseline='bottom';
-  ch.data.labels.forEach((_,i)=>{if(e.data[i]==null&&g.data[i]==null)return;const t=(e.data[i]||0)+(g.data[i]||0);ctx.fillText(fmt(t),m.data[i].x,ch.scales.y.getPixelForValue(t)-4)});
+  const ctx=ch.ctx,[e,g]=ch.data.datasets,m=ch.getDatasetMeta(0),css=getComputedStyle(document.documentElement),c=n=>css.getPropertyValue(n).trim();
+  const w=ch.chartArea.width/ch.data.labels.length;
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='bottom';ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
+  ch.data.labels.forEach((_,i)=>{if(e.data[i]==null&&g.data[i]==null)return;
+    const t=(e.data[i]||0)+(g.data[i]||0),x=m.data[i].x,y=ch.scales.y.getPixelForValue(t);
+    ctx.fillStyle=c('--ink');ctx.fillText(fmt(t),x,y-4);
+    if(totMode==='toutes'){const yr=+ch.data.labels[i],r=cmp(tc(val(yr,'e'),val(yr,'g')),tc(val(yr-1,'e'),val(yr-1,'g')));
+      if(r){const n=Math.round(r.q*10)/10;ctx.fillStyle=c(n>0?'--bad':n<0?'--ok':'--mute');
+        ctx.fillText((n>0?'▲ +':n<0?'▼ ':'')+fmt(r.q,1)+' %',x,y-18);
+        if(w>=70)ctx.fillText((r.d>0?'+':'')+fmt(r.d/1000)+' MWh',x,y-32)}}
+  });
   ctx.restore();
 }};
 let totMode='annee';
@@ -341,8 +349,9 @@ function drawTotal(){
       {type:'line',label:'Total '+(year-1),data:prev,borderColor:txt,backgroundColor:txt,borderDash:[5,4],borderWidth:2,pointRadius:3,order:-1}];
   }
   $('totTitle').textContent=totMode==='toutes'?'Énergie totale par année depuis 2018 : électricité + gaz (MWh)':'Énergie totale par mois : électricité + gaz (MWh)';
-  if(charts.cT){charts.cT.data.labels=labels;charts.cT.data.datasets=ds;charts.cT.options.scales.x.ticks.color=txt;charts.cT.update();return}
-  charts.cT=new Chart($('cT'),{type:'bar',data:{labels,datasets:ds},plugins:[totPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},
+  $('totNote').hidden=totMode!=='toutes';
+  if(charts.cT){charts.cT.options.layout.padding.top=totMode==='toutes'?50:22;charts.cT.data.labels=labels;charts.cT.data.datasets=ds;charts.cT.options.scales.x.ticks.color=txt;charts.cT.update();return}
+  charts.cT=new Chart($('cT'),{type:'bar',data:{labels,datasets:ds},plugins:[totPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:totMode==='toutes'?50:22}},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`,
       footer:it=>{const i=it[0].dataIndex,d=it[0].chart.data.datasets;return 'Total '+(totMode==='toutes'?it[0].label:year)+' : '+fmt((d[0].data[i]||0)+(d[1].data[i]||0))+' MWh'}}}},
     scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
