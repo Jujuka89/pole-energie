@@ -127,7 +127,7 @@ body.out .edit-only{display:none!important}
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
-<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Économie de chaque année par rapport à 2018 (année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme donne le cumul affiché ci-dessus.</p></section>
+<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
@@ -341,8 +341,8 @@ const totPlugin={id:'tot',afterDatasetsDraw(ch){
     if(totMode==='toutes'){const r=er.find(o=>o.y===+ch.data.labels[i]);
       if(r){const rs=Object.values(r.k).reduce((a,o)=>a+o.refv,0),q=rs?r.sav/rs*100:null;
         if(q!=null){const n=Math.round(q*10)/10;ctx.fillStyle=c(n>0?'--ok':n<0?'--bad':'--mute');
-          ctx.fillText((n>0?'▼ ':n<0?'▲ ':'')+fmt(Math.abs(q),1)+' %',x,y-18);
-          if(w>=70)ctx.fillText((r.sav>=0?'Éco. ':'Surco. ')+fmt(Math.abs(r.sav)/1000)+' MWh',x,y-32)}}}
+          ctx.fillText((n>0?'▼ ':n<0?'▲ ':'')+fmt(Math.abs(q),1)+' %'+(r.part?'*':''),x,y-18);
+          if(w>=70)ctx.fillText((r.sav>=0?'Éco. ':'Surco. ')+fmt(Math.abs(r.sav)/1000)+' MWh'+(r.part?'*':''),x,y-32)}}}
   });
   ctx.restore();
 }};
@@ -364,38 +364,39 @@ function forecast(){
   return any?out:null;
 }
 function ecoRowsList(){
-  const top=Math.max(new Date().getFullYear(),...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number));
-  const rows=[];
+  const top=Math.max(new Date().getFullYear(),...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number)),rows=[];
   for(let y=REF+1;y<=top;y++){
     const r={y,sav:0,eur:0,ng:0,ne:0,k:{}};
     for(const k of ['e','g']){
-      const a=val(y,k),n=count(a),ref=full(REF,k)?yearTotal(REF,k):null,tot=yearTotal(y,k);
-      if(ref==null||tot==null)continue;
-      let d,cons=tot,base,refv=ref;
+      const a=val(y,k),n=count(a),tot=yearTotal(y,k);
+      if(tot==null||!full(y-1,k))continue;
+      const ref=yearTotal(y-1,k);let d,cons=tot,base,refv=ref;
       if(full(y,k)){d=ref-tot;base='année complète'}
-      else{const b=val(REF,k);
-        if(count(b)){let rr=0,cc=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){rr+=b[i];cc+=v}});if(!rr)continue;d=rr-cc;cons=cc;refv=rr;base=n+' mois, mêmes mois que '+REF}
-        else if(annualOnly(REF,k)){d=ref*n/12-tot;refv=ref*n/12;base=n+' mois, '+REF+' au prorata'}
+      else{const b=val(y-1,k);
+        if(count(b)){let rr=0,cc=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){rr+=b[i];cc+=v}});if(!rr)continue;d=rr-cc;cons=cc;refv=rr;base=n+' mois, mêmes mois que '+(y-1)}
+        else if(annualOnly(y-1,k)){d=ref*n/12-tot;refv=ref*n/12;base=n+' mois, '+(y-1)+' au prorata'}
         else continue}
       const pr=priceOf(y,k,null);r.sav+=d;if(pr!=null){r.eur+=d/1000*pr;r.ne++}else r.ng++;
       r.k[k]={cons,d,base,refv}}
-    if(Object.keys(r.k).length)rows.push(r)}
+    if(Object.keys(r.k).length){r.part=Object.values(r.k).some(o=>o.base!=='année complète');rows.push(r)}}
   return rows;
 }
 function ecoRef(){
   const el=$('ecoRef'),top=Math.max(new Date().getFullYear(),...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number));
   let h='';
   const rows=ecoRowsList();
-  if(rows.length){
-    const sav=rows.reduce((a,r)=>a+r.sav,0),eur=rows.reduce((a,r)=>a+r.eur,0),ne=rows.reduce((a,r)=>a+r.ne,0),ng=rows.reduce((a,r)=>a+r.ng,0),good=sav>=0,sE=rows.reduce((a,r)=>a+(r.k.e?r.k.e.d:0),0),sG=rows.reduce((a,r)=>a+(r.k.g?r.k.g.d:0),0);
+  const cr=rows.filter(r=>!r.part);
+  if(cr.length){
+    const sav=cr.reduce((a,r)=>a+r.sav,0),eur=cr.reduce((a,r)=>a+r.eur,0),ne=cr.reduce((a,r)=>a+r.ne,0),ng=cr.reduce((a,r)=>a+r.ng,0),good=sav>=0,sE=cr.reduce((a,r)=>a+(r.k.e?r.k.e.d:0),0),sG=cr.reduce((a,r)=>a+(r.k.g?r.k.g.d:0),0);
+    let acc=0;const runs=rows.map(r=>r.part?null:(acc+=r.sav));
     const euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel : prix manquant)':''):'– € (prix manquants)';
     const cell=(o)=>o?fmt(o.cons/1000):'–',cd=(o)=>o?fmt(o.d/1000):'–';
-    h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Cumul depuis ${REF} : ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">${rows.length} année${rows.length>1?'s':''} comparée${rows.length>1?'s':''}</small>
+    h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Cumul depuis ${REF} : ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">${cr.length} année${cr.length>1?'s':''} complète${cr.length>1?'s':''} comptée${cr.length>1?'s':''}${rows.length>cr.length?' · année en cours non comptée':''}</small>
     <details id="ecoDet" ${ecoOpen?'open':''} style="margin-top:6px"><summary style="cursor:pointer;color:var(--mute);font-size:.88rem">Détail du calcul</summary>
-    <div class="scroll"><table class="gt"><thead><tr><th>Année</th><th>Élec. consommée (MWh)</th><th>Économie élec. (MWh)</th><th>Gaz consommé (MWh)</th><th>Économie gaz (MWh)</th><th>Économie totale (MWh)</th><th>Économie (€)</th><th>Base de comparaison</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr><td>${r.y}</td><td>${cell(r.k.e)}</td><td>${cd(r.k.e)}</td><td>${cell(r.k.g)}</td><td>${cd(r.k.g)}</td><td><b>${fmt(r.sav/1000)}</b></td><td>${r.ne?fmt(r.eur)+(r.ng?'*':''):'–'}</td><td style="text-align:left;font-size:.8rem;color:var(--mute)">${Object.entries(r.k).map(([k,o])=>(k==='e'?'élec. : ':'gaz : ')+o.base).join(' ; ')}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td><td></td><td>${fmt(sE/1000)}</td><td></td><td>${fmt(sG/1000)}</td><td>${fmt(sav/1000)}</td><td>${ne?fmt(eur):'–'}</td><td></td></tr></tfoot></table></div>
-    <p class="note" style="margin:6px 0 0">Référence ${REF} : ${['e','g'].map(k=>full(REF,k)?(k==='e'?'élec. ':'gaz ')+fmt(yearTotal(REF,k)/1000)+' MWh':'').filter(Boolean).join(' · ')}. Économie = référence − consommation de l’année (négatif = consommation supérieure). Euros : économie en MWh × prix de l’année concernée (* prix manquant pour une énergie).</p></details></div>`}
+    <div class="scroll"><table class="gt"><thead><tr><th>Année</th><th>Élec. consommée (MWh)</th><th>Économie élec. vs N-1 (MWh)</th><th>Gaz consommé (MWh)</th><th>Économie gaz vs N-1 (MWh)</th><th>Économie totale (MWh)</th><th>Cumul (MWh)</th><th>Économie (€)</th><th>Base de comparaison</th></tr></thead><tbody>
+    ${rows.map((r,ix)=>`<tr ${r.part?'style="opacity:.6"':''}><td>${r.y}${r.part?' (en cours, non comptée)':''}</td><td>${cell(r.k.e)}</td><td>${cd(r.k.e)}</td><td>${cell(r.k.g)}</td><td>${cd(r.k.g)}</td><td><b>${fmt(r.sav/1000)}</b></td><td>${runs[ix]==null?'–':fmt(runs[ix]/1000)}</td><td>${r.ne?fmt(r.eur)+(r.ng?'*':''):'–'}</td><td style="text-align:left;font-size:.8rem;color:var(--mute)">${Object.entries(r.k).map(([k,o])=>(k==='e'?'élec. : ':'gaz : ')+o.base).join(' ; ')}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total (années complètes)</td><td></td><td>${fmt(sE/1000)}</td><td></td><td>${fmt(sG/1000)}</td><td>${fmt(sav/1000)}</td><td>${fmt(sav/1000)}</td><td>${ne?fmt(eur):'–'}</td><td></td></tr></tfoot></table></div>
+    <p class="note" style="margin:6px 0 0">Référence ${REF} : ${['e','g'].map(k=>full(REF,k)?(k==='e'?'élec. ':'gaz ')+fmt(yearTotal(REF,k)/1000)+' MWh':'').filter(Boolean).join(' · ')}. Économie d’une année = consommation de l’année précédente − consommation de l’année (2019 est comparée à 2018, 2020 à 2019, etc.) ; le cumul additionne ces économies de proche en proche (négatif = consommation supérieure). L’année en cours (grisée) est comparée sur les mois déjà relevés et n’est pas comptée dans le cumul. Euros : économie en MWh × prix de l’année concernée (* prix manquant pour une énergie).</p></details></div>`}
   const f=forecast();
   if(f){let P=0,R=0,eur=0,ne=0,ng=0;const me=new Set();
     for(const k of Object.keys(f.k)){me.add(f.k[k].method);if(!full(REF,k))continue;const ref=yearTotal(REF,k);P+=f.k[k].proj;R+=ref;const pr=priceOf(f.yy,k,null);if(pr!=null){eur+=(ref-f.k[k].proj)/1000*pr;ne++}else ng++}
