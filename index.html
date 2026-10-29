@@ -127,7 +127,7 @@ body.out .edit-only{display:none!important}
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
-<section><h2>Énergie totale par mois : électricité + gaz (MWh)</h2><div class="box"><canvas id="cT"></canvas></div></section>
+<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><div class="box"><canvas id="cT"></canvas></div></section>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
@@ -323,19 +323,28 @@ function drawCumul(){
 const totPlugin={id:'tot',afterDatasetsDraw(ch){
   const ctx=ch.ctx,[e,g]=ch.data.datasets,m=ch.getDatasetMeta(0);
   ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.textAlign='center';ctx.textBaseline='bottom';
-  MOIS.forEach((_,i)=>{if(e.data[i]==null&&g.data[i]==null)return;const t=(e.data[i]||0)+(g.data[i]||0);ctx.fillText(fmt(t),m.data[i].x,ch.scales.y.getPixelForValue(t)-4)});
+  ch.data.labels.forEach((_,i)=>{if(e.data[i]==null&&g.data[i]==null)return;const t=(e.data[i]||0)+(g.data[i]||0);ctx.fillText(fmt(t),m.data[i].x,ch.scales.y.getPixelForValue(t)-4)});
   ctx.restore();
 }};
+let totMode='annee';
 function drawTotal(){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line'),f=v=>v==null?null:v/1000;
   const pe=val(year-1,'e'),pg=val(year-1,'g'),prev=pe.map((v,i)=>v==null&&pg[i]==null?null:((v||0)+(pg[i]||0))/1000);
-  const ds=[{label:'Électricité',data:val(year,'e').map(f),backgroundColor:col('--elec'),stack:'s'},
-    {label:'Gaz',data:val(year,'g').map(f),backgroundColor:col('--gaz'),stack:'s'},
-    {type:'line',label:'Total '+(year-1),data:prev,borderColor:txt,backgroundColor:txt,borderDash:[5,4],borderWidth:2,pointRadius:3,order:-1}];
-  if(charts.cT){charts.cT.data.datasets=ds;charts.cT.options.scales.x.ticks.color=txt;charts.cT.update();return}
-  charts.cT=new Chart($('cT'),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[totPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},
+  let labels=MOIS,ds;
+  if(totMode==='toutes'){
+    const ys=data.map(d=>+d.m.slice(0,4)),top=Math.max(new Date().getFullYear(),...ys),bot=Math.min(2018,...ys),L=[];for(let y=bot;y<=top;y++)L.push(y);
+    const tt=(y,k)=>count(val(y,k))?sum(val(y,k))/1000:null;labels=L.map(String);
+    ds=[{label:'Électricité',data:L.map(y=>tt(y,'e')),backgroundColor:col('--elec'),stack:'s'},{label:'Gaz',data:L.map(y=>tt(y,'g')),backgroundColor:col('--gaz'),stack:'s'}];
+  }else{
+    ds=[{label:'Électricité',data:val(year,'e').map(f),backgroundColor:col('--elec'),stack:'s'},
+      {label:'Gaz',data:val(year,'g').map(f),backgroundColor:col('--gaz'),stack:'s'},
+      {type:'line',label:'Total '+(year-1),data:prev,borderColor:txt,backgroundColor:txt,borderDash:[5,4],borderWidth:2,pointRadius:3,order:-1}];
+  }
+  $('totTitle').textContent=totMode==='toutes'?'Énergie totale par année depuis 2018 : électricité + gaz (MWh)':'Énergie totale par mois : électricité + gaz (MWh)';
+  if(charts.cT){charts.cT.data.labels=labels;charts.cT.data.datasets=ds;charts.cT.options.scales.x.ticks.color=txt;charts.cT.update();return}
+  charts.cT=new Chart($('cT'),{type:'bar',data:{labels,datasets:ds},plugins:[totPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`,
-      footer:it=>{const i=it[0].dataIndex,d=it[0].chart.data.datasets;return 'Total '+year+' : '+fmt((d[0].data[i]||0)+(d[1].data[i]||0))+' MWh'}}}},
+      footer:it=>{const i=it[0].dataIndex,d=it[0].chart.data.datasets;return 'Total '+(totMode==='toutes'?it[0].label:year)+' : '+fmt((d[0].data[i]||0)+(d[1].data[i]||0))+' MWh'}}}},
     scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
 function draw(id,k,color){
@@ -532,6 +541,7 @@ $('grids').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
   if(t.dataset.px){const[y,k]=t.dataset.px.split('|');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
 $('grids').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
   const k=ev.target.dataset.c.split('|')[1],tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
+$('totMode').onchange=ev=>{totMode=ev.target.value;drawTotal()};
 $('year').onchange=ev=>{year=+ev.target.value;render()};
 
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
