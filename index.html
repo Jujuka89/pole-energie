@@ -336,8 +336,8 @@ const totPlugin={id:'tot',afterDatasetsDraw(ch){
   const w=ch.chartArea.width/ch.data.labels.length;
   ctx.save();ctx.textAlign='center';ctx.textBaseline='bottom';ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
   ch.data.labels.forEach((_,i)=>{if(e.data[i]==null&&g.data[i]==null)return;
-    const t=(e.data[i]||0)+(g.data[i]||0),x=m.data[i].x,y=ch.scales.y.getPixelForValue(t);
-    ctx.fillStyle=c('--ink');ctx.fillText(fmt(t),x,y-4);
+    const d2=ch.data.datasets[2],fv=d2&&d2.label==='Prévision'?d2.data[i]||0:0,t=(e.data[i]||0)+(g.data[i]||0)+fv,x=m.data[i].x,y=ch.scales.y.getPixelForValue(t);
+    ctx.fillStyle=c('--ink');ctx.fillText((fv?'≈ ':'')+fmt(t),x,y-4);
     if(totMode==='toutes'){const yr=+ch.data.labels[i],r=yearCmp(yr);
       if(r){const n=Math.round(r.q*10)/10;ctx.fillStyle=c(n>0?'--bad':n<0?'--ok':'--mute');
         ctx.fillText((n>0?'▲ +':n<0?'▼ ':'')+fmt(r.q,1)+' %',x,y-18);
@@ -360,6 +360,21 @@ function ecoNow(){
   if(!rS)return null;
   return{yy,nm,pct:(rS-cS)/rS*100,mwh:(rS-cS)/1000,eur,ne,ng,pror,same};
 }
+function forecast(){
+  const yrs=data.map(d=>+d.m.slice(0,4));if(!yrs.length)return null;const yy=Math.max(...yrs);if(yy<=REF)return null;
+  const out={yy,k:{}};let any=false;
+  for(const k of ['e','g']){
+    const a=val(yy,k),n=count(a);if(!n)continue;const act=sum(a);let proj,method;
+    if(n===12){proj=act;method='relevés complets'}
+    else{let py=null;for(let y=yy-1;y>=REF;y--){if(count(val(y,k))===12){py=y;break}}
+      let ok=false;
+      if(py!=null){const b=val(py,k);let same=0,rest=0;a.forEach((v,i)=>{if(v!=null)same+=b[i];else rest+=b[i]});
+        if(same>0){proj=act+act/same*rest;method='saisonnalité '+py;ok=true}}
+      if(!ok){proj=act/n*12;method='moyenne mensuelle × 12'}}
+    out.k[k]={act,proj,method,n};any=true;
+  }
+  return any?out:null;
+}
 function ecoRef(){
   const el=$('ecoRef'),top=Math.max(new Date().getFullYear(),...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number));
   let h='';
@@ -377,6 +392,11 @@ function ecoRef(){
     const euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel : prix manquant)':''):'– € (prix manquants)';
     h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Cumul depuis ${REF} : ${fmt(pct,1)} % en moyenne · ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Années complètes : ${yl}</small></div>`}
   else if(!w)h=`<span class="note" style="margin:0">Total économisé depuis ${REF} : indisponible. Il faut l’année ${REF} (12 mois de relevés ou un total annuel) et des relevés pour une autre année.</span>`;
+  const f=forecast();
+  if(f){let P=0,R=0,eur=0,ne=0,ng=0;const me=new Set();
+    for(const k of Object.keys(f.k)){me.add(f.k[k].method);if(!full(REF,k))continue;const ref=yearTotal(REF,k);P+=f.k[k].proj;R+=ref;const pr=priceOf(f.yy,k,null);if(pr!=null){eur+=(ref-f.k[k].proj)/1000*pr;ne++}else ng++}
+    if(R){const pct=(R-P)/R*100,good=pct>=0,euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel)':''):'– €';
+      h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Prévision fin ${f.yy} : ≈ ${fmt(P/1000)} MWh, soit ${fmt(Math.abs(pct),1)} % ${good?'de moins':'de plus'} que ${REF} (${fmt(R/1000)} MWh) · ${fmt(Math.abs(R-P)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Estimation : ${[...me].join(' ; ')}</small></div>`}}
   el.innerHTML=h;
 }
 let totMode='annee';
@@ -389,6 +409,7 @@ function drawTotal(){
     const ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number)],top=Math.max(new Date().getFullYear(),...ys),bot=Math.min(2018,...ys),L=[];for(let y=bot;y<=top;y++)L.push(y);
     const tt=(y,k)=>{const t=yearTotal(y,k);return t==null?null:t/1000};labels=L.map(String);
     ds=[{label:'Électricité',data:L.map(y=>tt(y,'e')),backgroundColor:col('--elec'),stack:'s'},{label:'Gaz',data:L.map(y=>tt(y,'g')),backgroundColor:col('--gaz'),stack:'s'}];
+    const fc=forecast();if(fc){const rem=Object.values(fc.k).reduce((a,o)=>a+Math.max(0,o.proj-o.act),0);if(rem>0)ds.push({label:'Prévision',data:L.map(y=>y===fc.yy?rem/1000:null),backgroundColor:'rgba(128,128,128,.35)',borderColor:txt,borderWidth:1,borderDash:[4,3],stack:'s'})}
   }else{
     ds=[{label:'Électricité',data:val(year,'e').map(f),backgroundColor:col('--elec'),stack:'s'},
       {label:'Gaz',data:val(year,'g').map(f),backgroundColor:col('--gaz'),stack:'s'},
@@ -399,7 +420,7 @@ function drawTotal(){
   if(charts.cT){charts.cT.options.layout.padding.top=totMode==='toutes'?50:22;charts.cT.data.labels=labels;charts.cT.data.datasets=ds;charts.cT.options.scales.x.ticks.color=txt;charts.cT.update();return}
   charts.cT=new Chart($('cT'),{type:'bar',data:{labels,datasets:ds},plugins:[totPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:totMode==='toutes'?50:22}},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`,
-      footer:it=>{const i=it[0].dataIndex,d=it[0].chart.data.datasets;return 'Total '+(totMode==='toutes'?it[0].label:year)+' : '+fmt((d[0].data[i]||0)+(d[1].data[i]||0))+' MWh'}}}},
+      footer:it=>{const i=it[0].dataIndex,d=it[0].chart.data.datasets;return 'Total '+(totMode==='toutes'?it[0].label:year)+' : '+fmt((d[0].data[i]||0)+(d[1].data[i]||0)+(d[2]&&d[2].label==='Prévision'?d[2].data[i]||0:0))+' MWh'}}}},
     scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
 }
 function draw(id,k,color){
