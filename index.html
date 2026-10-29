@@ -346,20 +346,6 @@ const totPlugin={id:'tot',afterDatasetsDraw(ch){
   ctx.restore();
 }};
 const REF=2018;
-function ecoNow(){
-  const yrs=data.map(d=>+d.m.slice(0,4));if(!yrs.length)return null;const yy=Math.max(...yrs);if(yy<=REF)return null;
-  let rS=0,cS=0,eur=0,ne=0,ng=0,nm=0,pror=false,same=false;
-  for(const k of ['e','g']){
-    const a=val(yy,k),n=count(a);if(!n)continue;const b=val(REF,k);
-    let r,c;
-    if(count(b)){r=0;c=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){r+=b[i];c+=v}});if(!r)continue;same=true}
-    else if(annualOnly(REF,k)){r=totaux[REF][k]*n/12;c=sum(a);pror=true}
-    else continue;
-    rS+=r;cS+=c;nm=Math.max(nm,n);const pr=priceOf(yy,k,null);if(pr!=null){eur+=(r-c)/1000*pr;ne++}else ng++;
-  }
-  if(!rS)return null;
-  return{yy,nm,pct:(rS-cS)/rS*100,mwh:(rS-cS)/1000,eur,ne,ng,pror,same};
-}
 function forecast(){
   const yrs=data.map(d=>+d.m.slice(0,4));if(!yrs.length)return null;const yy=Math.max(...yrs);if(yy<=REF)return null;
   const out={yy,k:{}};let any=false;
@@ -378,9 +364,6 @@ function forecast(){
 function ecoRef(){
   const el=$('ecoRef'),top=Math.max(new Date().getFullYear(),...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number));
   let h='';
-  const w=ecoNow();
-  if(w){const good=w.pct>=0,euro=w.ne?fmt(Math.abs(w.eur))+' €'+(w.ng?' (partiel)':''):'– €';
-    h+=`<div><span class="delta ${good?'down':'up'}" style="font-size:1rem;margin:0">${good?'▼ Économisé':'▲ Surconsommation'} en ${w.yy} vs ${REF} : ${fmt(Math.abs(w.pct),1)} % · ${fmt(Math.abs(w.mwh))} MWh · ${euro}</span> <small style="color:var(--mute)">${w.nm} mois relevés${w.same&&!w.pror?', comparés aux mêmes mois de '+REF:w.pror&&!w.same?', '+REF+' ramenée au prorata de son total annuel':', comparés à '+REF+' (mêmes mois ou prorata du total annuel)'}</small></div>`}
   let sav=0,base=0,eur=0,ne=0,ng=0;const yrs=new Set();
   for(const k of ['e','g']){
     if(!full(REF,k))continue;const ref=yearTotal(REF,k);
@@ -391,12 +374,12 @@ function ecoRef(){
   if(base){const good=sav>=0,pct=Math.abs(sav/base*100),yl=[...yrs].sort().join(', ');
     const euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel : prix manquant)':''):'– € (prix manquants)';
     h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Cumul depuis ${REF} : ${fmt(pct,1)} % en moyenne · ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Années complètes : ${yl}</small></div>`}
-  else if(!w)h=`<span class="note" style="margin:0">Total économisé depuis ${REF} : indisponible. Il faut l’année ${REF} (12 mois de relevés ou un total annuel) et des relevés pour une autre année.</span>`;
   const f=forecast();
   if(f){let P=0,R=0,eur=0,ne=0,ng=0;const me=new Set();
     for(const k of Object.keys(f.k)){me.add(f.k[k].method);if(!full(REF,k))continue;const ref=yearTotal(REF,k);P+=f.k[k].proj;R+=ref;const pr=priceOf(f.yy,k,null);if(pr!=null){eur+=(ref-f.k[k].proj)/1000*pr;ne++}else ng++}
     if(R){const pct=(R-P)/R*100,good=pct>=0,euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel)':''):'– €';
       h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Prévision fin ${f.yy} : ≈ ${fmt(P/1000)} MWh, soit ${fmt(Math.abs(pct),1)} % ${good?'de moins':'de plus'} que ${REF} (${fmt(R/1000)} MWh) · ${fmt(Math.abs(R-P)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Estimation : ${[...me].join(' ; ')}</small></div>`}}
+  if(!h)h=`<span class="note" style="margin:0">Total économisé depuis ${REF} : indisponible. Il faut l’année ${REF} (12 mois de relevés ou un total annuel) et des relevés pour une autre année.</span>`;
   el.innerHTML=h;
 }
 let totMode='annee';
