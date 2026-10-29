@@ -219,7 +219,7 @@ const firebaseConfig={
   appId:"1:559838678306:web:52f2fae0a91d7bf448a97b"
 };
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
-let unsub=null,first=true,prices={};
+let unsub=null,first=true,prices={},totaux={};
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const $=id=>document.getElementById(id);
 const mwh=v=>v==null?'–':(v/1000).toLocaleString('fr-FR',{maximumFractionDigits:0});
@@ -230,9 +230,9 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};
     
-    data=snap.docs.filter(d=>d.id!=='_prix').map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
+    data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
@@ -243,6 +243,17 @@ const costArr=(y,k)=>Array.from({length:12},(_,i)=>{const d=data.find(x=>x.m===`
 const sum=a=>a.reduce((s,v)=>s+(v||0),0);
 const count=a=>a.filter(v=>v!=null).length;
 
+const annualOnly=(y,k)=>count(val(y,k))===0&&!!totaux[y]&&totaux[y][k]!=null;
+const yearTotal=(y,k)=>{const a=val(y,k);if(count(a))return sum(a);const t=totaux[y]&&totaux[y][k];return t!=null?t:null};
+const full=(y,k)=>annualOnly(y,k)||count(val(y,k))===12;
+const isAnn=()=>['e','g'].some(k=>annualOnly(year,k)||annualOnly(year-1,k));
+function yearCmp(y){let s1=0,s0=0,ok=false;
+  for(const k of ['e','g']){const a=val(y,k),b=val(y-1,k);
+    if(count(a)&&count(b)){a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];ok=true}})}
+    else{const ya=yearTotal(y,k),yb=yearTotal(y-1,k);if(ya!=null&&yb!=null&&full(y,k)&&full(y-1,k)){s1+=ya;s0+=yb;ok=true}}}
+  return ok&&s0?{d:s1-s0,q:(s1-s0)/s0*100}:null}
+const sp=(y,k)=>annualOnly(y,k)?Array(12).fill(totaux[y][k]/12):val(y,k);
+const spc=(y,k)=>{if(!annualOnly(y,k))return costArr(y,k);const p=priceOf(y,k,null);return Array(12).fill(p!=null?totaux[y][k]/1000*p/12:null)};
 function delta(k){
   const a=val(year,k),b=val(year-1,k);let s1=0,s0=0;
   a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i]}});
@@ -258,13 +269,13 @@ const manque=k=>ks(k).some(x=>count(val(year,x))&&count(val(year-1,x)));
 const dMwh=k=>{let t=0,ok=false;ks(k).forEach(x=>{const r=cmp(val(year,x),val(year-1,x));if(r){t+=r.d;ok=true}});return ok?t/1000:null};
 const hint=()=>`<br><span class="delta flat">Coût vs ${year-1} : prix manquant</span>`;
 const pillCost=({d,q},k)=>{const m=k==='t'?null:dMwh(k);return `<span class="delta ${d>0?'up':d<0?'down':'flat'}">Coût ${d>0?'▲ +':d<0?'▼ ':''}${fmt(d)} € (${d>0?'+':''}${fmt(q,1)} %)${m==null?'':` · ${m>0?'+':''}${fmt(m)} MWh`} vs ${year-1}</span>`};
-function deltaCost(a,b,k){const r=cmp(a,b);return r?'<br>'+pillCost(r,k):manque(k)?hint():''}
-const dc=(a,b,k)=>{const r=cmp(a,b);return r?pillCost(r,k):delta(k)+(manque(k)?hint():'')};
-const deltaE=(a,b)=>{const r=cmp(a,b);if(!r)return `<br><span class="delta flat">Pas de comparaison avec ${year-1}</span>`;const {d,q}=r;
+function deltaCost(a,b,k){if(isAnn())return '';const r=cmp(a,b);return r?'<br>'+pillCost(r,k):manque(k)?hint():''}
+const dc=(a,b,k)=>{if(isAnn())return '';const r=cmp(a,b);return r?pillCost(r,k):delta(k)+(manque(k)?hint():'')};
+const deltaE=(a,b)=>{const r=isAnn()?yearCmp(year):cmp(a,b);if(!r)return `<br><span class="delta flat">Pas de comparaison avec ${year-1}</span>`;const {d,q}=r;
   return `<br><span class="delta ${d>0?'up':d<0?'down':'flat'}">${d>0?'▲ +':d<0?'▼ ':''}${fmt(d/1000)} MWh (${d>0?'+':''}${fmt(q,1)} %) vs ${year-1} (mêmes mois)</span>`};
 function kpis(){
-  const e=val(year,'e'),g=val(year,'g'),ce=costArr(year,'e'),cg=costArr(year,'g'),pe=prix(e,ce),pg=prix(g,cg),
-  c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g),ce1=costArr(year-1,'e'),cg1=costArr(year-1,'g'),c1=tc(ce1,cg1);
+  const e=sp(year,'e'),g=sp(year,'g'),ce=spc(year,'e'),cg=spc(year,'g'),pe=prix(e,ce),pg=prix(g,cg),
+  c=ce.map((v,i)=>v==null&&cg[i]==null?null:(v||0)+(cg[i]||0)),tot=sum(e)+sum(g),ce1=spc(year-1,'e'),cg1=spc(year-1,'g'),c1=tc(ce1,cg1);
   $('kpisTop').innerHTML=`
   <div class="kpi c top"><div class="split">
     <div><span>Énergie totale ${year}</span><b>${mwh(tot)} MWh</b><span>Électricité ${fmt(tot?sum(e)/tot*100:null)} % · gaz ${fmt(tot?sum(g)/tot*100:null)} %</span>${deltaE(tc(e,g),tc(val(year-1,'e'),val(year-1,'g')))}</div>
@@ -327,7 +338,7 @@ const totPlugin={id:'tot',afterDatasetsDraw(ch){
   ch.data.labels.forEach((_,i)=>{if(e.data[i]==null&&g.data[i]==null)return;
     const t=(e.data[i]||0)+(g.data[i]||0),x=m.data[i].x,y=ch.scales.y.getPixelForValue(t);
     ctx.fillStyle=c('--ink');ctx.fillText(fmt(t),x,y-4);
-    if(totMode==='toutes'){const yr=+ch.data.labels[i],r=cmp(tc(val(yr,'e'),val(yr,'g')),tc(val(yr-1,'e'),val(yr-1,'g')));
+    if(totMode==='toutes'){const yr=+ch.data.labels[i],r=yearCmp(yr);
       if(r){const n=Math.round(r.q*10)/10;ctx.fillStyle=c(n>0?'--bad':n<0?'--ok':'--mute');
         ctx.fillText((n>0?'▲ +':n<0?'▼ ':'')+fmt(r.q,1)+' %',x,y-18);
         if(w>=70)ctx.fillText((r.d>0?'+':'')+fmt(r.d/1000)+' MWh',x,y-32)}}
@@ -340,8 +351,8 @@ function drawTotal(){
   const pe=val(year-1,'e'),pg=val(year-1,'g'),prev=pe.map((v,i)=>v==null&&pg[i]==null?null:((v||0)+(pg[i]||0))/1000);
   let labels=MOIS,ds;
   if(totMode==='toutes'){
-    const ys=data.map(d=>+d.m.slice(0,4)),top=Math.max(new Date().getFullYear(),...ys),bot=Math.min(2018,...ys),L=[];for(let y=bot;y<=top;y++)L.push(y);
-    const tt=(y,k)=>count(val(y,k))?sum(val(y,k))/1000:null;labels=L.map(String);
+    const ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number)],top=Math.max(new Date().getFullYear(),...ys),bot=Math.min(2018,...ys),L=[];for(let y=bot;y<=top;y++)L.push(y);
+    const tt=(y,k)=>{const t=yearTotal(y,k);return t==null?null:t/1000};labels=L.map(String);
     ds=[{label:'Électricité',data:L.map(y=>tt(y,'e')),backgroundColor:col('--elec'),stack:'s'},{label:'Gaz',data:L.map(y=>tt(y,'g')),backgroundColor:col('--gaz'),stack:'s'}];
   }else{
     ds=[{label:'Électricité',data:val(year,'e').map(f),backgroundColor:col('--elec'),stack:'s'},
@@ -369,14 +380,14 @@ function draw(id,k,color){
 const MOISL=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 let gridKey='';
 function buildGrids(){
-  const ys=data.map(d=>+d.m.slice(0,4)),cur=new Date().getFullYear(),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
+  const ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number)],cur=new Date().getFullYear(),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
   if(key===gridKey)return;gridKey=key;let h='';
   for(let y=top;y>=bot;y--){
     h+=`<details class="yr" ${y===cur?'open':''}><summary><b>${y}</b> <span class="badge" data-n="${y}"></span></summary>
     <div class="prixy"><label>Prix électricité (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|e"></label><label>Prix gaz (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|g"></label></div>
     <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th></tr></thead><tbody>
     ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell ce" placeholder="–" data-c="${m}|e"></td><td><input type="number" min="0" step="any" class="cell cg" placeholder="–" data-c="${m}|g"></td><td data-cost="${m}|e"></td><td data-cost="${m}|g"></td></tr>`}).join('')}
-    </tbody><tfoot><tr><td>Total</td><td data-tot="${y}|e"></td><td data-tot="${y}|g"></td><td data-totc="${y}|e"></td><td data-totc="${y}|g"></td></tr></tfoot></table></div></details>`;
+    </tbody><tfoot><tr><td>Total</td><td><span data-tot="${y}|e"></span><input type="number" min="0" step="any" class="cell ce" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|e"></td><td><span data-tot="${y}|g"></span><input type="number" min="0" step="any" class="cell cg" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|g"></td><td data-totc="${y}|e"></td><td data-totc="${y}|g"></td></tr></tfoot></table></div></details>`;
   }
   $('grids').innerHTML=h;
 }
@@ -385,12 +396,13 @@ function grids(){
   q('data-c').forEach(el=>{if(el===act)return;const[m,k]=el.dataset.c.split('|'),d=data.find(x=>x.m===m);el.value=d&&d[k]!=null?d[k]:''});
   q('data-px').forEach(el=>{if(el===act)return;const[y,k]=el.dataset.px.split('|'),v=prices.a&&prices.a[y]&&prices.a[y][k];el.value=v!=null?v:''});
   q('data-cost').forEach(el=>{const[m,k]=el.dataset.cost.split('|'),d=data.find(x=>x.m===m),r=d&&costOf(d,k);el.textContent=r?fmt(r.v,0):'–'});
-  q('data-tot').forEach(el=>{const[y,k]=el.dataset.tot.split('|');el.textContent=fmt(sum(val(+y,k)))});
-  q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);el.textContent=count(a)?fmt(sum(a)):'–'});
-  q('data-n').forEach(el=>{const y=+el.dataset.n,n=count(val(y,'e'))+count(val(y,'g'));el.textContent=n+'/24 relevés'});
+  q('data-tot').forEach(el=>{const[y,k]=el.dataset.tot.split('|'),n=count(val(+y,k));el.textContent=fmt(sum(val(+y,k)));el.hidden=n===0});
+  q('data-t').forEach(el=>{const[y,k]=el.dataset.t.split('|');el.hidden=count(val(+y,k))>0;if(el===act)return;const v=totaux[y]&&totaux[y][k];el.value=v!=null?v:''});
+  q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);let t='–';if(count(a))t=fmt(sum(a));else if(annualOnly(+y,k)){const pr=priceOf(+y,k,null);if(pr!=null)t=fmt(totaux[y][k]/1000*pr)}el.textContent=t});
+  q('data-n').forEach(el=>{const y=+el.dataset.n,n=count(val(y,'e'))+count(val(y,'g'));el.textContent=n+'/24 relevés'+(annualOnly(y,'e')||annualOnly(y,'g')?' · total annuel':'')});
 }
 function render(){
-  const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),new Date().getFullYear(),year])].sort((a,b)=>b-a);
+  const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
   kpis();draw('cE','e','--elec');draw('cG','g','--gaz');drawCumul();drawTotal();grids();$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
@@ -545,6 +557,7 @@ $('vProj').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-
 $('vProj').ondragend=()=>{drag=null;clr()};
 $('vProj').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
 $('grids').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
+  if(t.dataset.t){const[y,k]=t.dataset.t.split('|');setDoc(doc(db,'releves','_totaux'),{[y]:{[k]:v}},{merge:true}).catch(()=>{refus();grids()})}
   if(t.dataset.c){const[m,k]=t.dataset.c.split('|'),ex=data.find(x=>x.m===m);if(v==null&&!(ex&&ex[k]!=null))return;
     setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();grids()})}
   if(t.dataset.px){const[y,k]=t.dataset.px.split('|');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
@@ -593,7 +606,7 @@ function enter(u){
 onAuthStateChanged(auth,async u=>{
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;data=[];projets=[];prices={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;data=[];projets=[];prices={};totaux={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
