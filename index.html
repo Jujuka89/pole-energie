@@ -373,7 +373,7 @@ function ecoRef(){
   }
   if(base){const good=sav>=0,pct=Math.abs(sav/base*100),yl=[...yrs].sort().join(', ');
     const euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel : prix manquant)':''):'– € (prix manquants)';
-    h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Cumul depuis ${REF} : ${fmt(pct,1)} % en moyenne · ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Années complètes : ${yl}</small></div>`}
+    h+=`<div style="margin-top:6px"><span class="delta ${good?'down':'up'}" style="margin:0">${good?'▼':'▲'} Cumul depuis ${REF} : ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Années complètes : ${yl}</small></div>`}
   const f=forecast();
   if(f){let P=0,R=0,eur=0,ne=0,ng=0;const me=new Set();
     for(const k of Object.keys(f.k)){me.add(f.k[k].method);if(!full(REF,k))continue;const ref=yearTotal(REF,k);P+=f.k[k].proj;R+=ref;const pr=priceOf(f.yy,k,null);if(pr!=null){eur+=(ref-f.k[k].proj)/1000*pr;ne++}else ng++}
