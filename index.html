@@ -127,7 +127,7 @@ body.out .edit-only{display:none!important}
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
-<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain ou perte par rapport à l’année précédente, sur les mêmes mois : vert = moins consommé, rouge = plus consommé.</p></section>
+<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain ou perte par rapport à l’année précédente, sur les mêmes mois : vert = moins consommé, rouge = plus consommé.</p></section>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
@@ -345,8 +345,24 @@ const totPlugin={id:'tot',afterDatasetsDraw(ch){
   });
   ctx.restore();
 }};
+const REF=2018;
+function ecoRef(){
+  const el=$('ecoRef'),top=Math.max(new Date().getFullYear(),...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number));
+  let sav=0,base=0,eur=0,ne=0,ng=0;const yrs=new Set();
+  for(const k of ['e','g']){
+    if(!full(REF,k))continue;const ref=yearTotal(REF,k);
+    for(let y=REF+1;y<=top;y++){if(!full(y,k))continue;
+      const d=ref-yearTotal(y,k),pr=priceOf(y,k,null);sav+=d;base+=ref;yrs.add(y);
+      if(pr!=null){eur+=d/1000*pr;ne++}else ng++}
+  }
+  if(!base){el.innerHTML=`<span class="note" style="margin:0">Total économisé depuis ${REF} : indisponible. Il faut l’année ${REF} complète (12 mois de relevés ou un total annuel) et au moins une autre année complète.</span>`;return}
+  const good=sav>=0,pct=Math.abs(sav/base*100),yl=[...yrs].sort().join(', ');
+  const euro=ne?fmt(Math.abs(eur))+' €'+(ng?' (partiel : prix manquant)':''):'– € (prix manquants)';
+  el.innerHTML=`<span class="delta ${good?'down':'up'}" style="font-size:1rem;margin:0">${good?'▼ Économisé':'▲ Surconsommation'} depuis ${REF} : ${fmt(pct,1)} % · ${fmt(Math.abs(sav)/1000)} MWh · ${euro}</span> <small style="color:var(--mute)">Années complètes comparées : ${yl}</small>`;
+}
 let totMode='annee';
 function drawTotal(){
+  ecoRef();
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line'),f=v=>v==null?null:v/1000;
   const pe=val(year-1,'e'),pg=val(year-1,'g'),prev=pe.map((v,i)=>v==null&&pg[i]==null?null:((v||0)+(pg[i]||0))/1000);
   let labels=MOIS,ds;
