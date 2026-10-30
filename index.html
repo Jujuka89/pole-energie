@@ -85,6 +85,11 @@ section.st{--sc:var(--mute);border-left:6px solid var(--sc);background:color-mix
 .stt{font-size:1.5rem;letter-spacing:-.01em;color:var(--sc);margin:0 0 12px}
 .stt .cnt{font-size:.95rem;vertical-align:middle;margin-left:8px;background:color-mix(in srgb,var(--sc) 18%,transparent);color:var(--sc);font-weight:700}
 .st .prow.head{color:var(--sc)}.st .empty{padding:14px 0}
+details.cp{border:1px solid var(--line);border-radius:8px;margin-top:10px;background:var(--card)}
+details.cp>summary{cursor:pointer;padding:12px 14px;font-size:1.05rem}.cpb{padding:0 14px 14px}
+.cell.cv:not(:placeholder-shown){background:color-mix(in srgb,var(--s-ctrl) 14%,var(--card))}
+div.sv{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:2px;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
+div.sv b{color:var(--ink);font-size:1rem}div.sv.cur{border-color:var(--accent)}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -123,7 +128,7 @@ body.out .edit-only{display:none!important}
     <h1>Consommations d’énergie</h1>
     <p class="sub">Électricité et gaz, relevés mensuels</p>
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#compteurs">Compteurs</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="kpis" id="kpisTop"></div>
@@ -202,6 +207,27 @@ body.out .edit-only{display:none!important}
 <section class="st st-clos">
   <h2 class="stt">Clôturés <span class="badge cnt" id="nClos"></span></h2>
   <div class="scroll"><div id="lClos"></div></div>
+</section>
+</div>
+<div id="vCpt" hidden>
+<header>
+  <div>
+    <h1>Compteurs</h1>
+    <p class="sub">Consommation mensuelle de chaque compteur, sur plusieurs années</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<section>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Mes compteurs <span id="nC" class="badge"></span></h2><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div>
+  <div id="cForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
+    <form id="cfForm">
+      <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
+      <label>Unité <input id="cfu" maxlength="20" placeholder="kWh, m³…"></label>
+      <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
+    </form>
+  </div>
+  <p class="note">Saisissez la consommation de chaque mois. Dans un projet terminé, choisissez ensuite le compteur à suivre : plusieurs projets peuvent utiliser le même compteur.</p>
+  <div id="cList" style="margin-top:10px"></div>
 </section>
 </div>
 <footer id="foot"><span id="who"></span><button id="logout" type="button">Se déconnecter</button></footer>
@@ -547,38 +573,43 @@ let svCharts={};
 const rsz=()=>Object.values(svCharts).forEach(c=>c.resize());
 function svSeq(p){
   const s=p.suivi||{},start=p.termine;if(!start)return [];
+  const c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,vals=c?(c.valeurs||{}):null;
   const d0=new Date(start+'T00:00'),seq=[];
-  const mk=(o,key)=>{const dt=new Date(d0.getFullYear(),d0.getMonth()+o,1),v=s[key];
+  const mk=(o,key)=>{const dt=new Date(d0.getFullYear(),d0.getMonth()+o,1),v=vals?vals[ymKey(dt.getFullYear(),dt.getMonth()+1)]:s[key];
     return{o,key,dt,short:MOIS[dt.getMonth()]+' '+String(dt.getFullYear()).slice(2),full:MOIS[dt.getMonth()]+' '+dt.getFullYear(),v:v!=null&&v!==''?+v:null}};
   for(let j=6;j>=1;j--)seq.push(mk(-j,'p'+j));
   for(let i=0;i<=12;i++)seq.push(mk(i,String(i)));
   return seq;
 }
 function suivi(p){
-  const dis=user?'':'disabled',start=p.termine,seq=svSeq(p),n=seq.filter(x=>x.v!=null).length,now=new Date();
-  const cell=x=>{
-    const cur=x.o>0&&x.dt.getFullYear()===now.getFullYear()&&x.dt.getMonth()===now.getMonth();
+  const dis=user?'':'disabled',start=p.termine,seq=svSeq(p),n=seq.filter(x=>x.v!=null).length,now=new Date(),c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;
+  const cell=x=>{const cur=x.o>0&&x.dt.getFullYear()===now.getFullYear()&&x.dt.getMonth()===now.getMonth();
     const lab=x.o<0?`M−${-x.o} · ${x.full}`:x.o===0?`Mois de la fin · ${x.full}`:`M+${x.o} · ${x.full}`;
-    return `<label class="sv ${cur?'cur':''}">${lab}<input type="number" step="any" placeholder="conso" data-sv="${p.id}|${x.key}" value="${x.v??''}" ${dis}></label>`};
+    return `<div class="sv ${cur?'cur':''}"><span>${lab}</span><b>${x.v!=null?fmt(x.v,1):'–'}</b></div>`};
   const bef=seq.filter(x=>x.o<0).map(cell).join(''),aft=seq.filter(x=>x.o>=0).map(cell).join('');
   const av=f=>{const a=seq.filter(x=>f(x)&&x.v!=null).map(x=>x.v);return a.length?a.reduce((u,v)=>u+v,0)/a.length:null};
   const mb=av(x=>x.o<0),ma=av(x=>x.o>0),na=seq.filter(x=>x.o>0&&x.v!=null).length;
   let stat='';
   if(mb!=null&&ma!=null&&mb){const q=(ma-mb)/Math.abs(mb)*100,gain=(mb-ma)*na;
     stat=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">Conso moyenne par mois : avant ${fmt(mb,1)} → après ${fmt(ma,1)} (${q>0?'+':''}${fmt(q,1)} %)</span> <span class="delta ${gain>0?'down':gain<0?'up':'flat'}">Gain cumulé depuis la fin : ${gain>0?'+':''}${fmt(gain,1)}</span>`}
-  const graph=n>=2?`<div class="box" style="height:260px;margin-top:12px"><canvas id="svc-${p.id}"></canvas></div><p class="note" style="margin:4px 0 0">Barres grises : avant le projet et mois de la fin · violettes : après. Les moyennes ignorent le mois de la fin.</p>`:'<p class="note">Saisissez au moins deux valeurs pour afficher le graphique.</p>';
-  return `<div class="suivi"><h4>Suivi du compteur : consommation des 6 mois avant et de l’année après la fin du projet <span class="badge">${n}/19 valeurs</span></h4>
-    <div class="tools"><label>Compteur suivi <input type="text" data-snom="${p.id}" value="${esc(p.suiviNom||'')}" placeholder="Nom du compteur et unité (ex. Électricité atelier, kWh)" maxlength="120" ${dis}></label>
+  const graph=n>=2?`<div class="box" style="height:260px;margin-top:12px"><canvas id="svc-${p.id}"></canvas></div><p class="note" style="margin:4px 0 0">Barres grises : avant le projet et mois de la fin · violettes : après. Les moyennes ignorent le mois de la fin.</p>`:'<p class="note">Il faut au moins deux valeurs dans le compteur autour de la date de fin pour afficher le graphique.</p>';
+  const opts=compteurs.map(x=>`<option value="${x.id}" ${p.compteurId===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
+  const legacy=!c&&Object.values(p.suivi||{}).some(v=>v!=null&&v!=='');
+  return `<div class="suivi"><h4>Suivi du compteur : 6 mois avant et 1 an après la fin du projet <span class="badge">${n}/19 valeurs</span></h4>
+    <div class="tools"><label>Compteur suivi <select data-scpt="${p.id}" ${dis}><option value="">— Choisir un compteur —</option>${opts}</select></label>
     <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
-    ${start?`<div class="svh">Consommation avant le projet (à saisir à la main)</div><div class="svgrid">${bef}</div><div class="svh">Consommation du mois de la fin et du suivi après</div><div class="svgrid">${aft}</div>${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}${graph}`:'<p class="note">Indiquez la date de fin du projet pour afficher les cases de suivi.</p>'}</div>`;
+    ${compteurs.length?'':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>'}
+    ${legacy?'<p class="note">Ces valeurs viennent de l’ancienne saisie dans le projet. Choisissez un compteur pour les remplacer.</p>':''}
+    ${c?`<p class="note" style="margin:6px 0 0">Les valeurs viennent du compteur « ${esc(c.nom)} ». <a href="#compteurs">Les saisir ou les modifier dans la page Compteurs</a>.</p>`:''}
+    ${start?`<div class="svh">Consommation avant le projet</div><div class="svgrid">${bef}</div><div class="svh">Mois de la fin et suivi après</div><div class="svgrid">${aft}</div>${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}${graph}`:'<p class="note">Indiquez la date de fin du projet pour afficher le suivi.</p>'}</div>`;
 }
 function drawSuiviCharts(){
   Object.values(svCharts).forEach(c=>c.destroy());svCharts={};
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
   projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
-    const seq=svSeq(p);
+    const seq=svSeq(p),c=compteurs.find(x=>x.id===p.compteurId);
     svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:seq.map(x=>x.o===0?'Fin projet':x.short),datasets:[
-      {label:'Consommation par mois'+(p.suiviNom?' ('+p.suiviNom+')':''),data:seq.map(x=>x.v),backgroundColor:seq.map(x=>x.o<=0?col('--prev'):col('--s-ctrl'))}]},
+      {label:'Consommation par mois'+(c?' — '+c.nom+(c.unite?' ('+c.unite+')':''):''),data:seq.map(x=>x.v),backgroundColor:seq.map(x=>x.o<=0?col('--prev'):col('--s-ctrl'))}]},
       options:{maintainAspectRatio:false,plugins:{legend:{labels:{color:txt}}},scales:{x:{ticks:{color:txt,maxRotation:60},grid:{display:false}},
         y:{beginAtZero:true,title:{display:true,text:'Consommation par mois',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   });
@@ -601,7 +632,7 @@ function renderProj(){
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   $('nA').textContent=A.length;
   $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
-  drawSuiviCharts();
+  drawSuiviCharts();fillCpt();
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 let editP=null;
@@ -632,6 +663,7 @@ $('vProj').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   if(d.tm){const[pid,tid]=d.tm.split('|');upd(pid,t=>t.map(x=>x.id===tid?{...x,m:v||null}:x))}
   if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
   if(d.sdate)w(d.sdate,{termine:v||null});
+  if(d.scpt)w(d.scpt,{compteurId:v||null});
   if(d.snom)w(d.snom,{suiviNom:v.trim()});
 };
 let drag=null;
@@ -653,6 +685,77 @@ $('grids').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
   if(t.dataset.px){const[y,k]=t.dataset.px.split('|');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
 $('grids').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
   const k=ev.target.dataset.c.split('|')[1],tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
+let compteurs=[],unsubC=null,cptCharts={},cptKey='';
+const openC=new Set(),initY=new Set();
+const ymKey=(y,m)=>y+'-'+String(m).padStart(2,'0');
+function listenCpt(){
+  if(unsubC)unsubC();
+  unsubC=onSnapshot(collection(db,'compteurs'),snap=>{compteurs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.cree||0)-(b.cree||0));renderCpt();renderProj()},
+    ()=>{compteurs=[];$('cList').innerHTML='<p class="empty">Lecture impossible : vérifiez les règles Firestore (collection « compteurs »).</p>'});
+}
+function buildCpt(){
+  const ys=[];compteurs.forEach(c=>Object.keys(c.valeurs||{}).forEach(k=>ys.push(+k.slice(0,4))));
+  const cur=new Date().getFullYear(),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=compteurs.map(c=>c.id).join(',')+'#'+top+'-'+bot;
+  if(key===cptKey)return;cptKey=key;
+  $('cList').innerHTML=compteurs.length?compteurs.map(c=>{
+    let yh='';for(let y=top;y>=bot;y--){const k=c.id+'|'+y;if(y===cur&&!initY.has(k)){initY.add(k);openC.add(k)}
+      yh+=`<details class="yr" data-oc="${k}" ${openC.has(k)?'open':''}><summary><b>${y}</b> <span class="badge" data-cy="${k}"></span></summary><div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Consommation</th></tr></thead><tbody>${MOISL.map((mn,i)=>`<tr><td>${mn}</td><td><input type="number" step="any" class="cell cv" placeholder="–" data-cv="${c.id}|${ymKey(y,i+1)}"></td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td data-ct="${k}"></td></tr></tfoot></table></div></details>`}
+    return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span> <span class="badge" data-cn="${c.id}"></span></summary><div class="cpb">
+      <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
+      <p class="note" data-cproj="${c.id}"></p>
+      <div class="box" style="height:240px"><canvas id="cc-${c.id}"></canvas></div>
+      <h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3>${yh}</div></details>`}).join(''):'<p class="empty">Aucun compteur. Cliquez sur « Ajouter un compteur » pour en créer un.</p>';
+}
+const cptMark={id:'cptmark',afterDatasetsDraw(ch){
+  const ms=((ch.options.plugins||{}).cptmark||{}).marks||[];if(!ms.length)return;
+  const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+  ctx.save();ctx.strokeStyle=ink;ctx.fillStyle=ink;ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
+  ms.forEach(o=>{const x=ch.scales.x.getPixelForValue(o.idx);ctx.beginPath();ctx.moveTo(x,ch.chartArea.top);ctx.lineTo(x,ch.chartArea.bottom);ctx.stroke();
+    ctx.save();ctx.translate(x+4,ch.chartArea.top+4);ctx.rotate(Math.PI/2);ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('Fin : '+o.nom,0,0);ctx.restore()});
+  ctx.restore();
+}};
+function drawCptChart(c,lp){
+  if(cptCharts[c.id]){cptCharts[c.id].destroy();delete cptCharts[c.id]}
+  const cv=document.getElementById('cc-'+c.id);if(!cv)return;
+  const vals=c.valeurs||{},keys=Object.keys(vals).filter(k=>vals[k]!=null).sort(),wrap=cv.parentElement;
+  if(keys.length<2){wrap.style.display='none';return}wrap.style.display='';
+  const[y0,m0]=keys[0].split('-').map(Number),[y1,m1]=keys[keys.length-1].split('-').map(Number),labs=[],ks=[];
+  let y=y0,m=m0;while(y<y1||(y===y1&&m<=m1)){ks.push(ymKey(y,m));labs.push(MOIS[m-1]+' '+String(y).slice(2));m++;if(m>12){m=1;y++}}
+  const marks=lp.filter(p=>p.termine).map(p=>{const d=new Date(p.termine+'T00:00');return{idx:ks.indexOf(ymKey(d.getFullYear(),d.getMonth()+1)),nom:p.nom}}).filter(o=>o.idx>=0);
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
+  cptCharts[c.id]=new Chart(cv,{type:'bar',data:{labels:labs,datasets:[{label:'Consommation par mois'+(c.unite?' ('+c.unite+')':''),data:ks.map(k=>vals[k]!=null?vals[k]:null),backgroundColor:col('--s-ctrl')}]},plugins:[cptMark],
+    options:{maintainAspectRatio:false,plugins:{legend:{labels:{color:txt}},cptmark:{marks}},scales:{x:{ticks:{color:txt,maxRotation:60,autoSkip:true},grid:{display:false}},y:{beginAtZero:true,ticks:{color:txt},grid:{color:grid}}}}});
+}
+function fillCpt(){
+  const act=document.activeElement;
+  document.querySelectorAll('#cList [data-cv]').forEach(el=>{if(el===act)return;const[id,ym]=el.dataset.cv.split('|'),c=compteurs.find(x=>x.id===id),v=c&&c.valeurs?c.valeurs[ym]:null;el.value=v!=null?v:''});
+  compteurs.forEach(c=>{
+    const vals=c.valeurs||{},nm=Object.values(vals).filter(v=>v!=null).length,q=a=>document.querySelector('#cList ['+a+'="'+c.id+'"]');
+    let e=q('data-cname');if(e)e.textContent=c.nom||'';e=q('data-cuni');if(e)e.textContent=c.unite?'('+c.unite+')':'';
+    e=q('data-cn');if(e)e.textContent=nm+' valeur'+(nm>1?'s':'');
+    e=q('data-cnom');if(e&&e!==act)e.value=c.nom||'';e=q('data-cunit');if(e&&e!==act)e.value=c.unite||'';
+    const lp=projets.filter(p=>p.compteurId===c.id);e=q('data-cproj');
+    if(e)e.innerHTML=lp.length?'Projets liés : '+lp.map(p=>esc(p.nom)+(p.termine?' (fin '+dfr(p.termine)+')':' (date de fin non renseignée)')).join(' · '):'Aucun projet n’utilise encore ce compteur.';
+    document.querySelectorAll('#cList [data-ct^="'+c.id+'|"]').forEach(el=>{const y=el.dataset.ct.split('|')[1];let t=0,k=0;for(let m=1;m<=12;m++){const v=vals[ymKey(y,m)];if(v!=null){t+=v;k++}}
+      el.textContent=k?fmt(t,1):'–';const bd=document.querySelector('#cList [data-cy="'+el.dataset.ct+'"]');if(bd)bd.textContent=k+'/12'});
+    drawCptChart(c,lp);
+  });
+  $('nC').textContent=compteurs.length;
+}
+function renderCpt(){buildCpt();fillCpt()}
+$('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
+$('vCpt').onchange=ev=>{const t=ev.target,d=t.dataset;
+  if(d.cv){const[id,ym]=d.cv.split('|'),v=t.value===''?null:+t.value,c=compteurs.find(x=>x.id===id);if(v==null&&!(c&&c.valeurs&&c.valeurs[ym]!=null))return;
+    setDoc(doc(db,'compteurs',id),{valeurs:{[ym]:v}},{merge:true}).catch(()=>{refus();fillCpt()})}
+  if(d.cnom){const nm=t.value.trim();if(!nm){fillCpt();return}updateDoc(doc(db,'compteurs',d.cnom),{nom:nm}).catch(refus)}
+  if(d.cunit)updateDoc(doc(db,'compteurs',d.cunit),{unite:t.value.trim()}).catch(refus);
+};
+$('vCpt').onclick=ev=>{const d=ev.target.dataset;
+  if(d.delc){const c=compteurs.find(x=>x.id===d.delc),n=projets.filter(p=>p.compteurId===d.delc).length;
+    if(confirm('Supprimer le compteur « '+(c?c.nom:'')+' » et toutes ses valeurs ?'+(n?'\n'+n+' projet(s) l’utilisent : leur suivi sera perdu.':'')))deleteDoc(doc(db,'compteurs',d.delc)).catch(refus)}};
+$('cfForm').onsubmit=async ev=>{ev.preventDefault();
+  try{await addDoc(collection(db,'compteurs'),{nom:$('cfn').value.trim(),unite:$('cfu').value.trim(),valeurs:{},cree:Date.now()});$('cfForm').reset();$('cForm').hidden=true;$('newC').textContent='Ajouter un compteur'}catch(e){refus()}};
+$('newC').onclick=()=>{const f=$('cForm');f.hidden=!f.hidden;$('newC').textContent=f.hidden?'Ajouter un compteur':'Annuler';if(!f.hidden)$('cfn').focus()};
 $('totMode').onchange=ev=>{totMode=ev.target.value;drawTotal()};
 $('year').onchange=ev=>{year=+ev.target.value;render()};
 
@@ -667,7 +770,7 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz()}
+function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets',cp=h==='#compteurs';$('vDash').hidden=r||pj||cp;$('vRel').hidden=!r;$('vProj').hidden=!pj;$('vCpt').hidden=!cp;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 render();route();
 auth.languageCode='fr';
@@ -691,12 +794,12 @@ $('gChange').onsubmit=async ev=>{ev.preventDefault();
 function enter(u){
   document.querySelector('main').hidden=false;$('gate').hidden=true;
   $('logout').hidden=false;$('imp').hidden=false;$('who').textContent=u.email;
-  listen();listenProj();route();
+  listen();listenProj();listenCpt();route();
 }
 onAuthStateChanged(auth,async u=>{
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;data=[];projets=[];prices={};totaux={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
