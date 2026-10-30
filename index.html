@@ -89,6 +89,7 @@ body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
 .svgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;margin-top:12px}
+.svh{font-size:.8rem;color:var(--mute);margin-top:10px;font-weight:600}
 .sv.cur{color:var(--ink);font-weight:600}.sv.cur input{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 </style>
 </head>
@@ -542,26 +543,55 @@ function stats(p){const it=[];
   if(p.gain!=null)it.push(['Gains potentiels',euros(p.gain)+' '+p.gain+'/5']);
   if(p.confort!=null)it.push(['Confort',stars(p.confort)+' '+p.confort+'/5']);
   return it.length?`<div class="stats">${it.map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join('')}</div>`:''}
+let svCharts={};
+const rsz=()=>Object.values(svCharts).forEach(c=>c.resize());
+function svSeq(p){
+  const s=p.suivi||{},start=p.termine;if(!start)return [];
+  const d0=new Date(start+'T00:00'),seq=[];
+  const mk=(o,key)=>{const dt=new Date(d0.getFullYear(),d0.getMonth()+o,1),v=s[key];
+    return{o,key,dt,short:MOIS[dt.getMonth()]+' '+String(dt.getFullYear()).slice(2),full:MOIS[dt.getMonth()]+' '+dt.getFullYear(),v:v!=null&&v!==''?+v:null}};
+  for(let j=6;j>=1;j--)seq.push(mk(-j,'p'+j));
+  for(let i=0;i<=12;i++)seq.push(mk(i,String(i)));
+  return seq;
+}
+function svConso(seq){
+  return seq.map((x,ix)=>{if(x.v==null)return null;let j=ix-1;while(j>=0&&seq[j].v==null)j--;if(j<0)return null;const d=x.v-seq[j].v,g=ix-j;return{d,gap:g,per:d/g}});
+}
 function suivi(p){
-  const dis=user?'':'disabled',s=p.suivi||{},start=p.termine,n=Object.values(s).filter(v=>v!=null).length,now=new Date(),fl=Object.keys(s).filter(k=>s[k]!=null&&s[k]!=='').map(Number).sort((a,b)=>a-b),tot=fl.length>1&&fl[0]===0?s[fl[fl.length-1]]-s[0]:null;
-  let cases='';
-  if(start){const d0=new Date(start+'T00:00');
-    const V=i=>s[i]!=null&&s[i]!==''?+s[i]:null;
-    cases=Array.from({length:13},(_,i)=>{const dt=new Date(d0.getFullYear(),d0.getMonth()+i,1);
-      const lab=i?`M+${i} · ${MOIS[dt.getMonth()]} ${dt.getFullYear()}`:'À la fin du projet';
-      const cur=i&&dt.getFullYear()===now.getFullYear()&&dt.getMonth()===now.getMonth();
-      let dl='';if(i&&V(i)!=null){let j=i-1;while(j>=0&&V(j)==null)j--;if(j>=0){const d=V(i)-V(j);dl=`<small class="dl">Conso : ${d>0?'+':''}${fmt(d,1)}${i-j>1?' (sur '+(i-j)+' mois)':''}</small>`}}
-      return `<label class="sv ${cur?'cur':''}">${lab}<input type="number" step="any" placeholder="valeur" data-sv="${p.id}|${i}" value="${s[i]??''}" ${dis}>${dl}</label>`}).join('')}
-  return `<div class="suivi"><h4>Suivi sur 1 an après la fin du projet : valeur du compteur <span class="badge">${n}/13 valeurs</span>${tot!=null?` <span class="badge">Depuis la fin : ${tot>0?'+':''}${fmt(tot,1)}</span>`:''}</h4>
+  const dis=user?'':'disabled',start=p.termine,seq=svSeq(p),con=svConso(seq),n=seq.filter(x=>x.v!=null).length,now=new Date();
+  const v0=seq.find(x=>x.o===0),last=[...seq].reverse().find(x=>x.o>0&&x.v!=null),tot=v0&&v0.v!=null&&last?last.v-v0.v:null;
+  const cell=(x,ix)=>{const c=con[ix],dl=c?`<small class="dl">Conso : ${c.d>0?'+':''}${fmt(c.d,1)}${c.gap>1?' (sur '+c.gap+' mois)':''}</small>`:'';
+    const cur=x.o>0&&x.dt.getFullYear()===now.getFullYear()&&x.dt.getMonth()===now.getMonth();
+    const lab=x.o<0?`M−${-x.o} · ${x.full}`:x.o===0?'À la fin du projet':`M+${x.o} · ${x.full}`;
+    return `<label class="sv ${cur?'cur':''}">${lab}<input type="number" step="any" placeholder="valeur" data-sv="${p.id}|${x.key}" value="${x.v??''}" ${dis}>${dl}</label>`};
+  const bef=seq.map((x,ix)=>x.o<0?cell(x,ix):'').join(''),aft=seq.map((x,ix)=>x.o>=0?cell(x,ix):'').join('');
+  const per=f=>{const a=seq.map((x,ix)=>con[ix]&&f(x)?con[ix].per:null).filter(v=>v!=null);return a.length?a.reduce((u,v)=>u+v,0)/a.length:null};
+  const mb=per(x=>x.o<=0),ma=per(x=>x.o>0);
+  const stat=mb!=null&&ma!=null&&mb?(()=>{const q=(ma-mb)/Math.abs(mb)*100;return `<span class="delta ${q<0?'down':q>0?'up':'flat'}">Conso moyenne par mois : avant ${fmt(mb,1)} → après ${fmt(ma,1)} (${q>0?'+':''}${fmt(q,1)} %)</span>`})():'';
+  const graph=n>=2?`<div class="box" style="height:260px;margin-top:12px"><canvas id="svc-${p.id}"></canvas></div><p class="note" style="margin:4px 0 0">Barres grises : avant la fin du projet · violettes : après. La ligne montre la valeur du compteur.</p>`:'<p class="note">Saisissez au moins deux valeurs du compteur pour afficher le graphique.</p>';
+  return `<div class="suivi"><h4>Suivi du compteur : 6 mois avant et 1 an après la fin du projet <span class="badge">${n}/19 valeurs</span>${tot!=null?` <span class="badge">Depuis la fin : ${tot>0?'+':''}${fmt(tot,1)}</span>`:''}</h4>
     <div class="tools"><label>Compteur suivi <input type="text" data-snom="${p.id}" value="${esc(p.suiviNom||'')}" placeholder="Nom du compteur (ex. Électricité atelier, kWh)" maxlength="120" ${dis}></label>
     <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
-    ${start?`<div class="svgrid">${cases}</div>`:'<p class="note">Indiquez la date de fin du projet pour afficher les cases de suivi.</p>'}</div>`;
+    ${start?`<div class="svh">Avant le projet (à saisir à la main)</div><div class="svgrid">${bef}</div><div class="svh">Fin du projet et suivi après</div><div class="svgrid">${aft}</div>${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}${graph}`:'<p class="note">Indiquez la date de fin du projet pour afficher les cases de suivi.</p>'}</div>`;
+}
+function drawSuiviCharts(){
+  Object.values(svCharts).forEach(c=>c.destroy());svCharts={};
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
+  projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
+    const seq=svSeq(p),con=svConso(seq);
+    svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:seq.map(x=>x.o===0?'Fin projet':x.short),datasets:[
+      {type:'bar',label:'Consommation par mois',data:con.map(c=>c?+c.per.toFixed(2):null),backgroundColor:seq.map(x=>x.o<=0?col('--prev'):col('--s-ctrl')),yAxisID:'y',order:2},
+      {type:'line',label:'Valeur du compteur',data:seq.map(x=>x.v),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2,pointRadius:3,spanGaps:true,yAxisID:'y2',order:1}]},
+      options:{maintainAspectRatio:false,plugins:{legend:{labels:{color:txt}}},scales:{x:{ticks:{color:txt,maxRotation:60},grid:{display:false}},
+        y:{beginAtZero:true,position:'left',title:{display:true,text:'Consommation par mois',color:txt},ticks:{color:txt},grid:{color:grid}},
+        y2:{position:'right',title:{display:true,text:'Valeur du compteur',color:txt},ticks:{color:txt},grid:{display:false}}}}});
+  });
 }
 const openA=new Set();
 const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
 const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l=['Élec','CVC','Plombier'].filter(m=>st.has(m));return l.length?l.map(m=>`<span class="badge ${MC[m]}">${m}</span>`).join(' '):'–'};
 const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
-$('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}},true);
+$('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}rsz()},true);
 const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0;
   return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${st==='cours'?'cours':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
 const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>';
@@ -575,6 +605,7 @@ function renderProj(){
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   $('nA').textContent=A.length;
   $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
+  drawSuiviCharts();
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 let editP=null;
@@ -640,7 +671,7 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize())}
+function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets';$('vDash').hidden=r||pj;$('vRel').hidden=!r;$('vProj').hidden=!pj;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz()}
 window.addEventListener('hashchange',route);
 render();route();
 auth.languageCode='fr';
