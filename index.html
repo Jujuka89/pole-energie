@@ -90,6 +90,8 @@ details.cp>summary{cursor:pointer;padding:12px 14px;font-size:1.05rem}.cpb{paddi
 .cell.cv:not(:placeholder-shown){background:color-mix(in srgb,var(--s-ctrl) 14%,var(--card))}
 div.sv{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:2px;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
 div.sv b{color:var(--ink);font-size:1rem}div.sv.cur{border-color:var(--accent)}
+.rk{display:inline-block;min-width:1.7em;color:var(--mute);font-weight:700}
+details.pr.dragging{opacity:.4}details.pr.ov-t>summary{box-shadow:0 -2px 0 var(--accent)}details.pr.ov-b>summary{box-shadow:0 2px 0 var(--accent)}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -188,7 +190,8 @@ body.out .edit-only{display:none!important}
   <div class="scroll"><div id="lFini"></div></div>
 </section>
 <section class="st st-a">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="stt" style="margin:0">À réaliser <span id="nA" class="badge cnt"></span></h2><button class="main edit-only" id="newP" type="button">Proposer un projet</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="stt" style="margin:0">À réaliser <span id="nA" class="badge cnt"></span></h2><div class="tools edit-only"><button class="link" id="resetRank" type="button">Trier par gains</button><button class="main" id="newP" type="button">Proposer un projet</button></div></div>
+  <p class="note edit-only" style="margin:6px 0 0">Glissez une ligne (appui long sur téléphone) pour changer la priorité : 1 = le plus prioritaire.</p>
   <div id="projForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <h3 id="pTitle" style="margin:0 0 10px;font-size:1rem">Proposer un projet</h3>
     <form id="pForm">
@@ -626,9 +629,11 @@ function drawSuiviCharts(){
   });
 }
 const openA=new Set();
+let aOrder=[],pdrag=null;
+const nextRang=()=>Math.max(0,...projets.filter(x=>statutOf(x)==='a').map(x=>x.rang||0))+1;
 const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
 const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l=['Élec','CVC','Plombier'].filter(m=>st.has(m));return l.length?l.map(m=>`<span class="badge ${MC[m]}">${m}</span>`).join(' '):'–'};
-const rowA=p=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow"><span class="pn">${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
+const rowA=(p,ix)=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow" ${user?`draggable="true" data-pdrag="${p.id}"`:''}><span class="pn"><span class="rk">${ix+1}.</span>${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
 $('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}rsz()},true);
 const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0;
   return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${st==='cours'?'cours':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
@@ -640,8 +645,8 @@ function renderProj(){
   fill('lCours','nCours','cours','Aucun projet en cours.');
   fill('lFini','nFini','fini','Aucun projet à contrôler.');
   fill('lClos','nClos','clos','Aucun projet clôturé.');
-  const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
-  $('nA').textContent=A.length;
+  const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(x.rang??1e9)-(y.rang??1e9)||(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
+  aOrder=A.map(x=>x.id);$('nA').textContent=A.length;
   $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
   drawSuiviCharts();fillCpt();
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
@@ -650,14 +655,24 @@ let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
 function closeForm(){editP=null;$('pForm').reset();$('projForm').hidden=true;$('newP').textContent='Proposer un projet';$('pSubmit').textContent='Ajouter le projet';$('pTitle').textContent='Proposer un projet'}
 $('pForm').onsubmit=async ev=>{ev.preventDefault();
-  try{if(editP)await updateDoc(doc(db,'projets',editP),pData());else await addDoc(collection(db,'projets'),{...pData(),statut:'a_realiser',taches:[],cree:Date.now()});closeForm()}catch(e){refus()}};
+  try{if(editP)await updateDoc(doc(db,'projets',editP),pData());else await addDoc(collection(db,'projets'),{...pData(),statut:'a_realiser',rang:nextRang(),taches:[],cree:Date.now()});closeForm()}catch(e){refus()}};
+const pclr=()=>document.querySelectorAll('#aList details.pr.ov-t,#aList details.pr.ov-b,#aList details.pr.dragging').forEach(e=>e.classList.remove('ov-t','ov-b','dragging'));
+$('aList').addEventListener('dragstart',ev=>{const sm=ev.target.closest&&ev.target.closest('summary[data-pdrag]');if(!sm)return;pdrag=sm.dataset.pdrag;ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',pdrag);sm.parentElement.classList.add('dragging')});
+$('aList').addEventListener('dragover',ev=>{const d=ev.target.closest&&ev.target.closest('details.pr');if(!pdrag||!d)return;ev.preventDefault();pclr();
+  const b=d.firstElementChild.getBoundingClientRect();d.classList.add(ev.clientY>b.top+b.height/2?'ov-b':'ov-t')});
+$('aList').addEventListener('drop',ev=>{const d=ev.target.closest&&ev.target.closest('details.pr');if(!pdrag||!d)return;ev.preventDefault();
+  const from=pdrag,tid=d.dataset.id,b=d.firstElementChild.getBoundingClientRect(),after=ev.clientY>b.top+b.height/2;pdrag=null;pclr();if(tid===from)return;
+  const ids=aOrder.slice(),f=ids.indexOf(from);if(f<0)return;ids.splice(f,1);let to=ids.indexOf(tid);if(to<0)return;if(after)to++;ids.splice(to,0,from);
+  const wb=writeBatch(db);ids.forEach((id,i)=>wb.update(doc(db,'projets',id),{rang:i+1}));wb.commit().catch(refus)});
+$('aList').addEventListener('dragend',()=>{pdrag=null;pclr()});
+$('resetRank').onclick=()=>{if(!aOrder.length||!confirm('Revenir à l’ordre par gains et confort ?'))return;const wb=writeBatch(db);aOrder.forEach(id=>wb.update(doc(db,'projets',id),{rang:null}));wb.commit().catch(refus)};
 $('newP').onclick=()=>{if(!$('projForm').hidden){closeForm();return}$('projForm').hidden=false;$('newP').textContent='Annuler';$('pn').focus()};
 const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(p.statut!=='a_realiser'&&t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
 $('vProj').onclick=ev=>{const d=ev.target.dataset;
   if(d.start){ev.preventDefault();}
   if(d.close&&confirm('Le contrôle est effectué ? Clôturer ce projet ?'))updateDoc(doc(db,'projets',d.close),{statut:'cloture',cloture:today()}).catch(refus);
   if(d.reopen&&confirm('Rouvrir ce projet ?'))updateDoc(doc(db,'projets',d.reopen),{statut:'en_cours',cloture:null}).catch(refus);
-  if(d.back&&confirm('Remettre ce projet dans les projets à réaliser ?'))updateDoc(doc(db,'projets',d.back),{statut:'a_realiser'}).catch(refus);
+  if(d.back&&confirm('Remettre ce projet dans les projets à réaliser ?'))updateDoc(doc(db,'projets',d.back),{statut:'a_realiser',rang:nextRang()}).catch(refus);
   if(d.editp){const p=projets.find(x=>x.id===d.editp);if(!p)return;ev.preventDefault();editP=p.id;
     $('pn').value=p.nom||'';$('pr').value=p.resp||'';$('pdesc').value=p.desc||'';$('pdur').value=p.duree?p.duree.n:'';$('pdu').value=p.duree?p.duree.u:'jours';
     $('pcout').value=p.cout??'';$('pgain').value=p.gain==null?'':String(p.gain);$('pconf').value=p.confort==null?'':String(p.confort);
