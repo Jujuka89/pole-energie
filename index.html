@@ -581,37 +581,48 @@ function svSeq(p){
   for(let i=0;i<=12;i++)seq.push(mk(i,String(i)));
   return seq;
 }
+function svWindow(p,c){
+  const vals=c.valeurs||{},ks=Object.keys(vals).filter(k=>vals[k]!=null).sort();if(!ks.length)return null;
+  const[yL,mL]=ks[ks.length-1].split('-').map(Number),labels=[],cur=[],prev=[],keys=[];
+  for(let i=11;i>=0;i--){const dt=new Date(yL,mL-1-i,1),y=dt.getFullYear(),m=dt.getMonth()+1,k=ymKey(y,m),kp=ymKey(y-1,m);
+    keys.push(k);labels.push(MOIS[m-1]+' '+String(y).slice(2));cur.push(vals[k]!=null?vals[k]:null);prev.push(vals[kp]!=null?vals[kp]:null)}
+  let endIdx=-1,endTxt='';
+  if(p.termine){const d=new Date(p.termine+'T00:00');endIdx=keys.indexOf(ymKey(d.getFullYear(),d.getMonth()+1));endTxt='Projet terminé en '+MOIS[d.getMonth()]+' '+d.getFullYear()}
+  return{labels,cur,prev,endIdx,endTxt};
+}
 function suivi(p){
-  const dis=user?'':'disabled',start=p.termine,seq=svSeq(p),n=seq.filter(x=>x.v!=null).length,now=new Date(),c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;
-  const cell=x=>{const cur=x.o>0&&x.dt.getFullYear()===now.getFullYear()&&x.dt.getMonth()===now.getMonth();
-    const lab=x.o<0?`M−${-x.o} · ${x.full}`:x.o===0?`Mois de la fin · ${x.full}`:`M+${x.o} · ${x.full}`;
-    return `<div class="sv ${cur?'cur':''}"><span>${lab}</span><b>${x.v!=null?fmt(x.v,1):'–'}</b></div>`};
-  const bef=seq.filter(x=>x.o<0).map(cell).join(''),aft=seq.filter(x=>x.o>=0).map(cell).join('');
+  const dis=user?'':'disabled',seq=svSeq(p),c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null;
   const av=f=>{const a=seq.filter(x=>f(x)&&x.v!=null).map(x=>x.v);return a.length?a.reduce((u,v)=>u+v,0)/a.length:null};
   const mb=av(x=>x.o<0),ma=av(x=>x.o>0),na=seq.filter(x=>x.o>0&&x.v!=null).length;
   let stat='';
   if(mb!=null&&ma!=null&&mb){const q=(ma-mb)/Math.abs(mb)*100,gain=(mb-ma)*na;
-    stat=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">Conso moyenne par mois : avant ${fmt(mb,1)} → après ${fmt(ma,1)} (${q>0?'+':''}${fmt(q,1)} %)</span> <span class="delta ${gain>0?'down':gain<0?'up':'flat'}">Gain cumulé depuis la fin : ${gain>0?'+':''}${fmt(gain,1)}</span>`}
-  const graph=n>=2?`<div class="box" style="height:260px;margin-top:12px"><canvas id="svc-${p.id}"></canvas></div><p class="note" style="margin:4px 0 0">Barres grises : avant le projet et mois de la fin · violettes : après. Les moyennes ignorent le mois de la fin.</p>`:'<p class="note">Il faut au moins deux valeurs dans le compteur autour de la date de fin pour afficher le graphique.</p>';
+    stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">Conso moyenne par mois : 6 mois avant ${fmt(mb,1)} → après ${fmt(ma,1)} (${q>0?'+':''}${fmt(q,1)} %)</span> <span class="delta ${gain>0?'down':gain<0?'up':'flat'}">Gain cumulé depuis la fin : ${gain>0?'+':''}${fmt(gain,1)}</span> `}
+  if(w){let a=0,b=0,k=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];k++}});
+    if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fmt(a,1)} contre ${fmt(b,1)} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fmt(Math.abs(g),1)}</span>`}}
   const opts=compteurs.map(x=>`<option value="${x.id}" ${p.compteurId===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
   const legacy=!c&&Object.values(p.suivi||{}).some(v=>v!=null&&v!=='');
-  return `<div class="suivi"><h4>Suivi du compteur : 6 mois avant et 1 an après la fin du projet <span class="badge">${n}/19 valeurs</span></h4>
+  let body='';
+  if(!c)body=compteurs.length?'<p class="note">Choisissez le compteur à suivre pour afficher le graphique.</p>':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>';
+  else if(!w)body='<p class="note">Ce compteur n’a pas encore de valeurs : saisissez-les dans la page <a href="#compteurs">Compteurs</a>.</p>';
+  else body=`${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}<p class="note" style="margin:10px 0 0">${p.termine?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de fin du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#compteurs">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}"></canvas></div>`;
+  return `<div class="suivi"><h4>Suivi du compteur après le projet</h4>
     <div class="tools"><label>Compteur suivi <select data-scpt="${p.id}" ${dis}><option value="">— Choisir un compteur —</option>${opts}</select></label>
     <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
-    ${compteurs.length?'':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>'}
-    ${legacy?'<p class="note">Ces valeurs viennent de l’ancienne saisie dans le projet. Choisissez un compteur pour les remplacer.</p>':''}
-    ${c?`<p class="note" style="margin:6px 0 0">Les valeurs viennent du compteur « ${esc(c.nom)} ». <a href="#compteurs">Les saisir ou les modifier dans la page Compteurs</a>.</p>`:''}
-    ${start?`<div class="svh">Consommation avant le projet</div><div class="svgrid">${bef}</div><div class="svh">Mois de la fin et suivi après</div><div class="svgrid">${aft}</div>${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}${graph}`:'<p class="note">Indiquez la date de fin du projet pour afficher le suivi.</p>'}</div>`;
+    ${legacy?'<p class="note">Des valeurs ont été saisies dans l’ancien mode, dans le projet. Elles ne sont plus affichées : saisissez-les dans la page Compteurs.</p>':''}
+    ${body}</div>`;
 }
 function drawSuiviCharts(){
   Object.values(svCharts).forEach(c=>c.destroy());svCharts={};
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
   projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
-    const seq=svSeq(p),c=compteurs.find(x=>x.id===p.compteurId);
-    svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:seq.map(x=>x.o===0?'Fin projet':x.short),datasets:[
-      {label:'Consommation par mois'+(c?' — '+c.nom+(c.unite?' ('+c.unite+')':''):''),data:seq.map(x=>x.v),backgroundColor:seq.map(x=>x.o<=0?col('--prev'):col('--s-ctrl'))}]},
-      options:{maintainAspectRatio:false,plugins:{legend:{labels:{color:txt}}},scales:{x:{ticks:{color:txt,maxRotation:60},grid:{display:false}},
-        y:{beginAtZero:true,title:{display:true,text:'Consommation par mois',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
+    const c=compteurs.find(x=>x.id===p.compteurId),w=c&&svWindow(p,c);if(!w)return;const u=c.unite?' ('+c.unite+')':'';
+    svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
+      {label:'Mêmes mois un an plus tôt'+u,data:w.prev,backgroundColor:col('--prev')},
+      {label:'12 derniers mois'+u,data:w.cur,backgroundColor:col('--s-ctrl')}]},
+      plugins:[pctPlugin,cptMark],
+      options:{maintainAspectRatio:false,layout:{padding:{top:34}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},
+        tooltip:{callbacks:{afterLabel:t=>{if(t.datasetIndex!==1)return;const q=pct(t.parsed.y,t.chart.data.datasets[0].data[t.dataIndex]);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt'}}}},
+        scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   });
 }
 const openA=new Set();
@@ -711,7 +722,7 @@ const cptMark={id:'cptmark',afterDatasetsDraw(ch){
   const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
   ctx.save();ctx.strokeStyle=ink;ctx.fillStyle=ink;ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
   ms.forEach(o=>{const x=ch.scales.x.getPixelForValue(o.idx);ctx.beginPath();ctx.moveTo(x,ch.chartArea.top);ctx.lineTo(x,ch.chartArea.bottom);ctx.stroke();
-    ctx.save();ctx.translate(x+4,ch.chartArea.top+4);ctx.rotate(Math.PI/2);ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('Fin : '+o.nom,0,0);ctx.restore()});
+    ctx.save();ctx.translate(x+4,ch.chartArea.top+4);ctx.rotate(Math.PI/2);ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(o.txt||('Fin : '+o.nom),0,0);ctx.restore()});
   ctx.restore();
 }};
 function drawCptChart(c,lp){
