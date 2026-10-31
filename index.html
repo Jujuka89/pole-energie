@@ -586,15 +586,17 @@ function svSeq(p){
   for(let i=0;i<=12;i++)seq.push(mk(i,String(i)));
   return seq;
 }
+const munit=c=>{const u=(c.unite||'').trim().toLowerCase();return u==='kwh'?{k:0.001,u:'MWh'}:u==='mwh'?{k:1,u:'MWh'}:{k:1,u:c.unite||''}};
+const decs=a=>a>=10?0:a>=1?1:2;
 const gainPlugin={id:'gain',afterDatasetsDraw(ch){
-  const [prev,cur]=ch.data.datasets,meta=ch.getDatasetMeta(1),ctx=ch.ctx,css=getComputedStyle(document.documentElement);
+  const [prev,cur]=ch.data.datasets,meta=ch.getDatasetMeta(1),ctx=ch.ctx,css=getComputedStyle(document.documentElement),unit=((ch.options.plugins||{}).gain||{}).unit||'';
   const rot=ch.chartArea.width/ch.data.labels.length<56;
   ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
   meta.data.forEach((bar,i)=>{
     const v=cur.data[i],pv=prev.data[i];if(v==null||pv==null||!pv)return;
-    const q=(v-pv)/pv*100,g=pv-v,r=Math.round(q);
-    ctx.fillStyle=css.getPropertyValue(r>0?'--bad':r<0?'--ok':'--mute').trim();
-    const t1=(r>0?'+':'')+r+' %',t2=(g>0?'gain ':g<0?'perte ':'')+fmt(Math.abs(g),Math.abs(g)>=10?0:1);
+    const q=(v-pv)/pv*100,d=v-pv,a=Math.abs(d),r=Math.round(q);
+    ctx.fillStyle=css.getPropertyValue(d<0?'--ok':d>0?'--bad':'--mute').trim();
+    const t1=(r>0?'+':'')+r+' %',t2=(d>0?'+':d<0?'-':'')+fmt(a,decs(a))+(unit?' '+unit:'');
     if(rot){ctx.save();ctx.translate(bar.x,bar.y-5);ctx.rotate(-Math.PI/2);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t1+' · '+t2,0,0);ctx.restore()}
     else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(t2,bar.x,bar.y-4);ctx.fillText(t1,bar.x,bar.y-17)}
   });
@@ -631,12 +633,12 @@ function svWindow(p,c){
   return{labels,cur,prev,endIdx,endTxt};
 }
 function suivi(p){
-  const dis=user?'':'disabled',c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null;
+  const dis=user?'':'disabled',c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null,mk=c?munit(c):{k:1,u:''},fm=x=>fmt(x,decs(Math.abs(x)));
   let stat='';
   const pg=projGain(p);
-  if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis la fin du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fmt(Math.abs(g),1)}${pg.unite?' '+esc(pg.unite):''}</span> `}
+  if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis la fin du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span> `}
   if(w){let a=0,b=0,k=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];k++}});
-    if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fmt(a,1)} contre ${fmt(b,1)} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fmt(Math.abs(g),1)}</span>`}}
+    if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fm(a*mk.k)} contre ${fm(b*mk.k)}${mk.u?' '+esc(mk.u):''} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span>`}}
   const opts=compteurs.map(x=>`<option value="${x.id}" ${p.compteurId===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
   const legacy=!c&&Object.values(p.suivi||{}).some(v=>v!=null&&v!=='');
   let body='';
@@ -653,13 +655,14 @@ function drawSuiviCharts(){
   Object.values(svCharts).forEach(c=>c.destroy());svCharts={};
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
   projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
-    const c=compteurs.find(x=>x.id===p.compteurId),w=c&&svWindow(p,c);if(!w)return;const u=c.unite?' ('+c.unite+')':'';
+    const c=compteurs.find(x=>x.id===p.compteurId),w=c&&svWindow(p,c);if(!w)return;
+    const mk=munit(c),u=mk.u?' ('+mk.u+')':'',cv2=a=>a.map(v=>v==null?null:v*mk.k);
     svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
-      {label:'Mêmes mois un an plus tôt'+u,data:w.prev,backgroundColor:col('--prev')},
-      {label:'12 derniers mois'+u,data:w.cur,backgroundColor:col('--s-ctrl')}]},
+      {label:'Mêmes mois un an plus tôt'+u,data:cv2(w.prev),backgroundColor:col('--prev')},
+      {label:'12 derniers mois'+u,data:cv2(w.cur),backgroundColor:col('--s-ctrl')}]},
       plugins:[gainPlugin,cptMark],
-      options:{maintainAspectRatio:false,layout:{padding:{top:window.innerWidth<600?105:58}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},
-        tooltip:{callbacks:{afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt · '+(pv-t.parsed.y>=0?'gain ':'perte ')+fmt(Math.abs(pv-t.parsed.y),1)+(c.unite?' '+c.unite:'')}}}},
+      options:{maintainAspectRatio:false,layout:{padding:{top:window.innerWidth<600?105:58}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},gain:{unit:mk.u},
+        tooltip:{callbacks:{label:t=>`${t.dataset.label} : ${fmt(t.parsed.y,decs(Math.abs(t.parsed.y)))}`,afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);if(q==null)return '';const d=t.parsed.y-pv;return (q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt · '+(d>0?'+':d<0?'-':'')+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')}}}},
         scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   });
 }
