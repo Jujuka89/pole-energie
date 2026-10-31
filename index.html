@@ -584,6 +584,20 @@ function svSeq(p){
   for(let i=0;i<=12;i++)seq.push(mk(i,String(i)));
   return seq;
 }
+const gainPlugin={id:'gain',afterDatasetsDraw(ch){
+  const [prev,cur]=ch.data.datasets,meta=ch.getDatasetMeta(1),ctx=ch.ctx,css=getComputedStyle(document.documentElement);
+  const rot=ch.chartArea.width/ch.data.labels.length<56;
+  ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
+  meta.data.forEach((bar,i)=>{
+    const v=cur.data[i],pv=prev.data[i];if(v==null||pv==null||!pv)return;
+    const q=(v-pv)/pv*100,g=pv-v,r=Math.round(q);
+    ctx.fillStyle=css.getPropertyValue(r>0?'--bad':r<0?'--ok':'--mute').trim();
+    const t1=(r>0?'+':'')+r+' %',t2=(g>0?'gain ':g<0?'perte ':'')+fmt(Math.abs(g),Math.abs(g)>=10?0:1);
+    if(rot){ctx.save();ctx.translate(bar.x,bar.y-5);ctx.rotate(-Math.PI/2);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t1+' · '+t2,0,0);ctx.restore()}
+    else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(t2,bar.x,bar.y-4);ctx.fillText(t1,bar.x,bar.y-17)}
+  });
+  ctx.restore();
+}};
 function svWindow(p,c){
   const vals=c.valeurs||{},ks=Object.keys(vals).filter(k=>vals[k]!=null).sort();if(!ks.length)return null;
   const[yL,mL]=ks[ks.length-1].split('-').map(Number),labels=[],cur=[],prev=[],keys=[];
@@ -622,9 +636,9 @@ function drawSuiviCharts(){
     svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
       {label:'Mêmes mois un an plus tôt'+u,data:w.prev,backgroundColor:col('--prev')},
       {label:'12 derniers mois'+u,data:w.cur,backgroundColor:col('--s-ctrl')}]},
-      plugins:[pctPlugin,cptMark],
-      options:{maintainAspectRatio:false,layout:{padding:{top:34}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},
-        tooltip:{callbacks:{afterLabel:t=>{if(t.datasetIndex!==1)return;const q=pct(t.parsed.y,t.chart.data.datasets[0].data[t.dataIndex]);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt'}}}},
+      plugins:[gainPlugin,cptMark],
+      options:{maintainAspectRatio:false,layout:{padding:{top:window.innerWidth<600?105:58}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},
+        tooltip:{callbacks:{afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);return q==null?'':(q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt · '+(pv-t.parsed.y>=0?'gain ':'perte ')+fmt(Math.abs(pv-t.parsed.y),1)+(c.unite?' '+c.unite:'')}}}},
         scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   });
 }
