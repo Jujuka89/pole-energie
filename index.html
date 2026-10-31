@@ -602,18 +602,20 @@ const gainPlugin={id:'gain',afterDatasetsDraw(ch){
 }};
 function projGain(p){
   const c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;if(!c||!p.termine)return null;
-  const u=(c.unite||'').trim().toLowerCase(),f=u==='mwh'?1:u==='kwh'?0.001:null;if(f==null)return{conv:false};
-  const seq=svSeq(p),bef=seq.filter(x=>x.o<0&&x.v!=null).map(x=>x.v),aft=seq.filter(x=>x.o>0&&x.v!=null);
-  if(!bef.length||!aft.length)return{conv:true,none:true};
-  const mb=bef.reduce((a,v)=>a+v,0)/bef.length;let mwh=0,eur=0,ne=0;
-  aft.forEach(x=>{const g=(mb-x.v)*f;mwh+=g;const pr=c.energie?priceOf(x.dt.getFullYear(),c.energie,null):null;if(pr!=null){eur+=g*pr;ne++}});
-  return{conv:true,mwh,eur,ne};
+  const u=(c.unite||'').trim().toLowerCase(),f=u==='mwh'?1:u==='kwh'?0.001:null,vals=c.valeurs||{};
+  const d0=new Date(p.termine+'T00:00'),endKey=ymKey(d0.getFullYear(),d0.getMonth()+1);
+  let units=0,prevS=0,curS=0,eur=0,ne=0,n=0;
+  Object.keys(vals).sort().forEach(k=>{if(k<=endKey||vals[k]==null)return;const[y,m]=k.split('-').map(Number),pv=vals[ymKey(y-1,m)];if(pv==null)return;
+    const g=pv-vals[k];units+=g;prevS+=pv;curS+=vals[k];n++;
+    if(f!=null){const pr=c.energie?priceOf(y,c.energie,null):null;if(pr!=null){eur+=g*f*pr;ne++}}});
+  if(!n)return{none:true};
+  return{n,units,prevS,curS,q:prevS?(curS-prevS)/Math.abs(prevS)*100:null,conv:f!=null,mwh:f!=null?units*f:null,eur,ne,unite:c.unite||''};
 }
 function gcells(p){
   const g=projGain(p),dash=t=>`<span title="${t}">–</span>`;
   if(!g)return dash('Choisissez un compteur et la date de fin du projet')+dash('');
+  if(g.none)return dash('Il faut des valeurs après le projet et les mêmes mois un an plus tôt')+dash('');
   if(!g.conv)return dash('Unité du compteur non convertible : utilisez kWh ou MWh')+dash('');
-  if(g.none)return dash('Il faut des valeurs avant et après le projet')+dash('');
   const cl=v=>v>0?'down':v<0?'up':'flat';
   const m=`<span class="delta ${cl(g.mwh)}" style="margin:0">${g.mwh>0?'+':''}${fmt(g.mwh,1)}</span>`;
   const e=g.ne?`<span class="delta ${cl(g.eur)}" style="margin:0">${g.eur>0?'+':''}${fmt(g.eur)} €</span>`:dash('Précisez l’énergie du compteur (page Compteurs) et les prix de l’année');
@@ -629,12 +631,10 @@ function svWindow(p,c){
   return{labels,cur,prev,endIdx,endTxt};
 }
 function suivi(p){
-  const dis=user?'':'disabled',seq=svSeq(p),c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null;
-  const av=f=>{const a=seq.filter(x=>f(x)&&x.v!=null).map(x=>x.v);return a.length?a.reduce((u,v)=>u+v,0)/a.length:null};
-  const mb=av(x=>x.o<0),ma=av(x=>x.o>0),na=seq.filter(x=>x.o>0&&x.v!=null).length;
+  const dis=user?'':'disabled',c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null;
   let stat='';
-  if(mb!=null&&ma!=null&&mb){const q=(ma-mb)/Math.abs(mb)*100,gain=(mb-ma)*na;
-    stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">Conso moyenne par mois : 6 mois avant ${fmt(mb,1)} → après ${fmt(ma,1)} (${q>0?'+':''}${fmt(q,1)} %)</span> <span class="delta ${gain>0?'down':gain<0?'up':'flat'}">Gain cumulé depuis la fin : ${gain>0?'+':''}${fmt(gain,1)}</span> `}
+  const pg=projGain(p);
+  if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis la fin du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fmt(Math.abs(g),1)}${pg.unite?' '+esc(pg.unite):''}</span> `}
   if(w){let a=0,b=0,k=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];k++}});
     if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fmt(a,1)} contre ${fmt(b,1)} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fmt(Math.abs(g),1)}</span>`}}
   const opts=compteurs.map(x=>`<option value="${x.id}" ${p.compteurId===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
