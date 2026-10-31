@@ -440,6 +440,13 @@ function ecoRef(){
   const dt=$('ecoDet');if(dt)dt.ontoggle=()=>{ecoOpen=dt.open};
 }
 
+async function dupProjet(id){
+  const p=projets.find(x=>x.id===id);if(!p)return;const t=p.taches||[];
+  if(!confirm('Dupliquer le projet « '+p.nom+' »'+(t.length?' avec ses '+t.length+' tâche'+(t.length>1?'s':''):'')+' ? La copie sera ajoutée aux projets à réaliser.'))return;
+  const copy={nom:p.nom+' (copie)',resp:p.resp||'',desc:p.desc||'',duree:p.duree||null,cout:p.cout!=null?p.cout:null,gain:p.gain!=null?p.gain:null,confort:p.confort!=null?p.confort:null,
+    statut:'a_realiser',rang:nextRang(),cree:Date.now(),taches:t.map(x=>({id:uid(),t:x.t,fait:false,ech:null,m:x.m||null}))};
+  try{const r=await addDoc(collection(db,'projets'),copy);openA.add(r.id)}catch(e){refus()}
+}
 function chartProjImg(p,c,w){
   const mk=munit(c),u=mk.u?' ('+mk.u+')':'',cv=document.createElement('canvas');cv.width=900;cv.height=400;const k2=a=>a.map(v=>v==null?null:v*mk.k);
   const ch=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
@@ -624,7 +631,7 @@ function card(p){
   const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):'',st==='clos'&&p.cloture?'Clôturé le '+dfr(p.cloture):''].filter(Boolean).join(' · ');
   const tasksHtml=t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('');
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
-    <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}${st==='fini'?'<button class="main edit-only" data-close="'+p.id+'">Clôturer le projet</button>':''}${st==='clos'?'<button class="link edit-only" data-reopen="'+p.id+'">Rouvrir</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
+    <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}${st==='fini'?'<button class="main edit-only" data-close="'+p.id+'">Clôturer le projet</button>':''}${st==='clos'?'<button class="link edit-only" data-reopen="'+p.id+'">Rouvrir</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-dup="${p.id}">Dupliquer</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
     ${done?suivi(p):''}
     ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):done?'':`<div class="bar ${st==='cours'?'cours':''}"><i style="width:${pct}%"></i></div>`}
@@ -779,6 +786,7 @@ const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={t
 $('vProj').onclick=ev=>{const d=ev.target.dataset;
   if(d.start){ev.preventDefault();}
   if(d.rapport){ev.preventDefault();rapportProjet(d.rapport)}
+  if(d.dup){ev.preventDefault();dupProjet(d.dup)}
   if(d.close&&confirm('Le contrôle est effectué ? Clôturer ce projet ?'))updateDoc(doc(db,'projets',d.close),{statut:'cloture',cloture:today()}).catch(refus);
   if(d.reopen&&confirm('Rouvrir ce projet ?'))updateDoc(doc(db,'projets',d.reopen),{statut:'en_cours',cloture:null}).catch(refus);
   if(d.back&&confirm('Remettre ce projet dans les projets à réaliser ?'))updateDoc(doc(db,'projets',d.back),{statut:'a_realiser',rang:nextRang()}).catch(refus);
