@@ -75,6 +75,7 @@ details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
 .cell{width:100%;min-width:100px;text-align:right}
 .cell.ce:not(:placeholder-shown){background:color-mix(in srgb,var(--elec) 14%,var(--card))}
 .cell.cg:not(:placeholder-shown){background:color-mix(in srgb,var(--gaz) 18%,var(--card))}
+.prow.b.f{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 120px 120px;min-width:1010px}
 .prow.b{grid-template-columns:minmax(170px,2fr) 150px 90px 100px 85px 85px 175px;min-width:930px}
 .eur{color:var(--ok);font-weight:700;letter-spacing:1px}.eur .off{opacity:.25}
 .gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
@@ -225,7 +226,8 @@ body.out .edit-only{display:none!important}
   <div id="cForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <form id="cfForm">
       <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
-      <label>Unité <input id="cfu" maxlength="20" placeholder="kWh, m³…"></label>
+      <label>Unité <input id="cfu" maxlength="20" placeholder="kWh ou MWh (pour calculer les gains)"></label>
+      <label>Énergie <select id="cfe"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label>
       <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
     </form>
   </div>
@@ -598,6 +600,25 @@ const gainPlugin={id:'gain',afterDatasetsDraw(ch){
   });
   ctx.restore();
 }};
+function projGain(p){
+  const c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;if(!c||!p.termine)return null;
+  const u=(c.unite||'').trim().toLowerCase(),f=u==='mwh'?1:u==='kwh'?0.001:null;if(f==null)return{conv:false};
+  const seq=svSeq(p),bef=seq.filter(x=>x.o<0&&x.v!=null).map(x=>x.v),aft=seq.filter(x=>x.o>0&&x.v!=null);
+  if(!bef.length||!aft.length)return{conv:true,none:true};
+  const mb=bef.reduce((a,v)=>a+v,0)/bef.length;let mwh=0,eur=0,ne=0;
+  aft.forEach(x=>{const g=(mb-x.v)*f;mwh+=g;const pr=c.energie?priceOf(x.dt.getFullYear(),c.energie,null):null;if(pr!=null){eur+=g*pr;ne++}});
+  return{conv:true,mwh,eur,ne};
+}
+function gcells(p){
+  const g=projGain(p),dash=t=>`<span title="${t}">–</span>`;
+  if(!g)return dash('Choisissez un compteur et la date de fin du projet')+dash('');
+  if(!g.conv)return dash('Unité du compteur non convertible : utilisez kWh ou MWh')+dash('');
+  if(g.none)return dash('Il faut des valeurs avant et après le projet')+dash('');
+  const cl=v=>v>0?'down':v<0?'up':'flat';
+  const m=`<span class="delta ${cl(g.mwh)}" style="margin:0">${g.mwh>0?'+':''}${fmt(g.mwh,1)}</span>`;
+  const e=g.ne?`<span class="delta ${cl(g.eur)}" style="margin:0">${g.eur>0?'+':''}${fmt(g.eur)} €</span>`:dash('Précisez l’énergie du compteur (page Compteurs) et les prix de l’année');
+  return `<span>${m}</span><span>${e}</span>`;
+}
 function svWindow(p,c){
   const vals=c.valeurs||{},ks=Object.keys(vals).filter(k=>vals[k]!=null).sort();if(!ks.length)return null;
   const[yL,mL]=ks[ks.length-1].split('-').map(Number),labels=[],cur=[],prev=[],keys=[];
@@ -650,12 +671,13 @@ const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l
 const rowA=(p,ix)=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow" ${user?`draggable="true" data-pdrag="${p.id}"`:''}><span class="pn"><span class="rk">${ix+1}.</span>${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
 $('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}rsz()},true);
 const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0;
-  return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${st==='cours'?'cours':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`};
+  return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b${st==='fini'?' f':''}"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${st==='cours'?'cours':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span>${st==='fini'?gcells(p):`<span>${metiers(p)}</span>`}</summary>${card(p)}</details>`};
+const HEAD_F='<div class="prow head b f"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Gain (MWh)</span><span>Gain (€)</span></div>';
 const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>';
 function renderProj(){
   const a=document.activeElement,key=a&&a.closest&&a.closest('#lCours,#lFini,#lClos,#aList')&&Object.entries(a.dataset)[0];
   const srt=projets.slice().sort((x,y)=>(x.cree||0)-(y.cree||0));
-  const fill=(id,nid,g,vide)=>{const l=srt.filter(x=>statutOf(x)===g);$(nid).textContent=l.length;$(id).innerHTML=l.length?HEAD_B+l.map(rowB).join(''):`<p class="empty">${vide}</p>`};
+  const fill=(id,nid,g,vide)=>{const l=srt.filter(x=>statutOf(x)===g);$(nid).textContent=l.length;$(id).innerHTML=l.length?(g==='fini'?HEAD_F:HEAD_B)+l.map(rowB).join(''):`<p class="empty">${vide}</p>`};
   fill('lCours','nCours','cours','Aucun projet en cours.');
   fill('lFini','nFini','fini','Aucun projet à contrôler.');
   fill('lClos','nClos','clos','Aucun projet clôturé.');
@@ -741,7 +763,7 @@ function buildCpt(){
     let yh='';for(let y=top;y>=bot;y--){const k=c.id+'|'+y;if(y===cur&&!initY.has(k)){initY.add(k);openC.add(k)}
       yh+=`<details class="yr" data-oc="${k}" ${openC.has(k)?'open':''}><summary><b>${y}</b> <span class="badge" data-cy="${k}"></span></summary><div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Consommation</th></tr></thead><tbody>${MOISL.map((mn,i)=>`<tr><td>${mn}</td><td><input type="number" step="any" class="cell cv" placeholder="–" data-cv="${c.id}|${ymKey(y,i+1)}"></td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td data-ct="${k}"></td></tr></tfoot></table></div></details>`}
     return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span> <span class="badge" data-cn="${c.id}"></span></summary><div class="cpb">
-      <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
+      <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><label>Énergie <select data-cene="${c.id}"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
       <p class="note" data-cproj="${c.id}"></p>
       <div class="box" style="height:240px"><canvas id="cc-${c.id}"></canvas></div>
       <h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3>${yh}</div></details>`}).join(''):'<p class="empty">Aucun compteur. Cliquez sur « Ajouter un compteur » pour en créer un.</p>';
@@ -773,7 +795,7 @@ function fillCpt(){
     const vals=c.valeurs||{},nm=Object.values(vals).filter(v=>v!=null).length,q=a=>document.querySelector('#cList ['+a+'="'+c.id+'"]');
     let e=q('data-cname');if(e)e.textContent=c.nom||'';e=q('data-cuni');if(e)e.textContent=c.unite?'('+c.unite+')':'';
     e=q('data-cn');if(e)e.textContent=nm+' valeur'+(nm>1?'s':'');
-    e=q('data-cnom');if(e&&e!==act)e.value=c.nom||'';e=q('data-cunit');if(e&&e!==act)e.value=c.unite||'';
+    e=q('data-cnom');if(e&&e!==act)e.value=c.nom||'';e=q('data-cunit');if(e&&e!==act)e.value=c.unite||'';e=q('data-cene');if(e&&e!==act)e.value=c.energie||'';
     const lp=projets.filter(p=>p.compteurId===c.id);e=q('data-cproj');
     if(e)e.innerHTML=lp.length?'Projets liés : '+lp.map(p=>esc(p.nom)+(p.termine?' (fin '+dfr(p.termine)+')':' (date de fin non renseignée)')).join(' · '):'Aucun projet n’utilise encore ce compteur.';
     document.querySelectorAll('#cList [data-ct^="'+c.id+'|"]').forEach(el=>{const y=el.dataset.ct.split('|')[1];let t=0,k=0;for(let m=1;m<=12;m++){const v=vals[ymKey(y,m)];if(v!=null){t+=v;k++}}
@@ -789,12 +811,13 @@ $('vCpt').onchange=ev=>{const t=ev.target,d=t.dataset;
     setDoc(doc(db,'compteurs',id),{valeurs:{[ym]:v}},{merge:true}).catch(()=>{refus();fillCpt()})}
   if(d.cnom){const nm=t.value.trim();if(!nm){fillCpt();return}updateDoc(doc(db,'compteurs',d.cnom),{nom:nm}).catch(refus)}
   if(d.cunit)updateDoc(doc(db,'compteurs',d.cunit),{unite:t.value.trim()}).catch(refus);
+  if(d.cene)updateDoc(doc(db,'compteurs',d.cene),{energie:t.value}).catch(refus);
 };
 $('vCpt').onclick=ev=>{const d=ev.target.dataset;
   if(d.delc){const c=compteurs.find(x=>x.id===d.delc),n=projets.filter(p=>p.compteurId===d.delc).length;
     if(confirm('Supprimer le compteur « '+(c?c.nom:'')+' » et toutes ses valeurs ?'+(n?'\n'+n+' projet(s) l’utilisent : leur suivi sera perdu.':'')))deleteDoc(doc(db,'compteurs',d.delc)).catch(refus)}};
 $('cfForm').onsubmit=async ev=>{ev.preventDefault();
-  try{await addDoc(collection(db,'compteurs'),{nom:$('cfn').value.trim(),unite:$('cfu').value.trim(),valeurs:{},cree:Date.now()});$('cfForm').reset();$('cForm').hidden=true;$('newC').textContent='Ajouter un compteur'}catch(e){refus()}};
+  try{await addDoc(collection(db,'compteurs'),{nom:$('cfn').value.trim(),unite:$('cfu').value.trim(),energie:$('cfe').value,valeurs:{},cree:Date.now()});$('cfForm').reset();$('cForm').hidden=true;$('newC').textContent='Ajouter un compteur'}catch(e){refus()}};
 $('newC').onclick=()=>{const f=$('cForm');f.hidden=!f.hidden;$('newC').textContent=f.hidden?'Ajouter un compteur':'Annuler';if(!f.hidden)$('cfn').focus()};
 $('totMode').onchange=ev=>{totMode=ev.target.value;drawTotal()};
 $('year').onchange=ev=>{year=+ev.target.value;render()};
