@@ -633,7 +633,7 @@ function card(p){
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
     <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}${st==='fini'?'<button class="main edit-only" data-close="'+p.id+'">Clôturer le projet</button>':''}${st==='clos'?'<button class="link edit-only" data-reopen="'+p.id+'">Rouvrir</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-dup="${p.id}">Dupliquer</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
-    ${done?suivi(p):''}
+    ${done||st==='cours'?suivi(p):''}
     ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):done?'':`<div class="bar ${st==='cours'?'cours':''}"><i style="width:${pct}%"></i></div>`}
     ${done?`<details class="tkd" data-tkd="${p.id}" ${openT.has(p.id)?'open':''}><summary>Tâches (${k}/${n})</summary>${tasksHtml}</details>`:tasksHtml}
     ${done?'':`<div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><select data-ntm="${p.id}"><option value="">Corps de métier</option><option>Élec</option><option>CVC</option><option>Plombier</option></select><button data-addt="${p.id}">Ajouter la tâche</button></div>`}</article>`;
@@ -675,9 +675,9 @@ const gainPlugin={id:'gain',afterDatasetsDraw(ch){
   ctx.restore();
 }};
 function projGain(p){
-  const c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;if(!c||!p.termine)return null;
+  const rd=p.termine||p.debut,c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;if(!c||!rd)return null;
   const u=(c.unite||'').trim().toLowerCase(),f=u==='mwh'?1:u==='kwh'?0.001:null,vals=c.valeurs||{};
-  const d0=new Date(p.termine+'T00:00'),endKey=ymKey(d0.getFullYear(),d0.getMonth()+1);
+  const d0=new Date(rd+'T00:00'),endKey=ymKey(d0.getFullYear(),d0.getMonth()+1);
   let units=0,prevS=0,curS=0,eur=0,ne=0,n=0;
   Object.keys(vals).sort().forEach(k=>{if(k<=endKey||vals[k]==null)return;const[y,m]=k.split('-').map(Number),pv=vals[ymKey(y-1,m)];if(pv==null)return;
     const g=pv-vals[k];units+=g;prevS+=pv;curS+=vals[k];n++;
@@ -701,14 +701,14 @@ function svWindow(p,c){
   for(let i=11;i>=0;i--){const dt=new Date(yL,mL-1-i,1),y=dt.getFullYear(),m=dt.getMonth()+1,k=ymKey(y,m),kp=ymKey(y-1,m);
     keys.push(k);labels.push(MOIS[m-1]+' '+String(y).slice(2));cur.push(vals[k]!=null?vals[k]:null);prev.push(vals[kp]!=null?vals[kp]:null)}
   let endIdx=-1,endTxt='';
-  if(p.termine){const d=new Date(p.termine+'T00:00');endIdx=keys.indexOf(ymKey(d.getFullYear(),d.getMonth()+1));endTxt='Projet terminé en '+MOIS[d.getMonth()]+' '+d.getFullYear()}
+  const rd=p.termine||p.debut;if(rd){const d=new Date(rd+'T00:00');endIdx=keys.indexOf(ymKey(d.getFullYear(),d.getMonth()+1));endTxt=(p.termine?'Projet terminé en ':'Projet commencé en ')+MOIS[d.getMonth()]+' '+d.getFullYear()}
   return{labels,cur,prev,endIdx,endTxt};
 }
 function suivi(p){
   const dis=user?'':'disabled',c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null,mk=c?munit(c):{k:1,u:''},fm=x=>fmt(x,decs(Math.abs(x)));
   let stat='';
   const pg=projGain(p);
-  if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis la fin du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span> `}
+  if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis ${p.termine?'la fin':'le début'} du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span> `}
   if(w){let a=0,b=0,k=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];k++}});
     if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fm(a*mk.k)} contre ${fm(b*mk.k)}${mk.u?' '+esc(mk.u):''} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span>`}}
   const opts=compteurs.map(x=>`<option value="${x.id}" ${p.compteurId===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
@@ -716,17 +716,17 @@ function suivi(p){
   let body='';
   if(!c)body=compteurs.length?'<p class="note">Choisissez le compteur à suivre pour afficher le graphique.</p>':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>';
   else if(!w)body='<p class="note">Ce compteur n’a pas encore de valeurs : saisissez-les dans la page <a href="#compteurs">Compteurs</a>.</p>';
-  else body=`${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}<p class="note" style="margin:10px 0 0">${p.termine?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de fin du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#compteurs">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}"></canvas></div>`;
-  return `<div class="suivi"><h4>Suivi du compteur après le projet</h4>
+  else body=`${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}<p class="note" style="margin:10px 0 0">${(p.termine||p.debut)?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de début du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#compteurs">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}"></canvas></div>`;
+  return `<div class="suivi"><h4>Suivi du compteur</h4>
     <div class="tools"><label>Compteur suivi <select data-scpt="${p.id}" ${dis}><option value="">— Choisir un compteur —</option>${opts}</select></label>
-    <label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label></div>
+    ${statutOf(p)==='cours'?`<label>Date de début du projet <input type="date" data-sdebut="${p.id}" value="${p.debut||''}" ${dis}></label>`:`<label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label>`}</div>
     ${legacy?'<p class="note">Des valeurs ont été saisies dans l’ancien mode, dans le projet. Elles ne sont plus affichées : saisissez-les dans la page Compteurs.</p>':''}
     ${body}</div>`;
 }
 function drawSuiviCharts(){
   Object.values(svCharts).forEach(c=>c.destroy());svCharts={};
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
-  projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
+  projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos'&&st!=='cours')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
     const c=compteurs.find(x=>x.id===p.compteurId),w=c&&svWindow(p,c);if(!w)return;
     const mk=munit(c),u=mk.u?' ('+mk.u+')':'',cv2=a=>a.map(v=>v==null?null:v*mk.k);
     svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
@@ -807,6 +807,7 @@ $('vProj').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
   if(d.sdate)w(d.sdate,{termine:v||null});
   if(d.scpt)w(d.scpt,{compteurId:v||null});
+  if(d.sdebut)w(d.sdebut,{debut:v||null});
   if(d.snom)w(d.snom,{suiviNom:v.trim()});
 };
 let drag=null;
