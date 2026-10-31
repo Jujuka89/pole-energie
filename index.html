@@ -191,7 +191,7 @@ body.out .edit-only{display:none!important}
   <div class="scroll"><div id="lFini"></div></div>
 </section>
 <section class="st st-a">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="stt" style="margin:0">À réaliser <span id="nA" class="badge cnt"></span></h2><div class="tools edit-only"><button class="link" id="resetRank" type="button">Trier par gains</button><button class="main" id="newP" type="button">Proposer un projet</button></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="stt" style="margin:0">À réaliser <span id="nA" class="badge cnt"></span></h2><div class="tools edit-only"><button class="main" id="newP" type="button">Proposer un projet</button></div></div>
   <p class="note edit-only" style="margin:6px 0 0">Glissez une ligne (appui long sur téléphone) pour changer la priorité : 1 = le plus prioritaire.</p>
   <div id="projForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <h3 id="pTitle" style="margin:0 0 10px;font-size:1rem">Proposer un projet</h3>
@@ -704,7 +704,6 @@ $('aList').addEventListener('drop',ev=>{const d=ev.target.closest&&ev.target.clo
   const ids=aOrder.slice(),f=ids.indexOf(from);if(f<0)return;ids.splice(f,1);let to=ids.indexOf(tid);if(to<0)return;if(after)to++;ids.splice(to,0,from);
   const wb=writeBatch(db);ids.forEach((id,i)=>wb.update(doc(db,'projets',id),{rang:i+1}));wb.commit().catch(refus)});
 $('aList').addEventListener('dragend',()=>{pdrag=null;pclr()});
-$('resetRank').onclick=()=>{if(!aOrder.length||!confirm('Revenir à l’ordre par gains et confort ?'))return;const wb=writeBatch(db);aOrder.forEach(id=>wb.update(doc(db,'projets',id),{rang:null}));wb.commit().catch(refus)};
 $('newP').onclick=()=>{if(!$('projForm').hidden){closeForm();return}$('projForm').hidden=false;$('newP').textContent='Annuler';$('pn').focus()};
 const upd=(pid,fn)=>{const p=projets.find(x=>x.id===pid),t=fn(p.taches||[]),o={taches:t};if(p.statut!=='a_realiser'&&t.length&&t.every(x=>x.fait)&&!p.termine)o.termine=today();return updateDoc(doc(db,'projets',pid),o).catch(()=>{refus();renderProj()})};
 $('vProj').onclick=ev=>{const d=ev.target.dataset;
