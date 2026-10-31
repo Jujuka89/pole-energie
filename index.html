@@ -93,6 +93,7 @@ div.sv{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:
 div.sv b{color:var(--ink);font-size:1rem}div.sv.cur{border-color:var(--accent)}
 .rk{display:inline-block;min-width:1.7em;color:var(--mute);font-weight:700}
 details.pr.dragging{opacity:.4}details.pr.ov-t>summary{box-shadow:0 -2px 0 var(--accent)}details.pr.ov-b>summary{box-shadow:0 2px 0 var(--accent)}
+details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary{cursor:pointer;padding:10px 0;font-weight:600;color:var(--mute)}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -559,12 +560,14 @@ const MC={'Élec':'m1','CVC':'m2','Plombier':'m3'};
 function card(p){
   const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0,dis=user&&!a&&st!=='clos'?'':'disabled';
   const meta=[p.resp?'Responsable : '+esc(p.resp):'',p.debut&&!a?'Commencé le '+dfr(p.debut):'',st==='clos'&&p.cloture?'Clôturé le '+dfr(p.cloture):''].filter(Boolean).join(' · ');
+  const tasksHtml=t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('');
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
     <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}${st==='fini'?'<button class="main edit-only" data-close="'+p.id+'">Clôturer le projet</button>':''}${st==='clos'?'<button class="link edit-only" data-reopen="'+p.id+'">Rouvrir</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
     ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
-    ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):`<div class="bar ${st==='cours'?'cours':''}"><i style="width:${pct}%"></i></div>`}
-    ${t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('')}
-    ${done?'':`<div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><select data-ntm="${p.id}"><option value="">Corps de métier</option><option>Élec</option><option>CVC</option><option>Plombier</option></select><button data-addt="${p.id}">Ajouter la tâche</button></div>`}${done?suivi(p):''}</article>`;
+    ${done?suivi(p):''}
+    ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):done?'':`<div class="bar ${st==='cours'?'cours':''}"><i style="width:${pct}%"></i></div>`}
+    ${done?`<details class="tkd" data-tkd="${p.id}" ${openT.has(p.id)?'open':''}><summary>Tâches (${k}/${n})</summary>${tasksHtml}</details>`:tasksHtml}
+    ${done?'':`<div class="addt edit-only"><input type="text" placeholder="Nouvelle tâche" maxlength="200" data-nt="${p.id}"><input type="date" data-ntd="${p.id}"><select data-ntm="${p.id}"><option value="">Corps de métier</option><option>Élec</option><option>CVC</option><option>Plombier</option></select><button data-addt="${p.id}">Ajouter la tâche</button></div>`}</article>`;
 }
 const euros=n=>`<span class="eur">${'€'.repeat(n)}<span class="off">${'€'.repeat(5-n)}</span></span>`;
 const stars=n=>`<span class="stars">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
@@ -666,13 +669,13 @@ function drawSuiviCharts(){
         scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   });
 }
-const openA=new Set();
+const openA=new Set(),openT=new Set();
 let aOrder=[],pdrag=null;
 const nextRang=()=>Math.max(0,...projets.filter(x=>statutOf(x)==='a').map(x=>x.rang||0))+1;
 const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
 const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l=['Élec','CVC','Plombier'].filter(m=>st.has(m));return l.length?l.map(m=>`<span class="badge ${MC[m]}">${m}</span>`).join(' '):'–'};
 const rowA=(p,ix)=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow" ${user?`draggable="true" data-pdrag="${p.id}"`:''}><span class="pn"><span class="rk">${ix+1}.</span>${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
-$('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}rsz()},true);
+$('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}if(d.dataset&&d.dataset.tkd){d.open?openT.add(d.dataset.tkd):openT.delete(d.dataset.tkd)}rsz()},true);
 const rowB=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0;
   return `<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow b${st==='fini'?' f':''}"><span class="pn">${esc(p.nom)}</span><span><span class="gauge ${st==='cours'?'cours':''}" title="${pct} %"><i style="width:${pct}%"></i></span><small>${st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n:'0 tâche'}</small></span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span>${st==='fini'?gcells(p):`<span>${metiers(p)}</span>`}</summary>${card(p)}</details>`};
 const HEAD_F='<div class="prow head b f"><span>Projet</span><span>Avancement</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Écart (MWh)</span><span>Écart (€)</span></div>';
