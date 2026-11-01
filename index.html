@@ -691,7 +691,7 @@ function gcells(p){
   if(g.none)return dash('Il faut des valeurs après le projet et les mêmes mois un an plus tôt')+dash('');
   if(!g.conv)return dash('Unité du compteur non convertible : utilisez kWh ou MWh')+dash('');
   const cl=v=>v<0?'down':v>0?'up':'flat',sg=v=>v>0?'+':v<0?'-':'',dm=-g.mwh,de=-g.eur;
-  const m=`<span class="delta ${cl(dm)}" style="margin:0">MWh ${sg(dm)}${fmt(Math.abs(dm),decs(Math.abs(dm)))}</span>`;
+  const m=`<span class="delta ${cl(dm)}" style="margin:0">${sg(dm)}${fmt(Math.abs(dm),decs(Math.abs(dm)))} MWh</span>`;
   const e=g.ne?`<span class="delta ${cl(de)}" style="margin:0">${sg(de)}${fmt(Math.abs(de))} €</span>`:dash('Précisez l’énergie du compteur (page Compteurs) et les prix de l’année');
   return `<span>${m}</span><span>${e}</span>`;
 }
