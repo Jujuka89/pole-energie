@@ -529,7 +529,7 @@ function rapportGeneral(){
   const pf=t=>String(t==null?'':t).replace(/[\u202f\u00a0]/g,' ').replace(/[–\u2212]/g,'-').replace(/[▲▼]\s*/g,'').replace(/€/g,'EUR').replace(/≈/g,'~').replace(/→/g,'->');
   const GR=[15,157,58],RD=[225,29,46],INK=[20,20,20],MU=[100,100,100],sg=v=>v>0?'+':v<0?'-':'';
   let y=20;const ensure=h=>{if(y+h>282){doc.addPage();y=20}};
-  const title=t=>{ensure(18);y+=3;doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);doc.text(pf(t),M,y);y+=2;doc.setDrawColor(200);doc.line(M,y,W-M,y);y+=6};
+  const title=(t,need=30)=>{ensure(need+14);y+=3;doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);doc.text(pf(t),M,y);y+=2;doc.setDrawColor(200);doc.line(M,y,W-M,y);y+=6};
   const pic=(img,h)=>{ensure(h+3);doc.addImage(img,'PNG',M,y,L,h);y+=h+3};
   const note=t=>{doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);const ls=doc.splitTextToSize(pf(t),L);ensure(4.5*ls.length+2);doc.text(ls,M,y);y+=4.5*ls.length+2};
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(...INK);doc.text('Rapport énergie '+year,M,y);y+=6;
@@ -543,35 +543,35 @@ function rapportGeneral(){
       else{doc.setFont('helvetica',o.k==='s'?'normal':'bold');doc.setFontSize(8.5);doc.setTextColor(...(o.k==='down'?GR:o.k==='up'?RD:MU));const ws=doc.splitTextToSize(o.t,w);doc.text(ws,x,yy+3.5);yy+=4.2*ws.length+0.6}
     });return yy};
   const pair=(els)=>{const bl=els.map(lines);ensure(48);const ys=bl.map((b,i)=>block(M+i*94,y,86,b));y=Math.max(...ys)+4};
-  title('Chiffres clés '+year);
+  title('Chiffres clés '+year,50);
   pair([...$('kpisTop').querySelectorAll('.split>div')]);
   pair([...$('kpis').children]);
   // --- économies depuis 2018 (lignes affichées sous le titre du graphique total)
   const eco=[...$('ecoRef').children].filter(d=>d.querySelector&&d.querySelector('.delta'));
-  if(eco.length){title('Économies depuis '+REF);
+  if(eco.length){title('Économies depuis '+REF,24);
     eco.forEach(d=>{const e=d.querySelector('.delta'),k=e.classList.contains('up')?RD:e.classList.contains('down')?GR:MU,sm=d.querySelector('small');
       doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...k);const ls=doc.splitTextToSize(pf(e.textContent.trim()),L);ensure(5*ls.length+6);doc.text(ls,M,y);y+=5*ls.length;
       if(sm){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);const l2=doc.splitTextToSize(pf(sm.textContent.trim()),L);doc.text(l2,M,y);y+=4.5*l2.length}y+=3})}
   // --- graphiques de la première page
   const tm=totMode,im=withLight(()=>{const o={};o.cumul=cfgImg(cumulCfg(),900,420);
     try{totMode='annee';o.mois=cfgImg(totalCfg(),900,380);totMode='toutes';o.ans=cfgImg(totalCfg(),900,380)}finally{totMode=tm}return o});
-  title('Cumul de l’énergie depuis janvier (MWh)');pic(im.cumul,L*420/900);
+  title('Cumul de l’énergie depuis janvier (MWh)',L*420/900+12);pic(im.cumul,L*420/900);
   note('Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente.');
-  title('Énergie totale par mois : électricité + gaz (MWh)');pic(im.mois,L*380/900);
-  title('Énergie totale par année depuis 2018 : électricité + gaz (MWh)');pic(im.ans,L*380/900);
+  title('Énergie totale par mois : électricité + gaz (MWh)',L*380/900+4);pic(im.mois,L*380/900);
+  title('Énergie totale par année depuis 2018 : électricité + gaz (MWh)',L*380/900+16);pic(im.ans,L*380/900);
   note('Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018) : vert = moins consommé, rouge = plus consommé. L’année en cours (*) n’est pas comptée dans le cumul.');
-  title('Électricité (MWh par mois)');pic(chartImg('e','#2b7de9','Électricité (MWh par mois)'),L*400/900);
-  title('Gaz (MWh par mois)');pic(chartImg('g','#e6b800','Gaz (MWh par mois)'),L*400/900);
+  title('Électricité (MWh par mois)',L*400/900+4);pic(chartImg('e','#2b7de9','Électricité (MWh par mois)'),L*400/900);
+  title('Gaz (MWh par mois)',L*400/900+4);pic(chartImg('g','#e6b800','Gaz (MWh par mois)'),L*400/900);
   // --- projets : partie simple
   const table=(heads,wd,rows,vide)=>{
     if(!rows.length){note(vide);return}
     ensure(16);let x=M;doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...MU);heads.forEach((h,i)=>{doc.text(pf(h),x,y);x+=wd[i]});y+=2;doc.setDrawColor(200);doc.line(M,y,W-M,y);y+=4.5;
     rows.forEach(r=>{ensure(7);x=M;r.forEach((c,i)=>{const o=typeof c==='string'?{t:c}:c;doc.setFont('helvetica',o.b?'bold':'normal');doc.setFontSize(9);doc.setTextColor(...(o.c||INK));const ws=doc.splitTextToSize(pf(o.t),wd[i]-2);doc.text(ws[0]+(ws.length>1?'...':''),x,y);x+=wd[i]});y+=6});y+=2};
   const ps=projets.slice().sort((a,b)=>(a.cree||0)-(b.cree||0));
-  title('Projets en cours');
+  title('Projets en cours',32);
   table(['Projet','Avancement','Durée','Coût','Gains','Confort'],[62,40,26,26,14,14],ps.filter(p=>statutOf(p)==='cours').map(p=>{const t=p.taches||[],k=t.filter(x=>x.fait).length;
     return [{t:p.nom,b:true},t.length?k+'/'+t.length+' ('+Math.round(k/t.length*100)+' %)':'Aucune tâche',p.duree?durTxt(p.duree):'-',p.cout!=null?fmt(p.cout)+' EUR':'-',p.gain!=null?p.gain+'/5':'-',p.confort!=null?p.confort+'/5':'-']}),'Aucun projet en cours.');
-  title('Projets terminés à contrôler');
+  title('Projets terminés à contrôler',32);
   table(['Projet','Contrôle 12 mois','Terminé le','Écart énergie','Écart EUR'],[60,32,26,34,30],ps.filter(p=>statutOf(p)==='fini').map(p=>{const m=ctlMonths(p),g=projGain(p);let e='-',eu='-';
     if(g&&!g.none&&g.conv){const dm=-g.mwh;e={t:sg(dm)+fmt(Math.abs(dm),decs(Math.abs(dm)))+' MWh',c:dm<0?GR:dm>0?RD:INK,b:true};if(g.ne){const de=-g.eur;eu={t:sg(de)+fmt(Math.abs(de))+' EUR',c:de<0?GR:de>0?RD:INK,b:true}}}
     return [{t:p.nom,b:true},m==null?'-':m>=12?'Terminé':m+'/12 mois',p.termine?dfr(p.termine):'-',e,eu]}),'Aucun projet à contrôler.');
