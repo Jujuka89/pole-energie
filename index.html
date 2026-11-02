@@ -464,12 +464,12 @@ function chartProjImg(p,c,w){
     options:{responsive:false,animation:false,devicePixelRatio:2,layout:{padding:{top:58}},
       plugins:{legend:{labels:{color:'#333'}},gain:{unit:mk.u,colors:{ok:'#0f9d3a',bad:'#e11d2e',mute:'#667075'}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[],ink:'#1d2528'}},
       scales:{x:{ticks:{color:'#333'},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#333'},grid:{color:'#ddd'},title:{display:true,text:'Consommation par mois'+u,color:'#333'}}}}});
-  const img=ch.toBase64Image();ch.destroy();return img;
+  const img=ch.toBase64Image('image/jpeg',0.9);ch.destroy();return img;
 }
 function rapportProjet(id){
   const p=projets.find(x=>x.id===id);if(!p)return;
   if(!window.jspdf){alert('Le module PDF n’est pas chargé. Vérifiez votre connexion.');return}
-  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),M=14,W=210,L=W-2*M;
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true}),M=14,W=210,L=W-2*M;
   const pf=t=>String(t==null?'':t).replace(/[\u202f\u00a0]/g,' ').replace(/[–\u2212]/g,'-');
   const st=statutOf(p);
   const sg=v=>v>0?'+':v<0?'-':'',GR=[15,157,58],RD=[225,29,46],INK=[20,20,20],MU=[100,100,100];
@@ -506,7 +506,7 @@ function rapportProjet(id){
     }else row('Depuis le projet','Pas assez de valeurs pour comparer avec l’année précédente.');
     if(w){let a=0,b=0,n=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];n++}});
       if(n&&b){const d=(a-b)*mk.k,q=(a-b)/Math.abs(b)*100;row('12 derniers mois',n+' mois comparables : '+sg(d)+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')+' ('+(q>0?'+':'')+fmt(q,1)+' %)',d<0?GR:d>0?RD:INK)}
-      ensure(70);y+=2;const img=chartProjImg(p,c,w),h=L*400/900;ensure(h+4);doc.addImage(img,'PNG',M,y,L,h);y+=h+3}
+      ensure(70);y+=2;const img=chartProjImg(p,c,w),h=L*400/900;ensure(h+4);doc.addImage(img,'JPEG',M,y,L,h);y+=h+3}
     else row('Valeurs','Ce compteur n’a pas encore de valeurs.');
   });
   if(cs.length>1){const t=projGain(p);if(t&&!t.none&&t.conv){const dm=-t.mwh,de=-t.eur;
@@ -530,18 +530,18 @@ function cfgImg(cf,wpx,hpx){
   const cv=document.createElement('canvas');cv.width=wpx;cv.height=hpx;
   cf.options.responsive=false;cf.options.animation=false;cf.options.devicePixelRatio=2;
   cf.plugins=[...(cf.plugins||[]),{id:'bg',beforeDraw(x){x.ctx.save();x.ctx.fillStyle='#fff';x.ctx.fillRect(0,0,x.width,x.height);x.ctx.restore()}}];
-  const ch=new Chart(cv,cf),img=ch.toBase64Image();ch.destroy();return img;
+  const ch=new Chart(cv,cf),img=ch.toBase64Image('image/jpeg',0.9);ch.destroy();return img;
 }
 function ctlMonths(p){if(!p.termine)return null;const d=new Date(p.termine+'T00:00'),n=new Date();return Math.max(0,Math.min(12,(n.getFullYear()*12+n.getMonth())-(d.getFullYear()*12+d.getMonth())))}
 function rapportGeneral(){
   if(!window.jspdf){alert('Le module PDF n’est pas chargé. Vérifiez votre connexion.');return}
   if(!data.some(d=>d.m.startsWith(year+'-'))&&!Object.keys(totaux).length){alert('Aucun relevé pour '+year+'.');return}
-  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),M=14,W=210,L=W-2*M;
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true}),M=14,W=210,L=W-2*M;
   const pf=t=>String(t==null?'':t).replace(/[\u202f\u00a0]/g,' ').replace(/[–\u2212]/g,'-').replace(/[▲▼]\s*/g,'').replace(/€/g,'EUR').replace(/≈/g,'~').replace(/→/g,'->');
   const GR=[15,157,58],RD=[225,29,46],INK=[20,20,20],MU=[100,100,100],sg=v=>v>0?'+':v<0?'-':'';
   let y=20;const ensure=h=>{if(y+h>282){doc.addPage();y=20}};
   const title=(t,need=30)=>{ensure(need+14);y+=3;doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...INK);doc.text(pf(t),M,y);y+=2;doc.setDrawColor(200);doc.line(M,y,W-M,y);y+=6};
-  const pic=(img,h)=>{ensure(h+3);doc.addImage(img,'PNG',M,y,L,h);y+=h+3};
+  const pic=(img,h)=>{ensure(h+3);doc.addImage(img,'JPEG',M,y,L,h);y+=h+3};
   const note=t=>{doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);const ls=doc.splitTextToSize(pf(t),L);ensure(4.5*ls.length+2);doc.text(ls,M,y);y+=4.5*ls.length+2};
   doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(...INK);doc.text('Rapport énergie '+year,M,y);y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...MU);doc.text('Généré le '+new Date().toLocaleDateString('fr-FR'),M,y);y+=3;
@@ -670,7 +670,7 @@ function chartImg(k,col,title){
     options:{responsive:false,animation:false,devicePixelRatio:2,layout:{padding:{top:34}},
       plugins:{legend:{labels:{color:'#333'}},title:{display:true,text:title,color:'#111',font:{size:16}}},
       scales:{x:{ticks:{color:'#333'},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#333'},grid:{color:'#ddd'},title:{display:true,text:'MWh',color:'#333'}}}}});
-  const img=ch.toBase64Image();ch.destroy();return img;
+  const img=ch.toBase64Image('image/jpeg',0.9);ch.destroy();return img;
 }
 $('pdf').onclick=rapportGeneral;
 
