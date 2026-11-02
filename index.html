@@ -471,7 +471,7 @@ function rapportProjet(id){
   if(!window.jspdf){alert('Le module PDF n’est pas chargé. Vérifiez votre connexion.');return}
   const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'}),M=14,W=210,L=W-2*M;
   const pf=t=>String(t==null?'':t).replace(/[\u202f\u00a0]/g,' ').replace(/[–\u2212]/g,'-');
-  const st=statutOf(p),c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null,pg=projGain(p),mk=c?munit(c):{k:1,u:''};
+  const st=statutOf(p);
   const sg=v=>v>0?'+':v<0?'-':'',GR=[15,157,58],RD=[225,29,46],INK=[20,20,20],MU=[100,100,100];
   let y=20;
   const ensure=h=>{if(y+h>282){doc.addPage();y=20}};
@@ -493,21 +493,28 @@ function rapportProjet(id){
   row('Terminé le',p.termine?dfr(p.termine):'');
   row('Corps de métier',mets.join(', '));
   if(p.desc){title('Description');doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...INK);const ls=doc.splitTextToSize(pf(p.desc),L);ensure(5*ls.length);doc.text(ls,M,y);y+=5*ls.length}
-  title('Résultats du suivi'+(c?' - compteur « '+c.nom+' »':''));
-  if(!c)row('Compteur','Aucun compteur sélectionné pour ce projet.');
-  else{
+  title('Résultats du suivi');
+  const cs=cptsOf(p);
+  if(!cs.length)row('Compteur','Aucun compteur sélectionné pour ce projet.');
+  cs.forEach(c=>{
+    const w=svWindow(p,c),pg=projGainC(p,c),mk=munit(c);
+    ensure(14);y+=1;doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text(pf('Compteur « '+c.nom+' »'+(c.unite?' ('+c.unite+')':'')),M,y);y+=6;
     if(pg&&!pg.none&&pg.q!=null){const dm=-pg.units*mk.k,col=dm<0?GR:dm>0?RD:INK;
-      row('Mois comparés',pg.n+' mois après le projet, comparés aux mêmes mois un an plus tôt');
+      row('Mois comparés',pg.n+' mois depuis '+(p.termine?'la fin':'le début')+' du projet, comparés aux mêmes mois un an plus tôt');
       row('Écart de consommation',sg(dm)+fmt(Math.abs(dm),decs(Math.abs(dm)))+(mk.u?' '+mk.u:'')+' ('+(pg.q>0?'+':'')+fmt(pg.q,1)+' %)',col);
       if(pg.conv&&pg.ne){const de=-pg.eur;row('Écart en euros',sg(de)+fmt(Math.abs(de))+' EUR',de<0?GR:de>0?RD:INK)}
-    }else row('Depuis la fin du projet','Pas assez de valeurs pour comparer avec l’année précédente.');
+    }else row('Depuis le projet','Pas assez de valeurs pour comparer avec l’année précédente.');
     if(w){let a=0,b=0,n=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];n++}});
       if(n&&b){const d=(a-b)*mk.k,q=(a-b)/Math.abs(b)*100;row('12 derniers mois',n+' mois comparables : '+sg(d)+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')+' ('+(q>0?'+':'')+fmt(q,1)+' %)',d<0?GR:d>0?RD:INK)}
-      ensure(70);y+=2;const img=chartProjImg(p,c,w),h=L*400/900;ensure(h+4);doc.addImage(img,'PNG',M,y,L,h);y+=h+3;
-      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);
-      const nt=doc.splitTextToSize('Le signe - indique une consommation plus faible que le même mois un an plus tôt (gain, en vert), le signe + une consommation plus forte (perte, en rouge). Le trait pointillé marque le mois de fin du projet.',L);ensure(4.5*nt.length);doc.text(nt,M,y);y+=4.5*nt.length}
+      ensure(70);y+=2;const img=chartProjImg(p,c,w),h=L*400/900;ensure(h+4);doc.addImage(img,'PNG',M,y,L,h);y+=h+3}
     else row('Valeurs','Ce compteur n’a pas encore de valeurs.');
-  }
+  });
+  if(cs.length>1){const t=projGain(p);if(t&&!t.none&&t.conv){const dm=-t.mwh,de=-t.eur;
+    ensure(14);y+=1;doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);doc.text('Total des '+cs.length+' compteurs',M,y);y+=6;
+    row('Écart de consommation',sg(dm)+fmt(Math.abs(dm),decs(Math.abs(dm)))+' MWh',dm<0?GR:dm>0?RD:INK);
+    if(t.ne)row('Écart en euros',sg(de)+fmt(Math.abs(de))+' EUR',de<0?GR:de>0?RD:INK)}}
+  if(cs.length){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);
+    const nt=doc.splitTextToSize('Le signe - indique une consommation plus faible que le même mois un an plus tôt (gain, en vert), le signe + une consommation plus forte (perte, en rouge). Le trait pointillé marque le mois de fin du projet.',L);ensure(4.5*nt.length);doc.text(nt,M,y);y+=4.5*nt.length}
   const t=p.taches||[];
   title('Tâches ('+t.filter(x=>x.fait).length+'/'+t.length+' terminées)');
   if(!t.length)row('Tâches','Aucune tâche.');
@@ -728,8 +735,11 @@ const gainPlugin={id:'gain',afterDatasetsDraw(ch){
   });
   ctx.restore();
 }};
-function projGain(p){
-  const rd=p.termine||p.debut,c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null;if(!c||!rd)return null;
+const cptIds=p=>[...new Set([p.compteurId,p.compteurId2].filter(Boolean))];
+const cptsOf=p=>cptIds(p).map(id=>compteurs.find(x=>x.id===id)).filter(Boolean);
+const usesC=(p,id)=>cptIds(p).includes(id);
+function projGainC(p,c){
+  const rd=p.termine||p.debut;if(!c||!rd)return null;
   const u=(c.unite||'').trim().toLowerCase(),f=u==='mwh'?1:u==='kwh'?0.001:null,vals=c.valeurs||{};
   const d0=new Date(rd+'T00:00'),endKey=ymKey(d0.getFullYear(),d0.getMonth()+1);
   let units=0,prevS=0,curS=0,eur=0,ne=0,n=0;
@@ -738,6 +748,12 @@ function projGain(p){
     if(f!=null){const pr=c.energie?priceOf(y,c.energie,null):null;if(pr!=null){eur+=g*f*pr;ne++}}});
   if(!n)return{none:true};
   return{n,units,prevS,curS,q:prevS?(curS-prevS)/Math.abs(prevS)*100:null,conv:f!=null,mwh:f!=null?units*f:null,eur,ne,unite:c.unite||''};
+}
+function projGain(p){
+  const cs=cptsOf(p);if(!cs.length||!(p.termine||p.debut))return null;
+  const gs=cs.map(c=>projGainC(p,c)).filter(Boolean),ok=gs.filter(g=>!g.none&&g.conv);
+  if(!ok.length)return gs.some(g=>!g.none&&!g.conv)?{conv:false}:{none:true};
+  return{conv:true,mwh:ok.reduce((a,g)=>a+g.mwh,0),eur:ok.reduce((a,g)=>a+g.eur,0),ne:ok.reduce((a,g)=>a+g.ne,0),n:Math.max(...ok.map(g=>g.n))};
 }
 function gcells(p){
   const g=projGain(p),dash=t=>`<span title="${t}">–</span>`;
@@ -758,21 +774,29 @@ function svWindow(p,c){
   const rd=p.termine||p.debut;if(rd){const d=new Date(rd+'T00:00');endIdx=keys.indexOf(ymKey(d.getFullYear(),d.getMonth()+1));endTxt=(p.termine?'Projet terminé en ':'Projet commencé en ')+MOIS[d.getMonth()]+' '+d.getFullYear()}
   return{labels,cur,prev,endIdx,endTxt};
 }
-function suivi(p){
-  const dis=user?'':'disabled',c=p.compteurId?compteurs.find(x=>x.id===p.compteurId):null,w=c?svWindow(p,c):null,mk=c?munit(c):{k:1,u:''},fm=x=>fmt(x,decs(Math.abs(x)));
-  let stat='';
-  const pg=projGain(p);
+function suiviBloc(p,c,i,fm){
+  const w=svWindow(p,c),mk=munit(c),nom=`<h5 style="margin:14px 0 0;font-size:.95rem">${esc(c.nom)}${c.unite?' ('+esc(c.unite)+')':''}</h5>`;
+  if(!w)return nom+'<p class="note">Ce compteur n’a pas encore de valeurs : saisissez-les dans la page <a href="#compteurs">Compteurs</a>.</p>';
+  let stat='';const pg=projGainC(p,c);
   if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis ${p.termine?'la fin':'le début'} du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span> `}
-  if(w){let a=0,b=0,k=0;w.cur.forEach((v,i)=>{if(v!=null&&w.prev[i]!=null){a+=v;b+=w.prev[i];k++}});
-    if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fm(a*mk.k)} contre ${fm(b*mk.k)}${mk.u?' '+esc(mk.u):''} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span>`}}
-  const opts=compteurs.map(x=>`<option value="${x.id}" ${p.compteurId===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
-  const legacy=!c&&Object.values(p.suivi||{}).some(v=>v!=null&&v!=='');
+  let a=0,b=0,k=0;w.cur.forEach((v,ix)=>{if(v!=null&&w.prev[ix]!=null){a+=v;b+=w.prev[ix];k++}});
+  if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fm(a*mk.k)} contre ${fm(b*mk.k)}${mk.u?' '+esc(mk.u):''} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span>`}
+  return `<div class="svb">${nom}${stat?`<p style="margin:6px 0 0">${stat}</p>`:''}<p class="note" style="margin:8px 0 0">${(p.termine||p.debut)?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de début du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#compteurs">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}-${i}"></canvas></div></div>`;
+}
+function suivi(p){
+  const dis=user?'':'disabled',cs=cptsOf(p),fm=x=>fmt(x,decs(Math.abs(x)));
+  const opts=sel=>compteurs.map(x=>`<option value="${x.id}" ${sel===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
+  const legacy=!cs.length&&Object.values(p.suivi||{}).some(v=>v!=null&&v!=='');
   let body='';
-  if(!c)body=compteurs.length?'<p class="note">Choisissez le compteur à suivre pour afficher le graphique.</p>':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>';
-  else if(!w)body='<p class="note">Ce compteur n’a pas encore de valeurs : saisissez-les dans la page <a href="#compteurs">Compteurs</a>.</p>';
-  else body=`${stat?`<p style="margin:10px 0 0">${stat}</p>`:''}<p class="note" style="margin:10px 0 0">${(p.termine||p.debut)?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de début du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#compteurs">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}"></canvas></div>`;
+  if(!cs.length)body=compteurs.length?'<p class="note">Choisissez le compteur à suivre pour afficher le graphique. Vous pouvez en choisir deux, par exemple le chaud et le froid.</p>':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>';
+  else{
+    if(cs.length>1){const t=projGain(p);
+      if(t&&!t.none&&t.conv){const dm=-t.mwh,de=-t.eur;body+=`<p style="margin:10px 0 0"><span class="delta ${dm<0?'down':dm>0?'up':'flat'}">Total des ${cs.length} compteurs depuis ${p.termine?'la fin':'le début'} du projet : ${dm<=0?'gain':'perte'} de ${fm(Math.abs(dm))} MWh${t.ne?' · '+fmt(Math.abs(de))+' €':''}</span></p>`}}
+    body+=cs.map((c,i)=>suiviBloc(p,c,i,fm)).join('');
+  }
   return `<div class="suivi"><h4>Suivi du compteur</h4>
-    <div class="tools"><label>Compteur suivi <select data-scpt="${p.id}" ${dis}><option value="">— Choisir un compteur —</option>${opts}</select></label>
+    <div class="tools"><label>Compteur suivi <select data-scpt="${p.id}" ${dis}><option value="">— Choisir un compteur —</option>${opts(p.compteurId)}</select></label>
+    <label>Deuxième compteur (facultatif) <select data-scpt2="${p.id}" ${dis}><option value="">— Aucun —</option>${opts(p.compteurId2)}</select></label>
     ${statutOf(p)==='cours'?`<label>Date de début du projet <input type="date" data-sdebut="${p.id}" value="${p.debut||''}" ${dis}></label>`:`<label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label>`}</div>
     ${legacy?'<p class="note">Des valeurs ont été saisies dans l’ancien mode, dans le projet. Elles ne sont plus affichées : saisissez-les dans la page Compteurs.</p>':''}
     ${body}</div>`;
@@ -780,16 +804,17 @@ function suivi(p){
 function drawSuiviCharts(){
   Object.values(svCharts).forEach(c=>c.destroy());svCharts={};
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
-  projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos'&&st!=='cours')return;const cv=document.getElementById('svc-'+p.id);if(!cv)return;
-    const c=compteurs.find(x=>x.id===p.compteurId),w=c&&svWindow(p,c);if(!w)return;
-    const mk=munit(c),u=mk.u?' ('+mk.u+')':'',cv2=a=>a.map(v=>v==null?null:v*mk.k);
-    svCharts[p.id]=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
-      {label:'Mêmes mois un an plus tôt'+u,data:cv2(w.prev),backgroundColor:col('--prev')},
-      {label:'12 derniers mois'+u,data:cv2(w.cur),backgroundColor:col('--s-ctrl')}]},
-      plugins:[gainPlugin,cptMark],
-      options:{maintainAspectRatio:false,layout:{padding:{top:window.innerWidth<600?105:58}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},gain:{unit:mk.u},
-        tooltip:{callbacks:{label:t=>`${t.dataset.label} : ${fmt(t.parsed.y,decs(Math.abs(t.parsed.y)))}`,afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);if(q==null)return '';const d=t.parsed.y-pv;return (q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt · '+(d>0?'+':d<0?'-':'')+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')}}}},
-        scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{color:grid}}}}});
+  projets.forEach(p=>{const st=statutOf(p);if(st!=='fini'&&st!=='clos'&&st!=='cours')return;
+    cptsOf(p).forEach((c,i)=>{const cv=document.getElementById('svc-'+p.id+'-'+i),w=svWindow(p,c);if(!cv||!w)return;
+      const mk=munit(c),u=mk.u?' ('+mk.u+')':'',cv2=a=>a.map(v=>v==null?null:v*mk.k);
+      svCharts[p.id+'-'+i]=new Chart(cv,{type:'bar',data:{labels:w.labels,datasets:[
+        {label:'Mêmes mois un an plus tôt'+u,data:cv2(w.prev),backgroundColor:col('--prev')},
+        {label:'12 derniers mois'+u,data:cv2(w.cur),backgroundColor:col('--s-ctrl')}]},
+        plugins:[gainPlugin,cptMark],
+        options:{maintainAspectRatio:false,layout:{padding:{top:window.innerWidth<600?105:58}},plugins:{legend:{labels:{color:txt}},cptmark:{marks:w.endIdx>=0?[{idx:w.endIdx,txt:w.endTxt}]:[]},gain:{unit:mk.u},
+          tooltip:{callbacks:{label:t=>`${t.dataset.label} : ${fmt(t.parsed.y,decs(Math.abs(t.parsed.y)))}`,afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);if(q==null)return '';const d=t.parsed.y-pv;return (q>0?'+':'')+fmt(q,1)+' % vs un an plus tôt · '+(d>0?'+':d<0?'-':'')+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')}}}},
+          scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{color:grid}}}}});
+    });
   });
 }
 const openA=new Set(),openT=new Set();
@@ -862,6 +887,7 @@ $('vProj').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
   if(d.sdate)w(d.sdate,{termine:v||null});
   if(d.scpt)w(d.scpt,{compteurId:v||null});
+  if(d.scpt2)w(d.scpt2,{compteurId2:v||null});
   if(d.sdebut)w(d.sdebut,{debut:v||null});
   if(d.snom)w(d.snom,{suiviNom:v.trim()});
 };
@@ -933,7 +959,7 @@ function fillCpt(){
     let e=q('data-cname');if(e)e.textContent=c.nom||'';e=q('data-cuni');if(e)e.textContent=c.unite?'('+c.unite+')':'';
     e=q('data-cn');if(e)e.textContent=nm+' valeur'+(nm>1?'s':'');
     e=q('data-cnom');if(e&&e!==act)e.value=c.nom||'';e=q('data-cunit');if(e&&e!==act)e.value=c.unite||'';e=q('data-cene');if(e&&e!==act)e.value=c.energie||'';
-    const lp=projets.filter(p=>p.compteurId===c.id);e=q('data-cproj');
+    const lp=projets.filter(p=>usesC(p,c.id));e=q('data-cproj');
     if(e)e.innerHTML=lp.length?'Projets liés : '+lp.map(p=>esc(p.nom)+(p.termine?' (fin '+dfr(p.termine)+')':' (date de fin non renseignée)')).join(' · '):'Aucun projet n’utilise encore ce compteur.';
     document.querySelectorAll('#cList [data-ct^="'+c.id+'|"]').forEach(el=>{const y=el.dataset.ct.split('|')[1];let t=0,k=0;for(let m=1;m<=12;m++){const v=vals[ymKey(y,m)];if(v!=null){t+=v;k++}}
       el.textContent=k?fmt(t,1):'–';const bd=document.querySelector('#cList [data-cy="'+el.dataset.ct+'"]');if(bd)bd.textContent=k+'/12'});
@@ -951,7 +977,7 @@ $('vCpt').onchange=ev=>{const t=ev.target,d=t.dataset;
   if(d.cene)updateDoc(doc(db,'compteurs',d.cene),{energie:t.value}).catch(refus);
 };
 $('vCpt').onclick=ev=>{const d=ev.target.dataset;
-  if(d.delc){const c=compteurs.find(x=>x.id===d.delc),n=projets.filter(p=>p.compteurId===d.delc).length;
+  if(d.delc){const c=compteurs.find(x=>x.id===d.delc),n=projets.filter(p=>usesC(p,d.delc)).length;
     if(confirm('Supprimer le compteur « '+(c?c.nom:'')+' » et toutes ses valeurs ?'+(n?'\n'+n+' projet(s) l’utilisent : leur suivi sera perdu.':'')))deleteDoc(doc(db,'compteurs',d.delc)).catch(refus)}};
 $('cfForm').onsubmit=async ev=>{ev.preventDefault();
   try{await addDoc(collection(db,'compteurs'),{nom:$('cfn').value.trim(),unite:$('cfu').value.trim(),energie:$('cfe').value,valeurs:{},cree:Date.now()});$('cfForm').reset();$('cForm').hidden=true;$('newC').textContent='Ajouter un compteur'}catch(e){refus()}};
