@@ -1048,4 +1048,252 @@ onAuthStateChanged(auth,async u=>{
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
-  if(ok)enter(u);else{$('gate').hidden=false;setGate('cha
+  if(ok)enter(u);else{$('gate').hidden=false;setGate('cha<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des consommations d’énergie</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#2b7de9;--m2:#8b5cf6;--m3:#0d9488;--s-cours:#e67700;--s-a:#64748b;--s-ctrl:#7c3aed}
+@media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#5aa2ff;--m2:#a78bfa;--m3:#2dd4bf;--s-cours:#ffa94d;--s-a:#94a3b8;--s-ctrl:#b197fc}}
+*{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
+#authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:1560px;margin:0 auto;padding:24px 16px 48px}
+#vRel,#vProj,#vCpt,#foot{max-width:1100px;margin-left:auto;margin-right:auto}
+.dash{display:grid;grid-template-columns:minmax(150px,260px) minmax(0,1100px) minmax(150px,260px);gap:16px;justify-content:center;align-items:start}
+.dash>.centre{min-width:0}.side>*{position:sticky;top:12px}
+.slot{border:2px dashed var(--line);border-radius:10px;padding:16px;color:var(--mute);text-align:center;font-size:.9rem;min-height:140px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+@media (max-width:1100px){.dash{grid-template-columns:minmax(0,1fr)}.side{display:none}}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-bottom:20px}
+h1{font-size:1.6rem;margin:0;letter-spacing:-.01em}
+h2{font-size:1.05rem;margin:0 0 12px}
+.sub{color:var(--mute);margin:2px 0 0;font-size:.92rem}
+section,.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+section{margin-top:16px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.kpi.top,.kpi.cost{grid-column:1/-1}.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}@media (min-width:560px){.split>div+div{border-left:1px solid var(--line);padding-left:16px}}@media (max-width:560px){.kpis{grid-template-columns:1fr}}
+.kpi b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi span{color:var(--mute);font-size:.88rem}
+.kpi.e{border-top:4px solid var(--elec)}.kpi.g{border-top:4px solid var(--gaz)}.kpi.c{border-top:4px solid var(--mute)}
+.delta{display:inline-block;margin-top:4px;font-size:.88rem;font-weight:700;padding:2px 10px;border-radius:999px}.up{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,transparent)}.down{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}.flat{color:var(--mute);background:var(--bg)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.charts section{margin:0}
+.box{position:relative;height:280px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+button{font:inherit;cursor:pointer;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+button.link{border:0;background:none;color:var(--accent);padding:2px 6px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.85rem;color:var(--mute);font-weight:600}
+.empty{color:var(--mute);text-align:center;padding:20px}
+.note{color:var(--mute);font-size:.85rem;margin:12px 0 0}
+.proj{border:1px solid var(--line);border-radius:8px;padding:14px;margin-top:12px}
+.proj h3{margin:0;font-size:1.05rem}.proj p{margin:6px 0}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0}.bar i{display:block;height:100%;background:var(--ok)}
+.task{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.task.done .t{text-decoration:line-through;color:var(--mute)}.task .d{margin-left:auto;color:var(--mute);font-size:.85rem}
+.late{color:var(--bad)!important;font-weight:600}
+.addt{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.addt input[type=text]{flex:1;min-width:160px}
+.badge{font-size:.78rem;padding:2px 10px;border-radius:999px;background:var(--bg);color:var(--mute)}.badge.ok{color:var(--ok);font-weight:600}
+.stats{display:flex;flex-wrap:wrap;gap:8px 24px;margin:10px 0}.stats small{display:block;color:var(--mute);font-size:.75rem}.stats b{font-size:.95rem}.stars{color:#e0a100;letter-spacing:1px}
+.grp{margin:22px 0 0;font-size:1rem}
+.task{border-left:4px solid transparent;padding-left:8px}.task.m1{border-left-color:var(--m1)}.task.m2{border-left-color:var(--m2)}.task.m3{border-left-color:var(--m3)}
+.badge.m1,.tm.m1{color:var(--m1);background:color-mix(in srgb,var(--m1) 14%,transparent);border-color:var(--m1);font-weight:600}
+.badge.m2,.tm.m2{color:var(--m2);background:color-mix(in srgb,var(--m2) 14%,transparent);border-color:var(--m2);font-weight:600}
+.badge.m3,.tm.m3{color:var(--m3);background:color-mix(in srgb,var(--m3) 14%,transparent);border-color:var(--m3);font-weight:600}
+.tm{padding:2px 6px;font-size:.8rem}.grip{cursor:grab;color:var(--mute);user-select:none;letter-spacing:-2px}
+.task.dragging{opacity:.4}.task.ov-t{box-shadow:0 -2px 0 var(--accent)}.task.ov-b{box-shadow:0 2px 0 var(--accent)}
+details.pr{border-bottom:1px solid var(--line)}
+details.pr>summary{list-style:none;cursor:pointer}details.pr>summary::-webkit-details-marker{display:none}
+.prow{display:grid;grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 175px;gap:10px;align-items:center;padding:7px 4px;font-size:.92rem;min-width:780px}
+.prow.head{font-size:.75rem;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line)}
+.pn{font-weight:600}.pn::before{content:'▸ ';color:var(--mute)}details[open] .pn::before{content:'▾ '}
+details.pr[open]>summary{background:var(--bg)}details.pr .proj{margin:8px 0 12px}
+.prow button{padding:3px 10px;font-size:.85rem}.badge:empty{display:none}
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.gbox{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.gbox h2{font-size:1.25rem;margin:0 0 4px}.gbox p{margin:8px 0}#gate form{grid-template-columns:1fr}
+details.yr{border:1px solid var(--line);border-radius:8px;margin-top:10px;padding:0 12px}
+details.yr>summary{cursor:pointer;padding:10px 0;font-size:1.05rem}
+.prixy{display:flex;flex-wrap:wrap;gap:12px;margin:4px 0 10px}.pxy{width:140px}
+.gt td,.gt th{padding:4px 6px}.gt tfoot td{font-weight:700;border-top:2px solid var(--line)}
+.cell{width:100%;min-width:100px;text-align:right}
+.cell.ce:not(:placeholder-shown){background:color-mix(in srgb,var(--elec) 14%,var(--card))}
+.cell.cg:not(:placeholder-shown){background:color-mix(in srgb,var(--gaz) 18%,var(--card))}
+.prow.b.f{grid-template-columns:minmax(170px,2fr) 130px 130px 140px 130px 100px;min-width:880px}
+.prow.b{grid-template-columns:minmax(170px,2fr) 130px 130px 90px 100px 85px 85px 175px;min-width:1060px}
+.eur{color:var(--ok);font-weight:700;letter-spacing:1px}.eur .off{opacity:.25}
+.gauge{display:inline-block;width:80px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}
+.gauge i{display:block;height:100%;background:var(--ok)}.gauge.late i{background:var(--bad)}.gauge.cours i,.bar.cours i{background:var(--s-cours)}.sv .dl{color:var(--mute);font-weight:400;font-size:.75rem}
+#foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:.9rem}
+section.st{--sc:var(--mute);border-left:6px solid var(--sc);background:color-mix(in srgb,var(--sc) 5%,var(--card))}
+.st-cours{--sc:var(--s-cours)}.st-fini{--sc:var(--s-ctrl)}.st-clos{--sc:var(--ok)}.st-a{--sc:var(--s-a)}
+.stt{font-size:1.5rem;letter-spacing:-.01em;color:var(--sc);margin:0 0 12px}
+.stt .cnt{font-size:.95rem;vertical-align:middle;margin-left:8px;background:color-mix(in srgb,var(--sc) 18%,transparent);color:var(--sc);font-weight:700}
+.st .prow.head{color:var(--sc)}.st .empty{padding:14px 0}
+details.cp{border:1px solid var(--line);border-radius:8px;margin-top:10px;background:var(--card)}
+details.cp>summary{cursor:pointer;padding:12px 14px;font-size:1.05rem}.cpb{padding:0 14px 14px}
+.cell.cv:not(:placeholder-shown){background:color-mix(in srgb,var(--s-ctrl) 14%,var(--card))}
+div.sv{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:2px;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
+div.sv b{color:var(--ink);font-size:1rem}div.sv.cur{border-color:var(--accent)}
+.rk{display:inline-block;min-width:1.7em;color:var(--mute);font-weight:700}
+details.pr.dragging{opacity:.4}details.pr.ov-t>summary{box-shadow:0 -2px 0 var(--accent)}details.pr.ov-b>summary{box-shadow:0 2px 0 var(--accent)}
+details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary{cursor:pointer;padding:10px 0;font-weight:600;color:var(--mute)}
+.g2{position:relative;display:block;width:120px;height:20px;border-radius:10px;background:var(--line);overflow:hidden}
+.g2 .gt{position:absolute;left:0;top:0;width:120px;line-height:20px;text-align:center;font-size:.74rem;font-weight:700;color:var(--ink);white-space:nowrap}
+.g2 .gf{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ok)}.g2 .gf .gt{color:#fff}.g2.cours .gf{background:var(--s-cours)}
+@media (prefers-color-scheme:dark){.g2 .gf .gt{color:#14191b}}
+main.wide{max-width:1640px}
+.dside{display:none}.dcenter{min-width:0}
+@media (min-width:1500px){#vDash{display:grid;grid-template-columns:230px minmax(0,1068px) 230px;gap:16px;justify-content:center;align-items:start}
+  #vDash>.dside{display:block;position:sticky;top:16px}#vDash>.dside section{margin-top:0}}
+body.out .edit-only{display:none!important}
+.suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
+.suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
+.svgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;margin-top:12px}
+.svh{font-size:.8rem;color:var(--mute);margin-top:10px;font-weight:600}
+.sv.cur{color:var(--ink);font-weight:600}.sv.cur input{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+</style>
+</head>
+<body>
+<div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gTitle">
+  <div class="gbox">
+    <h2 id="gTitle">Connexion</h2>
+    <p class="sub">Suivi des consommations d’énergie</p>
+    <form id="gLogin">
+      <p class="note" style="margin-top:0">Première connexion ? Saisissez l’adresse e-mail et le mot de passe provisoire donnés par votre administrateur : vous choisirez ensuite votre propre mot de passe.</p>
+      <label>E-mail <input type="email" id="gem" required autocomplete="username"></label>
+      <label>Mot de passe <input type="password" id="gpw" required autocomplete="current-password"></label>
+      <button class="main" type="submit">Se connecter</button>
+      <p class="note">Mot de passe oublié ? Contactez votre administrateur.</p>
+    </form>
+    <form id="gChange" hidden>
+      <p>Pour votre sécurité, choisissez dès maintenant votre mot de passe personnel (8 caractères minimum).</p>
+      <label>Mot de passe provisoire <input type="password" id="gcur" required autocomplete="current-password"></label>
+      <label>Nouveau mot de passe <input type="password" id="gnew" required minlength="8" autocomplete="new-password"></label>
+      <label>Confirmer le nouveau mot de passe <input type="password" id="gnew2" required minlength="8" autocomplete="new-password"></label>
+      <button class="main" type="submit">Enregistrer mon mot de passe</button>
+      <p class="note"><button type="button" class="link" data-g="out">Se déconnecter</button></p>
+    </form>
+    <p id="gMsg" class="note" role="status"></p>
+  </div>
+</div>
+<main hidden>
+<div id="vDash">
+<div class="dash">
+<aside class="side"><div class="slot"><b>Colonne de gauche</b><span>Emplacement libre</span></div></aside>
+<div class="centre">
+<aside class="dside" id="dLeft"><section><h2>Colonne de gauche</h2><p class="note" style="margin:0">Espace disponible.</p></section></aside>
+<div class="dcenter">
+<header>
+  <div>
+    <h1>Consommations d’énergie</h1>
+    <p class="sub">Électricité et gaz, relevés mensuels</p>
+  </div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#compteurs">Compteurs</a></div>
+</header>
+<p id="status2" class="note" role="status"></p>
+<div class="kpis" id="kpisTop"></div>
+<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
+<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
+<div class="kpis" id="kpis" style="margin-top:16px"></div>
+<div class="charts" style="margin-top:16px">
+  <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
+  <section><h2>Gaz (MWh par mois)</h2><div class="box"><canvas id="cG"></canvas></div></section>
+</div>
+<section style="text-align:center">
+  <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
+  <p class="note">Rapport de l’année affichée : chiffres clés, graphes, économies et projets en cours ou à contrôler.</p>
+</section>
+</div>
+<aside class="dside" id="dRight"><section><h2>Colonne de droite</h2><p class="note" style="margin:0">Espace disponible.</p></section></aside>
+</div>
+<aside class="side"><div class="slot"><b>Colonne de droite</b><span>Emplacement libre</span></div></aside>
+</div>
+</div>
+
+<div id="vRel" hidden>
+<header>
+  <div>
+    <h1>Relevés</h1>
+    <p class="sub">Consultation et saisie des relevés mensuels</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<p id="status" class="note" role="status"></p>
+
+<section id="gridsSec">
+  <h2>Relevés mensuels</h2>
+  <p class="note" style="margin:0 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
+  <div id="grids"></div>
+</section>
+<section>
+  <h2>Données</h2>
+  <div class="tools">
+    <button id="exJson">Exporter (JSON)</button>
+    <button id="exCsv">Exporter (CSV)</button>
+    <button id="imp">Importer (JSON)</button>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+  <p class="note">Les relevés sont stockés dans Firebase (Firestore) et partagés en temps réel. Seules les personnes connectées peuvent les modifier.</p>
+</section>
+</div>
+<div id="vProj" hidden>
+<header>
+  <div>
+    <h1>Projets</h1>
+    <p class="sub">Suivi des projets et des tâches à effectuer</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<section class="st st-cours">
+  <h2 class="stt">En cours <span class="badge cnt" id="nCours"></span></h2>
+  <div class="scroll"><div id="lCours"></div></div>
+</section>
+<section class="st st-fini">
+  <h2 class="stt">Terminés à contrôler <span class="badge cnt" id="nFini"></span></h2>
+  <div class="scroll"><div id="lFini"></div></div>
+</section>
+<section class="st st-a">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="stt" style="margin:0">À réaliser <span id="nA" class="badge cnt"></span></h2><div class="tools edit-only"><button class="main" id="newP" type="button">Proposer un projet</button></div></div>
+  <p class="note edit-only" style="margin:6px 0 0">Glissez une ligne (appui long sur téléphone) pour changer la priorité : 1 = le plus prioritaire.</p>
+  <div id="projForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
+    <h3 id="pTitle" style="margin:0 0 10px;font-size:1rem">Proposer un projet</h3>
+    <form id="pForm">
+    <label>Nom du projet <input id="pn" required maxlength="120"></label>
+    <label>Responsable <input id="pr" maxlength="80"></label>
+    <label>Durée approximative <div style="display:flex;gap:6px"><input type="number" id="pdur" min="0" step="any" style="width:100%"><select id="pdu"><option>jours</option><option>semaines</option><option>mois</option></select></div></label>
+    <label>Coût approximatif (€) <input type="number" id="pcout" min="0" step="any"></label>
+    <label>Gains potentiels (sur 5) <select id="pgain"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <label>Confort (sur 5) <select id="pconf"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <label style="grid-column:1/-1">Description <input id="pdesc" maxlength="300"></label>
+    <div class="tools"><button class="main" type="submit" id="pSubmit">Ajouter le projet</button></div>
+  </form>
+  </div>
+  <div class="scroll" style="margin-top:10px"><div id="aList"></div></div>
+</section>
+<section class="st st-clos">
+  <h2 class="stt">Clôturés <span class="badge cnt" id="nClos"></span></h2>
+  <div class="scroll"><div id="lClos"></div></div>
+</section>
+</div>
+<div id="vCpt" hidden>
+<header>
+  <div>
+    <h1>Compteurs</h1>
+    <p class="sub">Consommation mensuelle de chaque compteur, sur plusieurs années</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<section>
+  <div style="display:fl
