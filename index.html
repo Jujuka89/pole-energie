@@ -892,14 +892,14 @@ function sideEco(){
     T.n++;T.sav+=sav;T.s0+=s0/1000;if(pr!=null)T.eur+=sav*pr;else T.ng++;
   });
   res.t=T.n?{sav:T.sav,q:T.s0?T.sav/T.s0*100:0,eur:T.ng===T.n?null:T.eur,part:T.ng>0}:null;
-  $('sEco').innerHTML=['g','e','t'].map(k=>{
+  $('sEco').innerHTML=['t','g','e'].map(k=>{
     const [lib,cv]=noms[k],r=res[k];let mw='–',eu='–',cl='var(--mute)',pc='<small style="color:var(--mute)">Pas de comparaison avec '+(year-1)+'</small>';
     if(r){const sav=r.sav,sg=sav>0?'-':sav<0?'+':'';
       cl=sav>0?'var(--ok)':sav<0?'var(--bad)':'var(--mute)';
       mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh';
       eu=r.eur!=null?sg+fmt(Math.abs(r.eur))+' €'+(r.part?'*':''):'prix manquant';
       pc=`<b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(r.q),1)} %</b>`}
-    return `<div style="border-top:4px solid var(${cv});background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${eu}</b>${pc}</div>`}).join('');
+    return `<div style="border-top:4px solid var(${cv});background:linear-gradient(160deg,color-mix(in srgb,var(${cv}) ${k==='t'?14:34}%,var(--card)),color-mix(in srgb,var(${cv}) ${k==='t'?3:8}%,var(--card)));border-radius:8px;padding:12px;margin-bottom:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${eu}</b>${pc}</div>`}).join('');
 }
 let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
