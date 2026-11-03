@@ -363,8 +363,10 @@ const pctPlugin={id:'pct',afterDatasetsDraw(ch){
   });
   ctx.restore();
 }};
-function cumul(y){const e=val(y,'e'),g=val(y,'g');let last=-1;for(let i=0;i<12;i++)if(e[i]!=null||g[i]!=null)last=i;let a=0,b=0;
-  return Array.from({length:12},(_,i)=>{if(i>last)return null;a+=e[i]||0;b+=g[i]||0;return{e:a/1000,g:b/1000,t:(a+b)/1000}})}
+function cumul(y){const e=val(y,'e'),g=val(y,'g');let le=-1,lg=-1,lt=-1;
+  for(let i=0;i<12;i++){if(e[i]!=null)le=i;if(g[i]!=null)lg=i;if(e[i]!=null&&g[i]!=null)lt=i}
+  let a=0,b=0;
+  return Array.from({length:12},(_,i)=>{a+=e[i]||0;b+=g[i]||0;return{e:i<=le?a/1000:null,g:i<=lg?b/1000:null,t:i<=lt?(a+b)/1000:null}})}
 const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),ctx=ch.ctx,ds=ch.data.datasets;
   const items=[];
