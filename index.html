@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Suivi des consommations d’énergie</title>
+<title>Dashboard Pôle Energie</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -103,6 +103,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .g2 .gt{position:absolute;left:0;top:0;width:120px;line-height:20px;text-align:center;font-size:.74rem;font-weight:700;color:var(--ink);white-space:nowrap}
 .g2 .gf{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ok)}.g2 .gf .gt{color:#fff}.g2.cours .gf{background:var(--s-cours)}
 @media (prefers-color-scheme:dark){.g2 .gf .gt{color:#14191b}}
+#vDash>header{display:grid;grid-template-columns:1fr auto 1fr;align-items:end}#vDash>header>div:first-child{grid-column:2;text-align:center}#vDash>header>.tools{grid-column:3;justify-self:end}@media (max-width:900px){#vDash>header{grid-template-columns:1fr;justify-items:center}#vDash>header>div:first-child,#vDash>header>.tools{grid-column:1;justify-self:center}}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
 body.out .edit-only{display:none!important}
@@ -152,7 +153,7 @@ body.out .edit-only{display:none!important}
 <div id="vDash">
 <header>
   <div>
-    <h1>Consommations d’énergie</h1>
+    <h1>Dashboard Pôle Energie</h1>
     <p class="sub">Électricité et gaz, relevés mensuels</p>
   </div>
   <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#compteurs">Compteurs</a></div>
