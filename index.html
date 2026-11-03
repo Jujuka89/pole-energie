@@ -150,10 +150,6 @@ body.out .edit-only{display:none!important}
 </div>
 <main hidden>
 <div id="vDash">
-<div class="dash">
-<aside class="side"><section style="margin-top:0"><div id="sEco"></div></section></aside>
-<div class="centre">
-<div class="dcenter">
 <header>
   <div>
     <h1>Consommations d’énergie</h1>
@@ -162,6 +158,10 @@ body.out .edit-only{display:none!important}
   <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#compteurs">Compteurs</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
+<div class="dash">
+<aside class="side"><section style="margin-top:0"><div id="sEco"></div></section></aside>
+<div class="centre">
+<div class="dcenter">
 <div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
 <section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
@@ -891,9 +891,9 @@ function sideEco(){
       cl=sav>0?'var(--ok)':sav<0?'var(--bad)':'var(--mute)';
       mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh';
       eu=pr!=null?sg+fmt(Math.abs(sav*pr))+' €':'prix manquant';
-      pc=(sav>=0?'Moins consommé de ':'Plus consommé de ')+fmt(Math.abs(q),1)+' %'}
-    else pc='Pas de comparaison avec '+(year-1);
-    return `<div style="border-top:4px solid var(${cv});background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${eu}</b><small style="color:var(--mute)">${pc}</small></div>`}).join('');
+      pc=`<b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(q),1)} %</b>`}
+    else pc='<small style="color:var(--mute)">Pas de comparaison avec '+(year-1)+'</small>';
+    return `<div style="border-top:4px solid var(${cv});background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${eu}</b>${pc}</div>`}).join('');
 }
 let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
