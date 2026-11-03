@@ -162,9 +162,9 @@ body.out .edit-only{display:none!important}
 <aside class="side"><section style="margin-top:0"><div id="sEco"></div></section></aside>
 <div class="centre">
 <div class="dcenter">
-<div class="kpis" id="kpisTop"></div>
 <section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
 <section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
+<div class="kpis" id="kpisTop" style="margin-top:16px"></div>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
 <div class="charts" style="margin-top:16px">
   <section><h2>Électricité (MWh par mois)</h2><div class="box"><canvas id="cE"></canvas></div></section>
@@ -882,17 +882,23 @@ function sideProj(){
     return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(p.nom)}</div><div class="bar cours" style="margin:6px 0 2px" title="${pc} %"><i style="width:${pc}%"></i></div><small style="color:var(--mute)">${n?k+'/'+n+' tâches · '+pc+' %':'Aucune tâche'}</small></div>`}).join(''):'<p class="note" style="margin:0">Aucun projet en cours.</p>';
 }
 function sideEco(){
-  const noms={g:['Gaz','--gaz'],e:['Électricité','--elec']};let nm=0;
-  $('sEco').innerHTML=['g','e'].map(k=>{
+  const noms={g:['Gaz','--gaz'],e:['Électricité','--elec'],t:['Total gaz + électricité','--ink']},res={},T={sav:0,s0:0,eur:0,ng:0,n:0};
+  ['g','e'].forEach(k=>{
     const a=val(year,k),b=val(year-1,k);let s1=0,s0=0,n=0;
-    a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];n++}});nm=Math.max(nm,n);
-    const [lib,cv]=noms[k];let mw='–',eu='–',cl='var(--mute)',pc='';
-    if(n&&s0){const sav=(s0-s1)/1000,q=(s0-s1)/s0*100,pr=priceOf(year,k,null),sg=sav>0?'-':sav<0?'+':'';
+    a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];n++}});
+    if(!(n&&s0)){res[k]=null;return}
+    const sav=(s0-s1)/1000,pr=priceOf(year,k,null);
+    res[k]={sav,q:(s0-s1)/s0*100,eur:pr!=null?sav*pr:null};
+    T.n++;T.sav+=sav;T.s0+=s0/1000;if(pr!=null)T.eur+=sav*pr;else T.ng++;
+  });
+  res.t=T.n?{sav:T.sav,q:T.s0?T.sav/T.s0*100:0,eur:T.ng===T.n?null:T.eur,part:T.ng>0}:null;
+  $('sEco').innerHTML=['g','e','t'].map(k=>{
+    const [lib,cv]=noms[k],r=res[k];let mw='–',eu='–',cl='var(--mute)',pc='<small style="color:var(--mute)">Pas de comparaison avec '+(year-1)+'</small>';
+    if(r){const sav=r.sav,sg=sav>0?'-':sav<0?'+':'';
       cl=sav>0?'var(--ok)':sav<0?'var(--bad)':'var(--mute)';
       mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh';
-      eu=pr!=null?sg+fmt(Math.abs(sav*pr))+' €':'prix manquant';
-      pc=`<b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(q),1)} %</b>`}
-    else pc='<small style="color:var(--mute)">Pas de comparaison avec '+(year-1)+'</small>';
+      eu=r.eur!=null?sg+fmt(Math.abs(r.eur))+' €'+(r.part?'*':''):'prix manquant';
+      pc=`<b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(r.q),1)} %</b>`}
     return `<div style="border-top:4px solid var(${cv});background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${eu}</b>${pc}</div>`}).join('');
 }
 let editP=null;
