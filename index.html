@@ -12,7 +12,12 @@
 *{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
-main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+main{max-width:1560px;margin:0 auto;padding:24px 16px 48px}
+#vRel,#vProj,#vCpt,#foot{max-width:1100px;margin-left:auto;margin-right:auto}
+.dash{display:grid;grid-template-columns:minmax(150px,260px) minmax(0,1100px) minmax(150px,260px);gap:16px;justify-content:center;align-items:start}
+.dash>.centre{min-width:0}.side>*{position:sticky;top:12px}
+.slot{border:2px dashed var(--line);border-radius:10px;padding:16px;color:var(--mute);text-align:center;font-size:.9rem;min-height:140px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+@media (max-width:1100px){.dash{grid-template-columns:minmax(0,1fr)}.side{display:none}}
 header{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-bottom:20px}
 h1{font-size:1.6rem;margin:0;letter-spacing:-.01em}
 h2{font-size:1.05rem;margin:0 0 12px}
@@ -98,6 +103,10 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .g2 .gt{position:absolute;left:0;top:0;width:120px;line-height:20px;text-align:center;font-size:.74rem;font-weight:700;color:var(--ink);white-space:nowrap}
 .g2 .gf{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ok)}.g2 .gf .gt{color:#fff}.g2.cours .gf{background:var(--s-cours)}
 @media (prefers-color-scheme:dark){.g2 .gf .gt{color:#14191b}}
+main.wide{max-width:1640px}
+.dside{display:none}.dcenter{min-width:0}
+@media (min-width:1500px){#vDash{display:grid;grid-template-columns:230px minmax(0,1068px) 230px;gap:16px;justify-content:center;align-items:start}
+  #vDash>.dside{display:block;position:sticky;top:16px}#vDash>.dside section{margin-top:0}}
 body.out .edit-only{display:none!important}
 .suivi{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.suivi h4{margin:0 0 10px;font-size:.95rem}
 .suivi .tools{align-items:end}.suivi .tools label{min-width:200px}
@@ -107,6 +116,18 @@ body.out .edit-only{display:none!important}
 </style>
 </head>
 <body>
+<div id="boot" style="position:fixed;inset:0;z-index:200;background:#f3f4f1;color:#1d2528;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font:16px/1.5 system-ui,sans-serif">Chargement…</div>
+<div id="errBar" hidden style="position:fixed;left:0;right:0;bottom:0;z-index:150;background:#e11d2e;color:#fff;padding:8px 12px;font:13px/1.4 system-ui,sans-serif;max-height:40vh;overflow:auto"></div>
+<script>
+(function(){
+  function showErr(m){var b=document.getElementById('errBar');if(!b)return;b.hidden=false;b.textContent='Erreur : '+m+' (rechargez la page avec Ctrl+Maj+R ; si le problème persiste, notez ce message).'}
+  function bootMsg(m){var b=document.getElementById('boot');if(b){b.style.color='#e11d2e';b.textContent=m}}
+  window.__showErr=showErr;
+  window.addEventListener('error',function(e){var m=e.message||(e.error&&e.error.message)||'erreur inconnue';showErr(m);bootMsg('Le chargement a échoué : '+m)});
+  window.addEventListener('unhandledrejection',function(e){var m=(e.reason&&e.reason.message)||String(e.reason);showErr(m)});
+  setTimeout(function(){if(document.getElementById('boot'))bootMsg('Le chargement est trop long ou a échoué. Vérifiez votre connexion, puis rechargez la page avec Ctrl+Maj+R. Si le problème persiste, ouvrez la console du navigateur (F12) et notez l’erreur affichée.')},12000);
+})();
+</script>
 <div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gTitle">
   <div class="gbox">
     <h2 id="gTitle">Connexion</h2>
@@ -131,6 +152,11 @@ body.out .edit-only{display:none!important}
 </div>
 <main hidden>
 <div id="vDash">
+<div class="dash">
+<aside class="side"><div class="slot"><b>Colonne de gauche</b><span>Emplacement libre</span></div></aside>
+<div class="centre">
+<aside class="dside" id="dLeft"><section><h2>Colonne de gauche</h2><p class="note" style="margin:0">Espace disponible.</p></section></aside>
+<div class="dcenter">
 <header>
   <div>
     <h1>Consommations d’énergie</h1>
@@ -151,6 +177,11 @@ body.out .edit-only{display:none!important}
   <button class="main" id="pdf" type="button" style="padding:12px 24px">Télécharger le rapport PDF</button>
   <p class="note">Rapport de l’année affichée : chiffres clés, graphes, économies et projets en cours ou à contrôler.</p>
 </section>
+</div>
+<aside class="dside" id="dRight"><section><h2>Colonne de droite</h2><p class="note" style="margin:0">Espace disponible.</p></section></aside>
+</div>
+<aside class="side"><div class="slot"><b>Colonne de droite</b><span>Emplacement libre</span></div></aside>
+</div>
 </div>
 
 <div id="vRel" hidden>
@@ -653,10 +684,11 @@ function grids(){
   q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);let t='–';if(count(a))t=fmt(sum(a));else if(annualOnly(+y,k)){const pr=priceOf(+y,k,null);if(pr!=null)t=fmt(totaux[y][k]/1000*pr)}el.textContent=t});
   q('data-n').forEach(el=>{const y=+el.dataset.n,n=count(val(y,'e'))+count(val(y,'g'));el.textContent=n+'/24 relevés'+(annualOnly(y,'e')||annualOnly(y,'g')?' · total annuel':'')});
 }
+const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)window.__showErr(l+' : '+(e&&e.message||e))}};
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  kpis();draw('cE','e','--elec');draw('cG','g','--gaz');drawCumul();drawTotal();grids();$('pdf').textContent='Télécharger le rapport PDF '+year;
+  safe(kpis,'cartes');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
 
@@ -996,9 +1028,9 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets',cp=h==='#compteurs';$('vDash').hidden=r||pj||cp;$('vRel').hidden=!r;$('vProj').hidden=!pj;$('vCpt').hidden=!cp;window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets',cp=h==='#compteurs';$('vDash').hidden=r||pj||cp;$('vRel').hidden=!r;$('vProj').hidden=!pj;$('vCpt').hidden=!cp;document.querySelector('main').classList.toggle('wide',!(r||pj||cp));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
-render();route();
+safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
 let lastPw='';
 function setGate(m){$('gLogin').hidden=m!=='login';$('gChange').hidden=m!=='change';$('gTitle').textContent=m==='login'?'Connexion':'Choisissez votre mot de passe';$('gMsg').textContent='';(m==='login'?$('gem'):$('gnew')).focus()}
@@ -1023,6 +1055,7 @@ function enter(u){
   listen();listenProj();listenCpt();route();
 }
 onAuthStateChanged(auth,async u=>{
+  const bt=document.getElementById('boot');if(bt)bt.remove();
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
   if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
