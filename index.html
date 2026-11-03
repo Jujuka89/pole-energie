@@ -176,7 +176,7 @@ body.out .edit-only{display:none!important}
 </section>
 </div>
 </div>
-<aside class="side"><div class="slot"><b>Colonne de droite</b><span>Emplacement libre</span></div></aside>
+<aside class="side"><section class="st st-cours" style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section></aside>
 </div>
 </div>
 
@@ -872,8 +872,14 @@ function renderProj(){
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(x.rang??1e9)-(y.rang??1e9)||(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   aOrder=A.map(x=>x.id);$('nA').textContent=A.length;
   $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
-  drawSuiviCharts();fillCpt();
+  drawSuiviCharts();fillCpt();safe(sideProj,'projets en cours');
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
+}
+function sideProj(){
+  const l=projets.filter(x=>statutOf(x)==='cours').sort((x,y)=>(x.cree||0)-(y.cree||0));
+  $('sNc').textContent=l.length;
+  $('sideProj').innerHTML=l.length?l.map(p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,pc=n?Math.round(k/n*100):0;
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(p.nom)}</div><div class="bar cours" style="margin:6px 0 2px" title="${pc} %"><i style="width:${pc}%"></i></div><small style="color:var(--mute)">${n?k+'/'+n+' tâches · '+pc+' %':'Aucune tâche'}</small></div>`}).join(''):'<p class="note" style="margin:0">Aucun projet en cours.</p>';
 }
 let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
