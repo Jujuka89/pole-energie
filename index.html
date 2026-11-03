@@ -151,7 +151,7 @@ body.out .edit-only{display:none!important}
 <main hidden>
 <div id="vDash">
 <div class="dash">
-<aside class="side"><div class="slot"><b>Colonne de gauche</b><span>Emplacement libre</span></div></aside>
+<aside class="side"><section style="margin-top:0"><h2 id="sEcoT" style="margin:0 0 4px">Économie depuis janvier</h2><p class="note" id="sEcoS" style="margin:0 0 10px"></p><div id="sEco"></div></section></aside>
 <div class="centre">
 <div class="dcenter">
 <header>
@@ -684,7 +684,7 @@ const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)windo
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  safe(kpis,'cartes');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');$('pdf').textContent='Télécharger le rapport PDF '+year;
+  safe(kpis,'cartes');safe(sideEco,'économies');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
 
@@ -880,6 +880,22 @@ function sideProj(){
   $('sNc').textContent=l.length;
   $('sideProj').innerHTML=l.length?l.map(p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,pc=n?Math.round(k/n*100):0;
     return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(p.nom)}</div><div class="bar cours" style="margin:6px 0 2px" title="${pc} %"><i style="width:${pc}%"></i></div><small style="color:var(--mute)">${n?k+'/'+n+' tâches · '+pc+' %':'Aucune tâche'}</small></div>`}).join(''):'<p class="note" style="margin:0">Aucun projet en cours.</p>';
+}
+function sideEco(){
+  $('sEcoT').textContent='Économie depuis janvier '+year;
+  const noms={g:['Gaz','--gaz'],e:['Électricité','--elec']};let nm=0;
+  $('sEco').innerHTML=['g','e'].map(k=>{
+    const a=val(year,k),b=val(year-1,k);let s1=0,s0=0,n=0;
+    a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];n++}});nm=Math.max(nm,n);
+    const [lib,cv]=noms[k];let mw='–',eu='–',cl='var(--mute)',pc='';
+    if(n&&s0){const sav=(s0-s1)/1000,q=(s0-s1)/s0*100,pr=priceOf(year,k,null),sg=sav>0?'+':sav<0?'-':'';
+      cl=sav>0?'var(--ok)':sav<0?'var(--bad)':'var(--mute)';
+      mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh';
+      eu=pr!=null?sg+fmt(Math.abs(sav*pr))+' €':'prix manquant';
+      pc=(sav>=0?'Moins consommé de ':'Plus consommé de ')+fmt(Math.abs(q),1)+' %'}
+    else pc='Pas de comparaison avec '+(year-1);
+    return `<div style="border-top:4px solid var(${cv});background:var(--bg);border-radius:8px;padding:12px;margin-top:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.5rem;line-height:1.2;color:${cl};font-variant-numeric:tabular-nums">${eu}</b><small style="color:var(--mute)">${pc}</small></div>`}).join('');
+  $('sEcoS').textContent=nm?'Mêmes mois que '+(year-1)+' ('+nm+' mois relevé'+(nm>1?'s':'')+'). Vert = économie, rouge = surconsommation.':'';
 }
 let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
