@@ -34,7 +34,9 @@ section{margin-top:16px}
 .box{position:relative;height:280px}
 form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
 label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
-input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+textarea{resize:vertical;line-height:1.45;width:100%}
+.desc{white-space:pre-wrap;margin:8px 0}.dlab{display:block;margin:10px 0}
 button{font:inherit;cursor:pointer;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 button.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 button.link{border:0;background:none;color:var(--accent);padding:2px 6px}
@@ -235,7 +237,7 @@ body.out .edit-only{display:none!important}
     <label>Coût approximatif (€) <input type="number" id="pcout" min="0" step="any"></label>
     <label>Gains potentiels (sur 5) <select id="pgain"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
     <label>Confort (sur 5) <select id="pconf"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
-    <label style="grid-column:1/-1">Description <input id="pdesc" maxlength="300"></label>
+    <label style="grid-column:1/-1">Descriptif du projet <textarea id="pdesc" rows="6" maxlength="5000" placeholder="Objectifs, travaux prévus, contraintes, matériel, fournisseurs…"></textarea></label>
     <div class="tools"><button class="main" type="submit" id="pSubmit">Ajouter le projet</button></div>
   </form>
   </div>
@@ -724,7 +726,7 @@ function card(p){
   const tasksHtml=t.map(x=>{const mc=MC[x.m]||'',k=p.id+'|'+x.id;return `<div class="task ${mc} ${x.fait?'done':''}" data-tk="${k}" ${user?'draggable="true"':''}><span class="grip edit-only" title="Glisser pour réordonner">⋮⋮</span><input type="checkbox" data-tog="${k}" ${x.fait?'checked':''} ${dis}><span class="t">${esc(x.t)}</span>${user?`<select class="tm ${mc}" data-tm="${k}"><option value="">Métier</option>${['Élec','CVC','Plombier'].map(m=>`<option ${x.m===m?'selected':''}>${m}</option>`).join('')}</select>`:x.m?`<span class="badge ${mc}">${esc(x.m)}</span>`:''}<span class="d ${x.ech&&x.ech<today()&&!x.fait?'late':''}">${dfr(x.ech)}</span><button class="link edit-only" data-delt="${k}" aria-label="Supprimer la tâche">✕</button></div>`}).join('');
   return `<article class="proj"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3>${esc(p.nom)}</h3>
     <div>${a?'<button class="main edit-only" data-start="'+p.id+'">Commencer le projet</button> ':''}<span class="badge ${done?'ok':''}">${a?'À réaliser':st==='clos'?'Clôturé':done?'À contrôler':n?k+'/'+n+' tâches':'Aucune tâche'}</span>${st==='cours'?'<button class="link edit-only" data-back="'+p.id+'">Remettre à réaliser</button>':''}${st==='fini'?'<button class="main edit-only" data-close="'+p.id+'">Clôturer le projet</button>':''}${st==='clos'?'<button class="link edit-only" data-reopen="'+p.id+'">Rouvrir</button>':''}<button class="link edit-only" data-editp="${p.id}">Modifier</button><button class="link edit-only" data-dup="${p.id}">Dupliquer</button><button class="link edit-only" data-delp="${p.id}">Supprimer</button></div></div>
-    ${meta?`<p class="sub">${meta}</p>`:''}${p.desc?`<p>${esc(p.desc)}</p>`:''}${stats(p)}
+    ${meta?`<p class="sub">${meta}</p>`:''}${user?`<label class="dlab">Descriptif<textarea data-pdesc="${p.id}" rows="${Math.min(10,Math.max(3,Math.ceil((p.desc||'').length/90)+((p.desc||'').split('\n').length-1)))}" maxlength="5000" placeholder="Détaillez le projet : objectifs, travaux prévus, contraintes… (enregistré en quittant la zone)">${esc(p.desc||'')}</textarea></label>`:(p.desc?`<p class="desc">${esc(p.desc)}</p>`:'')}${stats(p)}
     ${done||st==='cours'?suivi(p):''}
     ${a?(n?'<p class="note">Tâches prévues : elles pourront être cochées une fois le projet commencé.</p>':''):done?'':`<div class="bar ${st==='cours'?'cours':''}"><i style="width:${pct}%"></i></div>`}
     ${done?`<details class="tkd" data-tkd="${p.id}" ${openT.has(p.id)?'open':''}><summary>Tâches (${k}/${n})</summary>${tasksHtml}</details>`:tasksHtml}
@@ -946,6 +948,7 @@ $('vProj').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   if(d.tm){const[pid,tid]=d.tm.split('|');upd(pid,t=>t.map(x=>x.id===tid?{...x,m:v||null}:x))}
   if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
   if(d.sdate)w(d.sdate,{termine:v||null});
+  if(d.pdesc)w(d.pdesc,{desc:v.trim()});
   if(d.scpt)w(d.scpt,{compteurId:v||null});
   if(d.scpt2)w(d.scpt2,{compteurId2:v||null});
   if(d.sdebut)w(d.sdebut,{debut:v||null});
