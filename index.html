@@ -883,11 +883,15 @@ function renderProj(){
   drawSuiviCharts();fillCpt();safe(sideProj,'projets en cours');
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
+let sideOpen=false;
 function sideProj(){
   const l=projets.filter(x=>statutOf(x)==='cours').sort(byAvance);
   $('sNc').textContent=l.length;
-  $('sideProj').innerHTML=l.length?l.map(p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,pc=n?Math.round(k/n*100):0;
-    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(p.nom)}</div><div class="bar cours" style="margin:6px 0 2px" title="${pc} %"><i style="width:${pc}%"></i></div><small style="color:var(--mute)">${n?k+'/'+n+' tâches · '+pc+' %':'Aucune tâche'}</small></div>`}).join(''):'<p class="note" style="margin:0">Aucun projet en cours.</p>';
+  const row=p=>{const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,pc=n?Math.round(k/n*100):0;
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(p.nom)}</div><div class="bar cours" style="margin:6px 0 2px" title="${pc} %"><i style="width:${pc}%"></i></div><small style="color:var(--mute)">${n?k+'/'+n+' tâches · '+pc+' %':'Aucune tâche'}</small></div>`};
+  const top=l.slice(0,3),rest=l.slice(3);
+  $('sideProj').innerHTML=l.length?top.map(row).join('')+(rest.length?`<details id="sideMore"${sideOpen?' open':''}><summary style="cursor:pointer;padding:8px 0;font-size:.9rem;color:var(--mute)">${rest.length} autre${rest.length>1?'s':''} projet${rest.length>1?'s':''}</summary>${rest.map(row).join('')}</details>`:''):'<p class="note" style="margin:0">Aucun projet en cours.</p>';
+  const d=$('sideMore');if(d)d.ontoggle=()=>{sideOpen=d.open};
 }
 function sideEco(){
   const noms={g:['Gaz','--gaz'],e:['Électricité','--elec'],t:['Total gaz + électricité','--ink']},res={},T={sav:0,s0:0,eur:0,ng:0,n:0};
