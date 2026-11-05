@@ -179,7 +179,7 @@ body.out .edit-only{display:none!important}
 </section>
 </div>
 </div>
-<aside class="side"><section class="st st-cours" style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#compteurs">Voir les compteurs</a></p></section></aside>
+<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#compteurs">Voir les compteurs</a></p></section></aside>
 </div>
 </div>
 
@@ -880,7 +880,7 @@ function renderProj(){
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(x.rang??1e9)-(y.rang??1e9)||(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   aOrder=A.map(x=>x.id);$('nA').textContent=A.length;
   $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
-  drawSuiviCharts();fillCpt();safe(sideProj,'projets en cours');safe(sideCpt,'compteurs à jour');
+  drawSuiviCharts();fillCpt();safe(sideCtl,'projets à contrôler');safe(sideProj,'projets en cours');safe(sideCpt,'compteurs à jour');
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
 let sideOpen=false;
@@ -892,6 +892,15 @@ function sideProj(){
   const top=l.slice(0,3),rest=l.slice(3);
   $('sideProj').innerHTML=l.length?top.map(row).join('')+(rest.length?`<details id="sideMore"${sideOpen?' open':''}><summary style="cursor:pointer;padding:8px 0;font-size:.9rem;color:var(--mute)">${rest.length} autre${rest.length>1?'s':''} projet${rest.length>1?'s':''}</summary>${rest.map(row).join('')}</details>`:''):'<p class="note" style="margin:0">Aucun projet en cours.</p>';
   const d=$('sideMore');if(d)d.ontoggle=()=>{sideOpen=d.open};
+}
+function sideCtl(){
+  const l=projets.filter(x=>statutOf(x)==='fini');$('sNf').textContent=l.length;
+  if(!l.length){$('sideCtl').innerHTML='<p class="note" style="margin:0">Aucun projet à contrôler.</p>';return}
+  const gs=l.map(projGain).filter(g=>g&&!g.none&&g.conv);
+  if(!gs.length){$('sideCtl').innerHTML='<p class="note" style="margin:0">Pas encore de valeurs pour calculer l’économie.</p>';return}
+  const S=gs.reduce((a,g)=>a+g.mwh,0),ne=gs.filter(g=>g.ne>0),E=ne.reduce((a,g)=>a+g.eur,0),
+    cl=v=>v>0?'var(--ok)':v<0?'var(--bad)':'var(--mute)',sg=v=>v>0?'-':v<0?'+':'';
+  $('sideCtl').innerHTML=`<div style="border-top:4px solid var(--ok);background:linear-gradient(160deg,color-mix(in srgb,var(--ok) 22%,var(--card)),color-mix(in srgb,var(--ok) 5%,var(--card)));border-radius:8px;padding:12px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">Total économisé</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl(E)};font-variant-numeric:tabular-nums">${ne.length?sg(E)+fmt(Math.abs(E))+' €':'– €'}</b><b style="display:block;font-size:1.3rem;line-height:1.3;color:${cl(S)};font-variant-numeric:tabular-nums">${sg(S)}${fmt(Math.abs(S),decs(Math.abs(S)))} MWh</b><small style="color:var(--mute)">${gs.length} projet${gs.length>1?'s':''} sur ${l.length} calculable${gs.length>1?'s':''}</small></div>`;
 }
 function sideCpt(){
   const n=new Date(),pm=new Date(n.getFullYear(),n.getMonth()-1,1),need=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');
