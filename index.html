@@ -909,11 +909,12 @@ function sideCpt(){
   const lab=k=>MOISL[+k.slice(5,7)-1].toLowerCase()+' '+k.slice(0,4);
   $('sideCpt').innerHTML=!compteurs.length?'<p class="note" style="margin:0">Aucun compteur.</p>':late.length?late.map(o=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(o.c.nom||'')}</div><small style="color:var(--bad)">${o.last?'Dernière valeur : '+lab(o.last):'Aucune valeur saisie'} · attendu : ${lab(need)}</small></div>`).join(''):'<p class="note" style="margin:0">Tous les compteurs sont à jour ('+lab(need)+').</p>';
 }
-function ecoBoxes(ref,tag){
+function ecoBoxes(ref,tag,fn){
   const noms={g:['Gaz','--gaz'],e:['Électricité','--elec'],t:['Total gaz + électricité','--ink']},res={},T={sav:0,s0:0,eur:0,ng:0,n:0};
   ['g','e'].forEach(k=>{
-    const a=val(year,k),b=val(ref,k);let s1=0,s0=0,n=0;
-    a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];n++}});
+    let s1=0,s0=0,n=0;
+    if(fn){const r=fn(k);if(r){s0=r.base;s1=r.cur;n=1}}
+    else{const a=val(year,k),b=val(ref,k);a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];n++}})}
     if(!(n&&s0)){res[k]=null;return}
     const sav=(s0-s1)/1000,pr=priceOf(year,k,null);
     res[k]={sav,q:(s0-s1)/s0*100,eur:pr!=null?sav*pr:null};
@@ -932,8 +933,17 @@ function ecoBoxes(ref,tag){
 function sideEco(){
   $('sEcoT').textContent='Année en cours - '+year;
   $('sEco').innerHTML=ecoBoxes(year-1,'Année '+year+' vs '+(year-1));
-  const REF=2018,sec=$('sRefSec');sec.hidden=year===REF;
-  if(year!==REF){$('sRefT').textContent='Année de référence - '+REF;$('sRef').innerHTML=ecoBoxes(REF,'Année '+year+' vs '+REF)}
+  const sec=$('sRefSec');sec.hidden=year<=REF;
+  if(year>REF){$('sRefT').textContent='Année de référence - '+REF;
+    let prov=false;
+    const fn=k=>{if(!full(REF,k))return null;const base=yearTotal(REF,k);let cur;
+      if(full(year,k))cur=yearTotal(year,k);
+      else{const a=val(year,k),n=count(a);if(!n)return null;const act=sum(a);prov=true;let py=null;
+        for(let y=year-1;y>=REF;y--){if(count(val(y,k))===12){py=y;break}}
+        cur=null;if(py!=null){const b=val(py,k);let same=0,rest=0;a.forEach((v,i)=>{if(v!=null)same+=b[i];else rest+=b[i]});if(same>0)cur=act+act/same*rest}
+        if(cur==null)cur=act/n*12}
+      return{base,cur}};
+    $('sRef').innerHTML=ecoBoxes(REF,'Année '+year+' vs '+REF,fn)+(prov?'<p class="note" style="margin:0">Année '+year+' en cours : estimation de la consommation sur 12 mois (saisonnalité d’une année complète, sinon moyenne mensuelle) comparée à l’année complète '+REF+'.</p>':'')}
 }
 let editP=null;
 const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
