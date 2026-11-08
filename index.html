@@ -922,19 +922,18 @@ function ecoBoxes(ref,tag,fn){
   });
   res.t=T.n?{sav:T.sav,q:T.s0?T.sav/T.s0*100:0,eur:T.ng===T.n?null:T.eur,part:T.ng>0}:null;
   return ['t','g','e'].map(k=>{
-    const [lib,cv]=noms[k],r=res[k];let mw='–',eu='–',cl='var(--mute)',pc='<small style="color:var(--mute)">Pas de comparaison avec '+ref+'</small>';
+    const [lib,cv]=noms[k],r=res[k];let mw='–',cl='var(--mute)',pc='<small style="color:var(--mute)">Pas de comparaison avec '+ref+'</small>';
     if(r){const sav=r.sav,sg=sav>0?'-':sav<0?'+':'';
       cl=sav>0?'var(--ok)':sav<0?'var(--bad)':'var(--mute)';
-      mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh';
-      eu=r.eur!=null?sg+fmt(Math.abs(r.eur))+' €'+(r.part?'*':''):'prix manquant';
-      pc=`<b style="display:block;font-size:2.4rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(r.q),1)} %</b>`}
-    return `<div style="border-top:4px solid var(${cv});background:linear-gradient(160deg,color-mix(in srgb,var(${cv}) ${k==='t'?14:34}%,var(--card)),color-mix(in srgb,var(${cv}) ${k==='t'?3:8}%,var(--card)));border-radius:8px;padding:12px;margin-bottom:10px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">${lib} · ${tag}</span>${pc}<b style="display:block;font-size:1.1rem;line-height:1.3;margin-top:4px;color:${cl};font-variant-numeric:tabular-nums">${mw}</b><b style="display:block;font-size:1.1rem;line-height:1.3;color:${cl};font-variant-numeric:tabular-nums">${eu}</b></div>`}).join('');
+      mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh'+(r.eur!=null?' soit '+sg+fmt(Math.abs(r.eur))+' €'+(r.part?'*':''):' (prix manquant)');
+      pc=`<b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(r.q),1)} %</b>`}
+    return `<div style="border-top:4px solid var(${cv});background:linear-gradient(160deg,color-mix(in srgb,var(${cv}) ${k==='t'?14:34}%,var(--card)),color-mix(in srgb,var(${cv}) ${k==='t'?3:8}%,var(--card)));border-radius:8px;padding:12px;margin-bottom:10px"><span style="display:block;color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span>${pc}<b style="display:block;font-size:1.05rem;line-height:1.3;margin-top:4px;color:${cl};font-variant-numeric:tabular-nums">${mw}</b></div>`}).join('');
 }
 function sideEco(){
-  $('sEcoT').textContent='Année en cours - '+year;
+  $('sEcoT').textContent='Année en cours - '+year+' vs '+(year-1);
   $('sEco').innerHTML=ecoBoxes(year-1,'Année '+year+' vs '+(year-1));
   const sec=$('sRefSec');sec.hidden=year<=REF;
-  if(year>REF){$('sRefT').textContent='Année de référence - '+REF;
+  if(year>REF){$('sRefT').textContent='Année de référence - '+REF+' · '+year+' vs '+REF;
     let prov=false;
     const fn=k=>{if(!full(REF,k))return null;const base=yearTotal(REF,k);let cur;
       if(full(year,k))cur=yearTotal(year,k);
