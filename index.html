@@ -107,6 +107,10 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .g2 .gf{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ok)}.g2 .gf .gt{color:#fff}.g2.cours .gf{background:var(--s-cours)}
 @media (prefers-color-scheme:dark){.g2 .gf .gt{color:#14191b}}
 #vDash>header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}#vDash>header>.tools{justify-content:center;align-items:end}
+#popBox{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:150;display:flex;flex-direction:column;gap:10px;width:min(440px,calc(100vw - 24px))}
+.pop{background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;animation:popin .25s ease-out}
+.pop.f{border-left-color:var(--ok)}.pop h3{margin:0 0 4px;font-size:1rem}.pop ul{margin:4px 0 10px;padding-left:18px;font-size:.92rem;overflow-wrap:anywhere}.pop .pb{display:flex;gap:8px;justify-content:flex-end}
+@keyframes popin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
 body.out .edit-only{display:none!important}
@@ -301,6 +305,7 @@ body.out .edit-only{display:none!important}
 </div>
 <footer id="foot"><span id="who"></span><button id="logout" type="button">Se déconnecter</button></footer>
 </main>
+<div id="popBox" aria-live="polite"></div>
 
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
@@ -819,10 +824,31 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const refus=()=>alert('Action refusée : êtes-vous connecté avec un compte autorisé ?');
 function listenProj(){
   if(unsubP)unsubP();
-  unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj()},
+  unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj();checkPopups()},
     ()=>{projets=[];$('lCours').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
 }
 const statutOf=p=>{if(p.statut==='a_realiser')return 'a';if(p.statut==='cloture')return 'clos';const t=p.taches||[];return t.length&&t.every(x=>x.fait)?'fini':'cours'};
+let popDone=false;
+const popKey=()=>'popSeen:'+(user?user.uid:'x');
+function popGet(){try{return JSON.parse(localStorage.getItem(popKey())||'null')}catch(e){return null}}
+function popSet(v){try{localStorage.setItem(popKey(),JSON.stringify(v))}catch(e){}}
+function checkPopups(){
+  if(popDone||!user)return;popDone=true;
+  const cours=projets.filter(p=>statutOf(p)==='cours'),fini=projets.filter(p=>statutOf(p)==='fini'),st=popGet();
+  if(!st){popSet({c:cours.map(p=>p.id),f:fini.map(p=>p.id)});return}
+  const nc=cours.filter(p=>!(st.c||[]).includes(p.id)),nf=fini.filter(p=>!(st.f||[]).includes(p.id));
+  popSet({c:[...new Set([...(st.c||[]),...cours.map(p=>p.id)])],f:fini.map(p=>p.id)});
+  if(nc.length)showPop('c',nc);if(nf.length)showPop('f',nf);
+}
+function showPop(kind,list){
+  const n=list.length,d=document.createElement('div');d.className='pop'+(kind==='f'?' f':'');d.setAttribute('role','status');
+  d.innerHTML=`<h3>${kind==='f'?(n>1?'Nouveaux projets terminés à contrôler':'Nouveau projet terminé à contrôler'):(n>1?'Nouveaux projets commencés':'Nouveau projet commencé')}</h3><ul>${list.map(p=>`<li>${esc(p.nom)}</li>`).join('')}</ul><div class="pb"><button type="button" data-x>Fermer</button><button type="button" class="main" data-v>Voir</button></div>`;
+  d.querySelector('[data-x]').onclick=()=>d.remove();
+  d.querySelector('[data-v]').onclick=()=>{d.remove();list.forEach(p=>openA.add(p.id));
+    if(location.hash==='#projets')renderProj();else location.hash='#projets';
+    setTimeout(()=>{renderProj();const el=document.querySelector('#vProj details.pr[data-id="'+list[0].id+'"]');if(el)el.scrollIntoView({block:'center'})},80)};
+  $('popBox').appendChild(d);
+}
 const MC={'Élec':'m1','CVC':'m2','Plombier':'m3'};
 function card(p){
   const t=p.taches||[],n=t.length,k=t.filter(x=>x.fait).length,st=statutOf(p),a=st==='a',done=st==='fini'||st==='clos',pct=n?Math.round(k/n*100):0,dis=user&&!a&&st!=='clos'?'':'disabled';
@@ -1229,7 +1255,7 @@ onAuthStateChanged(auth,async u=>{
   const bt=document.getElementById('boot');if(bt)bt.remove();
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};first=true;closeForm();$('gate').hidden=false;setGate('login');return}
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
