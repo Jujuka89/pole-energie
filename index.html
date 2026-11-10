@@ -693,7 +693,7 @@ function renderDju(){
     q('data-dn').forEach(el=>{const y=el.dataset.dn;let n=0;for(let m=1;m<=12;m++)if(S[y+'-'+String(m).padStart(2,'0')]!=null)n++;el.textContent=n+'/12 mois'})};
   fillG('#djuGrids',dju);fillG('#djuGridsC',djuC);
   $('djuGH').innerHTML=djuGauge(dju,{id:'H',name:'DJU chaud',dflt:450,c0:'#e3f0ff',c1:'#0b4aa8',levels:['Très doux','Doux','Frais','Froid','Très froid']});
-  $('djuGF').innerHTML=djuGauge(djuC,{id:'F',name:'DJU froid',dflt:150,fixed:150,c0:'#ffe3e3',c1:'#a51111',levels:['Aucun besoin','Léger','Chaud','Très chaud','Canicule']});
+  $('djuGF').innerHTML=djuGauge(djuC,{id:'F',name:'DJU froid',dflt:130,fixed:130,c0:'#ffe3e3',c1:'#a51111',levels:['Aucun besoin','Léger','Chaud','Très chaud','Canicule']});
   $('djuYear').value=djuYear;
   const arr=S=>Array.from({length:12},(_,i)=>{const v=S[djuYear+'-'+String(i+1).padStart(2,'0')];return v!=null?v:null});
   const vals=arr(dju),valsC=arr(djuC),tot=vals.reduce((a,v)=>a+(v||0),0),nn=vals.filter(v=>v!=null).length,totC=valsC.reduce((a,v)=>a+(v||0),0),nnC=valsC.filter(v=>v!=null).length;
