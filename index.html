@@ -159,7 +159,7 @@ body.out .edit-only{display:none!important}
     <h1>Dashboard Pôle Energie</h1>
 
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#compteurs">Compteurs</a><a class="btn main" href="#dju">DJU</a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="dash">
@@ -180,7 +180,7 @@ body.out .edit-only{display:none!important}
 </section>
 </div>
 </div>
-<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#compteurs">Voir les compteurs</a></p></section></aside>
+<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#releves">Voir les compteurs</a></p></section></aside>
 </div>
 </div>
 
@@ -188,17 +188,32 @@ body.out .edit-only{display:none!important}
 <header>
   <div>
     <h1>Relevés</h1>
-    <p class="sub">Consultation et saisie des relevés mensuels</p>
+    <p class="sub">Compteurs principaux (gaz et électricité) et compteurs secondaires</p>
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <p id="status" class="note" role="status"></p>
 
 <section id="gridsSec">
-  <h2>Relevés mensuels</h2>
+  <h2>Compteurs principaux : gaz et électricité</h2>
   <p class="note" style="margin:0 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
   <div id="grids"></div>
 </section>
+<div id="vCpt">
+<section>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs secondaires <span id="nC" class="badge"></span></h2><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div>
+  <div id="cForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
+    <form id="cfForm">
+      <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
+      <label>Unité <input id="cfu" maxlength="20" placeholder="kWh ou MWh (pour calculer les gains)"></label>
+      <label>Énergie <select id="cfe"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label>
+      <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
+    </form>
+  </div>
+  <p class="note">Saisissez la consommation de chaque mois. Dans un projet terminé, choisissez ensuite le compteur à suivre : plusieurs projets peuvent utiliser le même compteur.</p>
+  <div id="cList" style="margin-top:10px"></div>
+</section>
+</div>
 <section>
   <h2>Données</h2>
   <div class="tools">
@@ -247,28 +262,6 @@ body.out .edit-only{display:none!important}
 <section class="st st-clos">
   <h2 class="stt">Clôturés <span class="badge cnt" id="nClos"></span></h2>
   <div class="scroll"><div id="lClos"></div></div>
-</section>
-</div>
-<div id="vCpt" hidden>
-<header>
-  <div>
-    <h1>Compteurs</h1>
-    <p class="sub">Consommation mensuelle de chaque compteur, sur plusieurs années</p>
-  </div>
-  <a class="btn" href="#">← Tableau de bord</a>
-</header>
-<section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Mes compteurs <span id="nC" class="badge"></span></h2><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div>
-  <div id="cForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
-    <form id="cfForm">
-      <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
-      <label>Unité <input id="cfu" maxlength="20" placeholder="kWh ou MWh (pour calculer les gains)"></label>
-      <label>Énergie <select id="cfe"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label>
-      <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
-    </form>
-  </div>
-  <p class="note">Saisissez la consommation de chaque mois. Dans un projet terminé, choisissez ensuite le compteur à suivre : plusieurs projets peuvent utiliser le même compteur.</p>
-  <div id="cList" style="margin-top:10px"></div>
 </section>
 </div>
 <div id="vDju" hidden>
@@ -847,7 +840,7 @@ function gcells(p){
   if(!g.conv)return dash('Unité du compteur non convertible : utilisez kWh ou MWh')+dash('');
   const cl=v=>v<0?'down':v>0?'up':'flat',sg=v=>v>0?'+':v<0?'-':'',dm=-g.mwh,de=-g.eur;
   const m=`<span class="delta ${cl(dm)}" style="margin:0">${sg(dm)}${fmt(Math.abs(dm),decs(Math.abs(dm)))} MWh</span>`;
-  const e=g.ne?`<span class="delta ${cl(de)}" style="margin:0">${sg(de)}${fmt(Math.abs(de))} €</span>`:dash('Précisez l’énergie du compteur (page Compteurs) et les prix de l’année');
+  const e=g.ne?`<span class="delta ${cl(de)}" style="margin:0">${sg(de)}${fmt(Math.abs(de))} €</span>`:dash('Précisez l’énergie du compteur (page Relevés) et les prix de l’année');
   return `<span>${m}</span><span>${e}</span>`;
 }
 function svWindow(p,c){
@@ -861,19 +854,19 @@ function svWindow(p,c){
 }
 function suiviBloc(p,c,i,fm){
   const w=svWindow(p,c),mk=munit(c),nom=`<h5 style="margin:14px 0 0;font-size:.95rem">${esc(c.nom)}${c.unite?' ('+esc(c.unite)+')':''}</h5>`;
-  if(!w)return nom+'<p class="note">Ce compteur n’a pas encore de valeurs : saisissez-les dans la page <a href="#compteurs">Compteurs</a>.</p>';
+  if(!w)return nom+'<p class="note">Ce compteur n’a pas encore de valeurs : saisissez-les dans la page <a href="#releves">Relevés</a>.</p>';
   let stat='';const pg=projGainC(p,c);
   if(pg&&!pg.none&&pg.q!=null){const g=pg.units;stat+=`<span class="delta ${pg.q<0?'down':pg.q>0?'up':'flat'}">Depuis ${p.termine?'la fin':'le début'} du projet (${pg.n} mois, comparés aux mêmes mois un an plus tôt) : ${pg.q>0?'+':''}${fmt(pg.q,1)} % · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span> `}
   let a=0,b=0,k=0;w.cur.forEach((v,ix)=>{if(v!=null&&w.prev[ix]!=null){a+=v;b+=w.prev[ix];k++}});
   if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;stat+=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'12 derniers mois':k+' mois comparables sur les 12 derniers'} : ${fm(a*mk.k)} contre ${fm(b*mk.k)}${mk.u?' '+esc(mk.u):''} un an plus tôt (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span>`}
-  return `<div class="svb">${nom}${stat?`<p style="margin:6px 0 0">${stat}</p>`:''}<p class="note" style="margin:8px 0 0">${(p.termine||p.debut)?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de début du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#compteurs">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}-${i}"></canvas></div></div>`;
+  return `<div class="svb">${nom}${stat?`<p style="margin:6px 0 0">${stat}</p>`:''}<p class="note" style="margin:8px 0 0">${(p.termine||p.debut)?`<b>${w.endTxt}</b>${w.endIdx<0?' (hors de la période affichée)':''} · `:'<b>Indiquez la date de début du projet pour afficher le repère.</b> · '}Les 12 derniers mois du compteur « ${esc(c.nom)} », avec les mêmes mois un an plus tôt. <a href="#releves">Saisir ou modifier les valeurs</a></p><div class="box" style="height:280px;margin-top:6px"><canvas id="svc-${p.id}-${i}"></canvas></div></div>`;
 }
 function suivi(p){
   const dis=user?'':'disabled',cs=cptsOf(p),fm=x=>fmt(x,decs(Math.abs(x)));
   const opts=sel=>compteurs.map(x=>`<option value="${x.id}" ${sel===x.id?'selected':''}>${esc(x.nom)}${x.unite?' ('+esc(x.unite)+')':''}</option>`).join('');
   const legacy=!cs.length&&Object.values(p.suivi||{}).some(v=>v!=null&&v!=='');
   let body='';
-  if(!cs.length)body=compteurs.length?'<p class="note">Choisissez le compteur à suivre pour afficher le graphique. Vous pouvez en choisir deux, par exemple le chaud et le froid.</p>':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#compteurs">Compteurs</a>, puis choisissez-le ici.</p>';
+  if(!cs.length)body=compteurs.length?'<p class="note">Choisissez le compteur à suivre pour afficher le graphique. Vous pouvez en choisir deux, par exemple le chaud et le froid.</p>':'<p class="note">Aucun compteur : créez-en un dans la page <a href="#releves">Relevés</a>, puis choisissez-le ici.</p>';
   else{
     if(cs.length>1){const t=projGain(p);
       if(t&&!t.none&&t.conv){const dm=-t.mwh,de=-t.eur;body+=`<p style="margin:10px 0 0"><span class="delta ${dm<0?'down':dm>0?'up':'flat'}">Total des ${cs.length} compteurs depuis ${p.termine?'la fin':'le début'} du projet : ${dm<=0?'gain':'perte'} de ${fm(Math.abs(dm))} MWh${t.ne?' · '+fmt(Math.abs(de))+' €':''}</span></p>`}}
@@ -883,7 +876,7 @@ function suivi(p){
     <div class="tools"><label>Compteur suivi <select data-scpt="${p.id}" ${dis}><option value="">— Choisir un compteur —</option>${opts(p.compteurId)}</select></label>
     <label>Deuxième compteur (facultatif) <select data-scpt2="${p.id}" ${dis}><option value="">— Aucun —</option>${opts(p.compteurId2)}</select></label>
     ${statutOf(p)==='cours'?`<label>Date de début du projet <input type="date" data-sdebut="${p.id}" value="${p.debut||''}" ${dis}></label>`:`<label>Date de fin du projet <input type="date" data-sdate="${p.id}" value="${p.termine||''}" ${dis}></label>`}</div>
-    ${legacy?'<p class="note">Des valeurs ont été saisies dans l’ancien mode, dans le projet. Elles ne sont plus affichées : saisissez-les dans la page Compteurs.</p>':''}
+    ${legacy?'<p class="note">Des valeurs ont été saisies dans l’ancien mode, dans le projet. Elles ne sont plus affichées : saisissez-les dans la page Relevés.</p>':''}
     ${body}</div>`;
 }
 function drawSuiviCharts(){
@@ -1147,7 +1140,7 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const h=location.hash,r=h==='#releves',pj=h==='#projets',cp=h==='#compteurs',dj=h==='#dju';$('vDash').hidden=r||pj||cp||dj;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;$('vCpt').hidden=!cp;document.querySelector('main').classList.toggle('wide',!(r||pj||cp||dj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju';$('vDash').hidden=r||pj||dj;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj||dj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
