@@ -280,6 +280,10 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <section>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuTitle" style="margin:0">DJU</h2><label>Année <select id="djuYear"></select></label></div>
+  <div class="box"><canvas id="cDju"></canvas></div>
+</section>
+<section>
   <h2>Saisie mensuelle des DJU</h2>
   <p class="note" style="margin:0 0 4px">Saisissez les DJU de chaque mois : la valeur s’enregistre dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de valeur ; videz une case pour l’effacer.</p>
   <div id="djuGrids"></div>
@@ -637,20 +641,36 @@ function rapportGeneral(){
   const np=doc.getNumberOfPages();for(let i=1;i<=np;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MU);doc.text('Page '+i+'/'+np,W-M,290,{align:'right'})}
   doc.save('rapport-energie-'+year+'.pdf');
 }
-let dju={},djuKey='';
+let dju={},djuKey='',djuYear=null;
+const djuPlugin={id:'djuv',afterDatasetsDraw(ch){
+  const ctx=ch.ctx,m=ch.getDatasetMeta(0),ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+  ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';
+  m.data.forEach((b,i)=>{const v=ch.data.datasets[0].data[i];if(v!=null)ctx.fillText(fmt(v,1),b.x,b.y-4)});
+  ctx.restore();
+}};
 function buildDju(){
   const cur=new Date().getFullYear(),ys=Object.keys(dju).map(k=>+k.slice(0,4)),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
   if(key===djuKey)return;djuKey=key;let h='';
   for(let y=top;y>=bot;y--){
     h+=`<details class="yr" ${y===cur?'open':''}><summary><b>${y}</b> <span class="badge" data-dn="${y}"></span></summary><div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>DJU</th></tr></thead><tbody>${MOISL.map((mn,i)=>`<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell" placeholder="–" data-dj="${y}-${String(i+1).padStart(2,'0')}"></td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td data-dt="${y}"></td></tr></tfoot></table></div></details>`}
   $('djuGrids').innerHTML=h;
+  $('djuYear').innerHTML=Array.from({length:top-bot+1},(_,i)=>top-i).map(y=>`<option>${y}</option>`).join('');
+  if(djuYear==null||djuYear<bot||djuYear>top){const ks=Object.keys(dju).filter(k=>dju[k]!=null).map(k=>+k.slice(0,4));djuYear=ks.length?Math.max(...ks):cur}
 }
 function renderDju(){
   buildDju();const act=document.activeElement,q=a=>document.querySelectorAll('#djuGrids ['+a+']');
   q('data-dj').forEach(el=>{if(el===act)return;const v=dju[el.dataset.dj];el.value=v!=null?v:''});
   q('data-dt').forEach(el=>{const y=el.dataset.dt;let t=0,n=0;for(let m=1;m<=12;m++){const v=dju[y+'-'+String(m).padStart(2,'0')];if(v!=null){t+=v;n++}}el.textContent=n?fmt(t,1):'–'});
+  $('djuYear').value=djuYear;
+  const vals=Array.from({length:12},(_,i)=>{const v=dju[djuYear+'-'+String(i+1).padStart(2,'0')];return v!=null?v:null});
+  const tot=vals.reduce((a,v)=>a+(v||0),0),nn=vals.filter(v=>v!=null).length;
+  $('djuTitle').textContent='DJU '+djuYear+(nn?' · total '+fmt(tot,1):'');
+  const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),ds=[{label:'DJU '+djuYear,data:vals,backgroundColor:col('--m3')}];
+  if(charts.cDju){charts.cDju.data.datasets=ds;charts.cDju.options.scales.x.ticks.color=txt;charts.cDju.update()}
+  else charts.cDju=new Chart($('cDju'),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[djuPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.parsed.y,1)} DJU`}}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'DJU',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   q('data-dn').forEach(el=>{const y=el.dataset.dn;let n=0;for(let m=1;m<=12;m++)if(dju[y+'-'+String(m).padStart(2,'0')]!=null)n++;el.textContent=n+'/12 mois'});
 }
+$('djuYear').onchange=ev=>{djuYear=+ev.target.value;renderDju()};
 $('djuGrids').onchange=ev=>{const t=ev.target,ym=t.dataset.dj;if(!ym)return;const v=t.value===''?null:+t.value;if(v==null&&dju[ym]==null)return;
   setDoc(doc(db,'releves','_dju'),{v:{[ym]:v}},{merge:true}).catch(()=>{refus();renderDju()})};
 $('djuGrids').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.dj)return;ev.preventDefault();const tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-dj]');if(n)n.focus()};
