@@ -273,7 +273,7 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuRTitle" style="margin:0">Consommation / DJU</h2><span style="display:flex;gap:12px;flex-wrap:wrap"><label>Année <select id="djuYear"></select></label><label>DJU utilisés <select id="djuSrc"><option value="h">Chauffagiste</option><option value="c">Climaticien</option></select></label></span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuRTitle" style="margin:0">Consommation / DJU</h2><span style="display:flex;gap:12px;flex-wrap:wrap"><label>Année <select id="djuYear"></select></label></span></div>
   <div class="box"><canvas id="cDjuR"></canvas></div>
   <p class="note" id="djuRNote" style="margin:8px 0 0"></p>
 </section>
@@ -649,7 +649,7 @@ function rapportGeneral(){
   const np=doc.getNumberOfPages();for(let i=1;i<=np;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MU);doc.text('Page '+i+'/'+np,W-M,290,{align:'right'})}
   doc.save('rapport-energie-'+year+'.pdf');
 }
-let dju={},djuC={},djuKey='',djuYear=null,djuSrc='h';
+let dju={},djuC={},djuKey='',djuYear=null;
 const djuPlugin={id:'djuv',afterDatasetsDraw(ch){
   const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(),two=ch.data.datasets.length>1;
   ctx.save();ctx.font='700 '+(two?9:11)+'px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';
@@ -666,46 +666,49 @@ function buildDju(){
   if(djuYear==null||djuYear<bot||djuYear>top){const ks=[...Object.keys(dju).filter(k=>dju[k]!=null),...Object.keys(djuC).filter(k=>djuC[k]!=null)].map(k=>+k.slice(0,4));djuYear=ks.length?Math.max(...ks):cur}
 }
 function renderDju(){
-  buildDju();const act=document.activeElement,D=djuSrc==='c'?djuC:dju,srcN=djuSrc==='c'?'Climaticien':'Chauffagiste';
+  buildDju();const act=document.activeElement;
   const fillG=(box,S)=>{const q=a=>document.querySelectorAll(box+' ['+a+']');
     q('data-dj').forEach(el=>{if(el===act)return;const v=S[el.dataset.dj];el.value=v!=null?v:''});
     q('data-dt').forEach(el=>{const y=el.dataset.dt;let t=0,n=0;for(let m=1;m<=12;m++){const v=S[y+'-'+String(m).padStart(2,'0')];if(v!=null){t+=v;n++}}el.textContent=n?fmt(t,1):'–'});
     q('data-dn').forEach(el=>{const y=el.dataset.dn;let n=0;for(let m=1;m<=12;m++)if(S[y+'-'+String(m).padStart(2,'0')]!=null)n++;el.textContent=n+'/12 mois'})};
   fillG('#djuGrids',dju);fillG('#djuGridsC',djuC);
-  $('djuYear').value=djuYear;$('djuSrc').value=djuSrc;
+  $('djuYear').value=djuYear;
   const arr=S=>Array.from({length:12},(_,i)=>{const v=S[djuYear+'-'+String(i+1).padStart(2,'0')];return v!=null?v:null});
   const vals=arr(dju),valsC=arr(djuC),tot=vals.reduce((a,v)=>a+(v||0),0),nn=vals.filter(v=>v!=null).length,totC=valsC.reduce((a,v)=>a+(v||0),0),nnC=valsC.filter(v=>v!=null).length;
   $('djuTitle').textContent='DJU '+djuYear+' · Chauffagiste'+(nn?' ('+fmt(tot,1)+')':'')+' et Climaticien'+(nnC?' ('+fmt(totC,1)+')':'');
   const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),ds=[{label:'Chauffagiste',data:vals,backgroundColor:col('--m3')},{label:'Climaticien',data:valsC,backgroundColor:col('--accent')}];
   if(charts.cDju){charts.cDju.data.datasets=ds;charts.cDju.options.scales.x.ticks.color=txt;charts.cDju.options.plugins.legend.labels.color=txt;charts.cDju.update()}
   else charts.cDju=new Chart($('cDju'),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[djuPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.label} : ${fmt(c.parsed.y,1)} DJU`}}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'DJU',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
-  {const e=val(djuYear,'e'),g=val(djuYear,'g'),ok=i=>e[i]!=null&&g[i]!=null,
+  {const CH='#e8590c',FR='#7048e8',MIN=20,e=val(djuYear,'e'),g=val(djuYear,'g'),ok=i=>e[i]!=null&&g[i]!=null,
     me=e.map((v,i)=>ok(i)?v/1000:null),mg=g.map((v,i)=>ok(i)?v/1000:null),
-    tt=e.map((v,i)=>ok(i)?(v+g[i])/1000:null),n=tt.filter(v=>v!=null).length,
-    dj=arr(D),
-    dsC=[{type:'bar',label:'Électricité (MWh)',data:me,backgroundColor:col('--elec'),stack:'c',yAxisID:'y',order:2},
-         {type:'bar',label:'Gaz (MWh)',data:mg,backgroundColor:col('--gaz'),stack:'c',yAxisID:'y',order:2},
-         {type:'line',label:'DJU '+srcN,data:dj,borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,pointRadius:4,tension:.25,spanGaps:false,yAxisID:'y2',order:1}];
-    $('djuCTitle').textContent='Consommation totale et DJU '+srcN+' · '+djuYear;
-    $('djuCNote').textContent=n?'Barres : consommation du mois (gaz + électricité, MWh), pour les mois où les deux sont saisis. Courbe : DJU du mois (axe de droite).':'Aucun mois complet (gaz et électricité saisis mois par mois) pour '+djuYear+'.';
-    if(charts.cDjuC){const c=charts.cDjuC;c.data.datasets=dsC;['x','y','y2'].forEach(a=>{c.options.scales[a].ticks.color=txt});c.options.scales.y.grid.color=grid;c.update()}
+    n=e.filter((v,i)=>ok(i)).length,
+    dsC=[{type:'bar',label:'Électricité (MWh)',data:me,backgroundColor:col('--elec'),stack:'c',yAxisID:'y',order:3},
+         {type:'bar',label:'Gaz (MWh)',data:mg,backgroundColor:col('--gaz'),stack:'c',yAxisID:'y',order:3},
+         {type:'line',label:'DJU chaud (Chauffagiste)',data:vals,borderColor:CH,backgroundColor:CH,borderWidth:2.5,pointRadius:4,tension:.25,spanGaps:false,yAxisID:'y2',order:1},
+         {type:'line',label:'DJU froid (Climaticien)',data:valsC,borderColor:FR,backgroundColor:FR,borderWidth:2.5,pointRadius:4,tension:.25,spanGaps:false,yAxisID:'y2',order:2}];
+    $('djuCTitle').textContent='Consommation totale et DJU · '+djuYear;
+    $('djuCNote').textContent=n?'Barres : consommation du mois (gaz + électricité, MWh), pour les mois où les deux sont saisis. Courbes : DJU chaud et DJU froid du mois (axe de droite).':'Aucun mois complet (gaz et électricité saisis mois par mois) pour '+djuYear+'.';
+    if(charts.cDjuC){const c=charts.cDjuC;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;['x','y','y2'].forEach(a=>{c.options.scales[a].ticks.color=txt});c.options.scales.y.grid.color=grid;c.update()}
     else charts.cDjuC=new Chart($('cDjuC'),{data:{labels:MOIS,datasets:dsC},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>c.dataset.label.startsWith('DJU')?` ${c.dataset.label} : ${fmt(c.parsed.y,1)}`:` ${c.dataset.label.split(' (')[0]} : ${fmt(c.parsed.y,1)} MWh`,footer:its=>{const v=its.filter(x=>x.dataset.stack).reduce((a,x)=>a+(x.parsed.y||0),0);return v?'Total : '+fmt(v,1)+' MWh':''}}}},
       scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,position:'left',title:{display:true,text:'Consommation (MWh)',color:txt},ticks:{color:txt},grid:{color:grid}},y2:{beginAtZero:true,position:'right',title:{display:true,text:'DJU',color:txt},ticks:{color:txt},grid:{display:false}}}}})}
-  {const e=val(djuYear,'e'),g=val(djuYear,'g'),
-    ratio=y=>{const ee=val(y,'e'),gg=val(y,'g');return Array.from({length:12},(_,i)=>{const d=D[y+'-'+String(i+1).padStart(2,'0')];return ee[i]!=null&&gg[i]!=null&&d>0?(ee[i]+gg[i])/1000/d:null})},
-    rt=ratio(djuYear),rp=ratio(djuYear-1),np=rp.filter(v=>v!=null).length,
-    n=rt.filter(v=>v!=null).length;let sc=0,sd=0;
-    rt.forEach((v,i)=>{if(v!=null){sc+=(e[i]+g[i])/1000;sd+=D[djuYear+'-'+String(i+1).padStart(2,'0')]}});
-    const fm=v=>fmt(v,v<0.1?4:3),dsR=[{type:'bar',label:'MWh / DJU '+djuYear,data:rt,backgroundColor:col('--accent'),order:2},{type:'line',label:(djuYear-1)+'',data:rp,borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,borderDash:[6,4],pointRadius:4,tension:.25,spanGaps:false,order:1}];
-    $('djuRTitle').textContent='Consommation / DJU '+srcN+' · '+djuYear+(n?' · moyenne '+fm(sc/sd)+' MWh/DJU':'');
-    $('djuRNote').textContent=n?'Ratio mensuel = consommation totale (gaz + électricité, en MWh) ÷ DJU du mois. Plus il est bas, plus le bâtiment consomme peu pour une même rigueur climatique. Mois où gaz, électricité et DJU sont tous saisis. La moyenne est pondérée (total MWh ÷ total DJU). Ligne pointillée : même ratio l’année précédente'+(np?'.':' (aucun mois complet en '+(djuYear-1)+').'):'Aucun mois avec gaz, électricité et DJU saisis pour '+djuYear+'.';
+  {const CH='#e8590c',FR='#7048e8',MIN=20,
+    auto=y=>{const ee=val(y,'e'),gg=val(y,'g');return Array.from({length:12},(_,i)=>{const k=y+'-'+String(i+1).padStart(2,'0'),ch=dju[k]||0,fr=djuC[k]||0;
+      if(ch>=fr){if(ch>=MIN&&ee[i]!=null&&gg[i]!=null){const t=(ee[i]+gg[i])/1000;return{m:'c',v:t/ch,t,d:ch}}return null}
+      if(fr>=MIN&&ee[i]!=null){const t=ee[i]/1000;return{m:'f',v:t/fr,t,d:fr}}return null})},
+    A=auto(djuYear),P=auto(djuYear-1),np=P.filter(Boolean).length,
+    pick=m=>A.map(o=>o&&o.m===m?o.v:null),sm=m=>{const l=A.filter(o=>o&&o.m===m),d=l.reduce((a,o)=>a+o.d,0);return d?l.reduce((a,o)=>a+o.t,0)/d:null},
+    ac=sm('c'),af=sm('f'),fm=v=>fmt(v,v<0.1?4:3),
+    dsR=[{type:'bar',label:'Chauffage : (gaz + élec.) ÷ DJU chaud',data:pick('c'),backgroundColor:CH,stack:'r',order:2},
+         {type:'bar',label:'Climatisation : élec. ÷ DJU froid',data:pick('f'),backgroundColor:FR,stack:'r',order:2},
+         {type:'line',label:(djuYear-1)+'',data:P.map(o=>o?o.v:null),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,borderDash:[6,4],pointRadius:4,tension:.25,spanGaps:false,order:1}];
+    $('djuRTitle').textContent='Consommation / DJU · '+djuYear;
+    $('djuRNote').textContent=(ac!=null||af!=null?'Moyennes '+djuYear+' (pondérées) : '+[ac!=null?'chauffage '+fm(ac)+' MWh/DJU chaud':'',af!=null?'climatisation '+fm(af)+' MWh/DJU froid':''].filter(Boolean).join(' · ')+'. ':'Aucun mois exploitable pour '+djuYear+'. ')+'Chaque mois est rapporté au DJU dominant : chaud (le gaz et l’électricité servent au chauffage) ou froid (la climatisation est uniquement électrique, donc seule l’électricité est comptée). Les mois dont le DJU dominant est inférieur à '+MIN+' sont ignorés, car le ratio y est instable. Ligne pointillée : ratio de '+(djuYear-1)+(np?'.':' (aucun mois exploitable).');
     if(charts.cDjuR){const c=charts.cDjuR;c.data.datasets=dsR;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y.grid.color=grid;c.update()}
-    else charts.cDjuR=new Chart($('cDjuR'),{type:'bar',data:{labels:MOIS,datasets:dsR},plugins:[{id:'djur',afterDatasetsDraw(ch){const ctx=ch.ctx,m=ch.getDatasetMeta(0),ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';m.data.forEach((b,i)=>{const v=ch.data.datasets[0].data[i];if(v!=null)ctx.fillText(fm(v),b.x,b.y-4)});ctx.restore()}}],
-      options:{maintainAspectRatio:false,layout:{padding:{top:22}},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.label.startsWith('MWh')?djuYear:c.dataset.label} : ${fm(c.parsed.y)} MWh/DJU`}}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh / DJU',color:txt},ticks:{color:txt},grid:{color:grid}}}}})}
+    else charts.cDjuR=new Chart($('cDjuR'),{type:'bar',data:{labels:MOIS,datasets:dsR},plugins:[{id:'djur',afterDatasetsDraw(ch){const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';ch.data.datasets.forEach((ds,di)=>{if(ds.type!=='bar')return;ch.getDatasetMeta(di).data.forEach((b,i)=>{const v=ds.data[i];if(v!=null)ctx.fillText(fm(v),b.x,b.y-4)})});ctx.restore()}}],
+      options:{maintainAspectRatio:false,layout:{padding:{top:22}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.type==='line'?c.dataset.label:c.dataset.label.split(' :')[0]} : ${fm(c.parsed.y)} MWh/DJU`}}},scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'MWh / DJU',color:txt},ticks:{color:txt},grid:{color:grid}}}}})}
 }
 $('djuYear').onchange=ev=>{djuYear=+ev.target.value;renderDju()};
-$('djuSrc').onchange=ev=>{djuSrc=ev.target.value;renderDju()};
 [['djuGrids','_dju',()=>dju],['djuGridsC','_djuc',()=>djuC]].forEach(([id,docId,get])=>{
   $(id).onchange=ev=>{const t=ev.target,ym=t.dataset.dj;if(!ym)return;const v=t.value===''?null:+t.value;if(v==null&&get()[ym]==null)return;
     setDoc(doc(db,'releves',docId),{v:{[ym]:v}},{merge:true}).catch(()=>{refus();renderDju()})};
