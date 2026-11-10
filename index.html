@@ -286,10 +286,6 @@ body.out .edit-only{display:none!important}
   <p class="note" id="djuCNote" style="margin:8px 0 0"></p>
 </section>
 <section>
-  <h2 id="djuTitle" style="margin:0 0 12px">DJU</h2>
-  <div class="box"><canvas id="cDju"></canvas></div>
-</section>
-<section>
   <h2>DJU Chauffagiste : saisie mensuelle</h2>
   <p class="note" style="margin:0 0 4px">Saisissez les DJU de chaque mois : la valeur s’enregistre dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de valeur ; videz une case pour l’effacer.</p>
   <div id="djuGrids"></div>
@@ -656,12 +652,6 @@ function rapportGeneral(){
   doc.save('rapport-energie-'+year+'.pdf');
 }
 let dju={},djuC={},djuKey='',djuYear=null;
-const djuPlugin={id:'djuv',afterDatasetsDraw(ch){
-  const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(),two=ch.data.datasets.length>1;
-  ctx.save();ctx.font='700 '+(two?9:11)+'px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';
-  ch.data.datasets.forEach((ds,di)=>{ch.getDatasetMeta(di).data.forEach((b,i)=>{const v=ds.data[i];if(v!=null)ctx.fillText(fmt(v,two?0:1),b.x,b.y-4)})});
-  ctx.restore();
-}};
 function buildDju(){
   const cur=new Date().getFullYear(),ys=[...Object.keys(dju),...Object.keys(djuC)].map(k=>+k.slice(0,4)),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
   if(key===djuKey)return;djuKey=key;let h='';
@@ -696,11 +686,8 @@ function renderDju(){
   $('djuGF').innerHTML=djuGauge(djuC,{id:'F',name:'DJU froid',dflt:130,c0:'#ffe3e3',c1:'#a51111',levels:['Aucun besoin','Léger','Chaud','Très chaud','Canicule'],icons:['😌','🙂','😅','🥵','🥵🔥']},mf);
   $('djuYear').value=djuYear;
   const arr=S=>Array.from({length:12},(_,i)=>{const v=S[djuYear+'-'+String(i+1).padStart(2,'0')];return v!=null?v:null});
-  const vals=arr(dju),valsC=arr(djuC),tot=vals.reduce((a,v)=>a+(v||0),0),nn=vals.filter(v=>v!=null).length,totC=valsC.reduce((a,v)=>a+(v||0),0),nnC=valsC.filter(v=>v!=null).length;
-  $('djuTitle').textContent='DJU '+djuYear+' · Chauffagiste'+(nn?' ('+fmt(tot,1)+')':'')+' et Climaticien'+(nnC?' ('+fmt(totC,1)+')':'');
-  const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),ds=[{label:'Chauffagiste',data:vals,backgroundColor:col('--m3')},{label:'Climaticien',data:valsC,backgroundColor:col('--accent')}];
-  if(charts.cDju){charts.cDju.data.datasets=ds;charts.cDju.options.scales.x.ticks.color=txt;charts.cDju.options.plugins.legend.labels.color=txt;charts.cDju.update()}
-  else charts.cDju=new Chart($('cDju'),{type:'bar',data:{labels:MOIS,datasets:ds},plugins:[djuPlugin],options:{maintainAspectRatio:false,layout:{padding:{top:22}},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.label} : ${fmt(c.parsed.y,1)} DJU`}}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'DJU',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
+  const vals=arr(dju),valsC=arr(djuC);
+  const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line');
   {const CH='#e8590c',FR='#7048e8',MIN=20,e=val(djuYear,'e'),g=val(djuYear,'g'),ok=i=>e[i]!=null&&g[i]!=null,
     me=e.map((v,i)=>ok(i)?v/1000:null),mg=g.map((v,i)=>ok(i)?v/1000:null),
     n=e.filter((v,i)=>ok(i)).length,
@@ -710,10 +697,13 @@ function renderDju(){
          {type:'line',label:'DJU froid (Climaticien)',data:valsC,borderColor:FR,backgroundColor:FR,borderWidth:2.5,pointRadius:4,tension:.25,spanGaps:false,yAxisID:'y2',order:2}];
     $('djuCTitle').textContent='Consommation totale et DJU · '+djuYear;
     $('djuCNote').textContent=n?'Barres : consommation du mois (gaz + électricité, MWh), pour les mois où les deux sont saisis. Courbes : DJU chaud et DJU froid du mois (axe de droite).':'Aucun mois complet (gaz et électricité saisis mois par mois) pour '+djuYear+'.';
-    if(charts.cDjuC){const c=charts.cDjuC;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;['x','y','y2'].forEach(a=>{c.options.scales[a].ticks.color=txt});c.options.scales.y.grid.color=grid;c.update()}
-    else charts.cDjuC=new Chart($('cDjuC'),{data:{labels:MOIS,datasets:dsC},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    const recK=S=>{const ks=Object.keys(S).filter(k=>S[k]!=null);if(!ks.length)return null;const mx=Math.max(...ks.map(k=>S[k]));return mx>0?ks.filter(k=>S[k]===mx).sort()[0]:null},rec={y:djuYear,h:recK(dju),f:recK(djuC)};
+    if(charts.cDjuC){const c=charts.cDjuC;c.$rec=rec;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;['x','y','y2'].forEach(a=>{c.options.scales[a].ticks.color=txt});c.options.scales.y.grid.color=grid;c.update()}
+    else{charts.cDjuC=new Chart($('cDjuC'),{data:{labels:MOIS,datasets:dsC},plugins:[{id:'djul',afterDatasetsDraw(ch){const r=ch.$rec||{},ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.save();ctx.textAlign='center';ctx.textBaseline='bottom';
+        ch.data.datasets.forEach((ds,di)=>{if(ds.type!=='line')return;const key=ds.label.startsWith('DJU chaud')?r.h:r.f;ch.getDatasetMeta(di).data.forEach((pt,i)=>{const v=ds.data[i];if(v==null||v<=0)return;const isRec=key===r.y+'-'+String(i+1).padStart(2,'0'),t1=fmt(v,0),t2=' (Record)';ctx.font='700 11px "Segoe UI",system-ui,sans-serif';
+          const w1=ctx.measureText(t1).width,w2=isRec?ctx.measureText(t2).width:0,x0=pt.x-(w1+w2)/2,y=pt.y-8;ctx.textAlign='left';ctx.fillStyle=ds.borderColor;ctx.fillText(t1,x0,y);if(isRec){ctx.fillStyle='#e03131';ctx.fillText(t2,x0+w1,y)}})});ctx.restore()}}],options:{maintainAspectRatio:false,layout:{padding:{top:22}},interaction:{mode:'index',intersect:false},
       plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>c.dataset.label.startsWith('DJU')?` ${c.dataset.label} : ${fmt(c.parsed.y,1)}`:` ${c.dataset.label.split(' (')[0]} : ${fmt(c.parsed.y,1)} MWh`,footer:its=>{const v=its.filter(x=>x.dataset.stack).reduce((a,x)=>a+(x.parsed.y||0),0);return v?'Total : '+fmt(v,1)+' MWh':''}}}},
-      scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,position:'left',title:{display:true,text:'Consommation (MWh)',color:txt},ticks:{color:txt},grid:{color:grid}},y2:{beginAtZero:true,position:'right',title:{display:true,text:'DJU',color:txt},ticks:{color:txt},grid:{display:false}}}}})}
+      scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,position:'left',title:{display:true,text:'Consommation (MWh)',color:txt},ticks:{color:txt},grid:{color:grid}},y2:{beginAtZero:true,position:'right',title:{display:true,text:'DJU',color:txt},ticks:{color:txt},grid:{display:false}}}}});charts.cDjuC.$rec=rec}}
   {const CH='#e8590c',FR='#7048e8',MIN=20,
     auto=y=>{const ee=val(y,'e'),gg=val(y,'g');return Array.from({length:12},(_,i)=>{const k=y+'-'+String(i+1).padStart(2,'0'),ch=dju[k]||0,fr=djuC[k]||0;
       if(ch>=fr){if(ch>=MIN&&ee[i]!=null&&gg[i]!=null){const t=(ee[i]+gg[i])/1000;return{m:'c',v:t/ch,t,d:ch}}return null}
