@@ -672,7 +672,7 @@ function buildDju(){
   if(djuYear==null||djuYear<bot||djuYear>top){const ks=[...Object.keys(dju).filter(k=>dju[k]!=null),...Object.keys(djuC).filter(k=>djuC[k]!=null)].map(k=>+k.slice(0,4));djuYear=ks.length?Math.max(...ks):cur}
 }
 function djuGauge(S,cfg,pts){
-  const all=Object.values(S).filter(v=>v!=null&&v>=0),mx=Math.max(cfg.dflt,...all),max=cfg.fixed||Math.ceil(mx/50)*50||cfg.dflt,
+  const all=Object.values(S).filter(v=>v!=null&&v>=0),mx=all.length&&Math.max(...all)>0?Math.max(...all):cfg.dflt,max=mx,rk=Object.keys(S).filter(k=>S[k]===mx).sort()[0],
     top=20,bot=440,H=bot-top,Y=v=>bot-Math.min(v,max)/max*H,gid='gg'+cfg.id,nz=cfg.levels.length,
     vals=pts.slice().sort((a,b)=>b.v-a.v);
   let prev=-1e9;const lab=vals.map(o=>{const y=Math.max(Y(o.v),prev+14);prev=y;return{...o,ty:y,y:Y(o.v)}});
@@ -683,7 +683,7 @@ function djuGauge(S,cfg,pts){
   return `<svg viewBox="0 0 270 470" width="100%" style="max-width:330px;display:block;margin:0 auto" role="img" aria-label="Échelle ${cfg.name}"><defs><linearGradient id="${gid}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${cfg.c0}"/><stop offset="1" stop-color="${cfg.c1}"/></linearGradient></defs>
     <rect x="90" y="${top}" width="38" height="${H}" rx="6" fill="url(#${gid})"/>${zones}${marks}
     <text x="109" y="12" text-anchor="middle" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${fmt(max,0)} (max)</text><text x="109" y="458" text-anchor="middle" style="fill:var(--mute);font:10.5px system-ui,sans-serif">0</text></svg>
-    <p class="note" style="margin:6px 0 0">${cfg.fixed?'Échelle fixée de 0 à '+cfg.fixed+' DJU : au-delà, le repère reste en haut de la jauge.':'Échelle de 0 au maximum mensuel observé depuis 2018 ('+fmt(mx,0)+' DJU).'} Chaque mois de ${djuYear} n’apparaît que sur la jauge du DJU dominant (chaud ou froid).</p>`;
+    <p class="note" style="margin:6px 0 0">${all.length?'Échelle de 0 au record enregistré : '+fmt(mx,0)+' DJU ('+MOIS[+rk.slice(5,7)-1]+' '+rk.slice(0,4)+'), valable pour toutes les années.':'Aucune valeur enregistrée : échelle provisoire de 0 à '+cfg.dflt+' DJU.'} Chaque mois de ${djuYear} n’apparaît que sur la jauge du DJU dominant (chaud ou froid).</p>`;
 }
 function renderDju(){
   buildDju();const act=document.activeElement;
@@ -694,7 +694,7 @@ function renderDju(){
   fillG('#djuGrids',dju);fillG('#djuGridsC',djuC);
   const mh=[],mf=[];for(let i=0;i<12;i++){const k=djuYear+'-'+String(i+1).padStart(2,'0'),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)continue;if((ch||0)>=(fr||0))mh.push({i,v:ch||0});else mf.push({i,v:fr})}
   $('djuGH').innerHTML=djuGauge(dju,{id:'H',name:'DJU chaud',dflt:450,c0:'#e3f0ff',c1:'#0b4aa8',levels:['Très doux','Doux','Frais','Froid','Très froid']},mh);
-  $('djuGF').innerHTML=djuGauge(djuC,{id:'F',name:'DJU froid',dflt:130,fixed:130,c0:'#ffe3e3',c1:'#a51111',levels:['Aucun besoin','Léger','Chaud','Très chaud','Canicule']},mf);
+  $('djuGF').innerHTML=djuGauge(djuC,{id:'F',name:'DJU froid',dflt:130,c0:'#ffe3e3',c1:'#a51111',levels:['Aucun besoin','Léger','Chaud','Très chaud','Canicule']},mf);
   $('djuYear').value=djuYear;
   const arr=S=>Array.from({length:12},(_,i)=>{const v=S[djuYear+'-'+String(i+1).padStart(2,'0')];return v!=null?v:null});
   const vals=arr(dju),valsC=arr(djuC),tot=vals.reduce((a,v)=>a+(v||0),0),nn=vals.filter(v=>v!=null).length,totC=valsC.reduce((a,v)=>a+(v||0),0),nnC=valsC.filter(v=>v!=null).length;
