@@ -1318,7 +1318,7 @@ function chrBuild(){
   const pos=d=>{const y=+d.slice(0,4),m=+d.slice(5,7),dd=+d.slice(8,10),dim=new Date(y,m,0).getDate();return(y-sy)*12+(m-1)+(dd-.5)/dim-.5};
   const tE=yearTotal(REF,'e'),tG=yearTotal(REF,'g'),base=full(REF,'e')&&full(REF,'g')&&tE!=null&&tG!=null?(tE+tG)/1000:null;
   let last=-1;roll.forEach((v,i)=>{if(v!=null)last=i});
-  return{labels,e,g,roll,ev,pr,pos,ann,sy,base,last,goal:labels.indexOf('2030-12')}}
+  return{labels,e,g,roll,ev,pr,pos,ann,sy,base,last,goal:labels.indexOf('2030-12'),start:labels.indexOf(REF+'-12')}}
 function renderChr(){
   const B=chrBuild();chrS=B;
   const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),L=B.labels;
@@ -1326,7 +1326,7 @@ function renderChr(){
     {type:'line',label:'Total sur 12 mois glissants (MWh)',data:B.roll,borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,pointRadius:0,tension:.25,spanGaps:false,yAxisID:'y2',order:1}];
   if(objectif!=null&&B.base!=null){const tgt=B.base*(1-objectif/100),ok=col('--ok');
     dsC.push({type:'line',label:'Référence 2018 : '+fmt(B.base)+' MWh/an',data:L.map(()=>B.base),borderColor:txt,backgroundColor:txt,borderWidth:1.5,borderDash:[2,5],pointRadius:0,yAxisID:'y2',order:0});
-    dsC.push({type:'line',label:'Objectif 2030 : '+fmt(tgt)+' MWh/an (−'+fmt(objectif,1)+' %)',data:L.map((_,i)=>i===B.goal?tgt:(i===B.last&&B.roll[B.last]>tgt?B.roll[B.last]:null)),borderColor:ok,backgroundColor:ok,borderWidth:2.5,borderDash:[8,5],spanGaps:true,pointRadius:c=>c.dataIndex===B.goal?8:3,pointStyle:'rectRot',yAxisID:'y2',order:0})}
+    dsC.push({type:'line',label:'Trajectoire '+REF+' → 2030 : objectif '+fmt(tgt)+' MWh/an (−'+fmt(objectif,1)+' %)',data:L.map((_,i)=>i===B.goal?tgt:(i===B.start?B.base:null)),borderColor:ok,backgroundColor:ok,borderWidth:2.5,borderDash:[8,5],spanGaps:true,pointRadius:c=>c.dataIndex===B.goal?8:(c.dataIndex===B.start?4:0),pointStyle:'rectRot',yAxisID:'y2',order:0})}
   const jan=c=>(L[c.index]||'').endsWith('-01');
   if(charts.cChr){const c=charts.cChr;c.data.labels=L;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y2.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y2.title.color=txt;c.options.scales.y.grid.color=grid;c.options.scales.x.ticks.callback=(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):'';c.options.scales.x.grid.color=cx=>jan(cx)?grid:'rgba(0,0,0,0)';c.update()}
   else charts.cChr=new Chart($('cChr'),{data:{labels:L,datasets:dsC},plugins:[chrPlugin],options:{maintainAspectRatio:false,layout:{padding:{bottom:116,top:8}},interaction:{mode:'index',intersect:false},
@@ -1345,6 +1345,8 @@ function renderObj(B){
   let h=`<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span style="font-size:2.4rem;font-weight:800;line-height:1.1;color:${col};font-variant-numeric:tabular-nums">${sv>=0?'':'+'}${fmt(Math.abs(sv),1)} %</span><span>${sv>=0?'d’économie réalisée':'de hausse'} par rapport à ${REF}<br><small style="color:var(--mute)">sur les 12 mois jusqu’à ${mth} : ${fmt(cur)} MWh, contre ${fmt(B.base)} MWh en ${REF}</small></span></div>`;
   if(objectif==null||objectif<=0)h+='<p class="note" style="margin:8px 0 0">Aucun objectif défini : indiquez à gauche le pourcentage d’économie visé en 2030.</p>';
   else{const tgt=B.base*(1-objectif/100),prog=sv/objectif*100,w=Math.max(0,Math.min(100,prog)),rem=cur-tgt,yrs=Math.max(.1,(B.goal-B.last)/12);
+    if(B.start>=0&&B.last>=B.start&&B.goal>B.start){const ex=B.base+(tgt-B.base)*(B.last-B.start)/(B.goal-B.start),gap=ex-cur,exp=(B.base-ex)/B.base*100,pt=sv-exp,near=Math.abs(gap)<B.base*.005,ah=gap>0,c2=near?'var(--mute)':ah?'var(--ok)':'var(--bad)';
+      h+=`<div style="margin-top:12px;padding:10px 12px;border-radius:8px;border-left:5px solid ${c2};background:color-mix(in srgb,${c2} 10%,var(--card))"><b style="font-size:1.1rem;color:${c2}">${near?'Dans la trajectoire':ah?'En avance sur la trajectoire':'En retard sur la trajectoire'}</b><br><span style="font-size:.92rem">La droite ${REF} → 2030 prévoit à ce jour <b>−${fmt(exp,1)} %</b> (${fmt(ex)} MWh/an). Vous êtes à <b>${sv>=0?'−':'+'}${fmt(Math.abs(sv),1)} %</b> (${fmt(cur)} MWh/an)${near?'.':' : <b>'+fmt(Math.abs(gap))+' MWh/an '+(ah?'d’avance':'de retard')+'</b> ('+fmt(Math.abs(pt),1)+' point'+(Math.abs(pt)>=2?'s':'')+' de pourcentage).'}</span></div>`}
     h+=`<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:4px"><b>${fmt(Math.max(0,prog),0)} % de l’objectif atteint</b><span style="color:var(--mute)">objectif 2030 : −${fmt(objectif,1)} % (${fmt(tgt)} MWh/an)</span></div><div style="height:22px;border-radius:11px;background:var(--line);overflow:hidden;position:relative"><div style="height:100%;width:${w}%;background:linear-gradient(90deg,#8ce99a,var(--ok));border-radius:11px;transition:width .4s"></div></div></div>
     <p class="note" style="margin:8px 0 0">${rem>0?'Reste à économiser : <b>'+fmt(rem)+' MWh/an</b>, soit environ '+fmt(rem/yrs)+' MWh/an de moins chaque année d’ici fin 2030.':'<b style="color:var(--ok)">Objectif atteint.</b> La consommation sur 12 mois est déjà sous le niveau visé pour 2030.'}</p>`}
   o.innerHTML=h}
