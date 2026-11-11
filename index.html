@@ -111,7 +111,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .pop{background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;animation:popin .25s ease-out}
 .pop.f{border-left-color:var(--ok)}.pop h3{margin:0 0 4px;font-size:1rem}.pop ul{margin:4px 0 10px;padding-left:18px;font-size:.92rem;overflow-wrap:anywhere}.pop .pb{display:flex;gap:8px;justify-content:flex-end}
 @keyframes popin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-#vChr{max-width:1700px;margin:0 auto}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
+#vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 #vArc{max-width:1000px;margin:0 auto}.act{padding:8px 0;border-bottom:1px solid var(--line)}.act p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem}.act .ab{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.act button{padding:2px 8px;font-size:.8rem}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
@@ -287,10 +287,17 @@ body.out .edit-only{display:none!important}
 <header>
   <div>
     <h1>Chronologie</h1>
-    <p class="sub">Consommation totale depuis 2018, événements marquants et projets terminés</p>
+    <p class="sub">Consommation totale depuis 2018, objectif 2030, événements marquants et projets terminés</p>
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
+<section id="objSec">
+  <h2>Objectif 2030</h2>
+  <div class="objg">
+    <form id="objForm"><label>Économie visée en 2030, par rapport à 2018<span style="display:flex;gap:8px;align-items:center;margin-top:4px"><input type="number" id="objPct" min="0" max="100" step="0.1" placeholder="Ex. 30" style="width:120px"> <b>%</b></span></label><button class="main" type="submit" style="margin-top:10px">Enregistrer l’objectif</button></form>
+    <div id="objInd"></div>
+  </div>
+</section>
 <section>
   <h2>Consommation totale et frise chronologique</h2>
   <div class="box" style="height:560px;position:relative"><canvas id="cChr"></canvas><div id="chrTip"></div></div>
@@ -373,7 +380,7 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
@@ -1302,18 +1309,24 @@ function chrBuild(){
   const {ev,pr}=chrItems(),now=new Date(),ds=[...ev,...pr].map(o=>o.d),
     ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),...ds.map(d=>+d.slice(0,4))].filter(Number.isFinite),
     sy=Math.min(2018,...ys);let ey=now.getFullYear(),em=now.getMonth()+1;
+  if(ey*12+em<2030*12+12){ey=2030;em=12}
   ds.forEach(d=>{const y=+d.slice(0,4),m=+d.slice(5,7);if(y*12+m>ey*12+em){ey=y;em=m}});
   const labels=[];for(let y=sy;y<=ey;y++)for(let m=1;m<=12;m++){if(y*12+m>ey*12+em)break;labels.push(ymKey(y,m))}
   const E={},G={};let ann=false;for(let y=sy;y<=ey;y++){E[y]=sp(y,'e');G[y]=sp(y,'g');if(annualOnly(y,'e')||annualOnly(y,'g'))ann=true}
   const at=(A,l)=>{const v=A[+l.slice(0,4)][+l.slice(5)-1];return v!=null?v/1000:null},e=labels.map(l=>at(E,l)),g=labels.map(l=>at(G,l));
   const roll=labels.map((_,i)=>{if(i<11)return null;let t=0;for(let k=i-11;k<=i;k++){if(e[k]==null||g[k]==null)return null;t+=e[k]+g[k]}return t});
   const pos=d=>{const y=+d.slice(0,4),m=+d.slice(5,7),dd=+d.slice(8,10),dim=new Date(y,m,0).getDate();return(y-sy)*12+(m-1)+(dd-.5)/dim-.5};
-  return{labels,e,g,roll,ev,pr,pos,ann,sy}}
+  const tE=yearTotal(REF,'e'),tG=yearTotal(REF,'g'),base=full(REF,'e')&&full(REF,'g')&&tE!=null&&tG!=null?(tE+tG)/1000:null;
+  let last=-1;roll.forEach((v,i)=>{if(v!=null)last=i});
+  return{labels,e,g,roll,ev,pr,pos,ann,sy,base,last,goal:labels.indexOf('2030-12')}}
 function renderChr(){
   const B=chrBuild();chrS=B;
   const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),L=B.labels;
   const dsC=[{type:'bar',label:'Électricité (MWh/mois)',data:B.e,backgroundColor:col('--elec'),stack:'s',yAxisID:'y',order:2},{type:'bar',label:'Gaz (MWh/mois)',data:B.g,backgroundColor:col('--gaz'),stack:'s',yAxisID:'y',order:2},
     {type:'line',label:'Total sur 12 mois glissants (MWh)',data:B.roll,borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,pointRadius:0,tension:.25,spanGaps:false,yAxisID:'y2',order:1}];
+  if(objectif!=null&&B.base!=null){const tgt=B.base*(1-objectif/100),ok=col('--ok');
+    dsC.push({type:'line',label:'Référence 2018 : '+fmt(B.base)+' MWh/an',data:L.map(()=>B.base),borderColor:txt,backgroundColor:txt,borderWidth:1.5,borderDash:[2,5],pointRadius:0,yAxisID:'y2',order:0});
+    dsC.push({type:'line',label:'Objectif 2030 : '+fmt(tgt)+' MWh/an (−'+fmt(objectif,1)+' %)',data:L.map((_,i)=>i===B.goal?tgt:(i===B.last&&B.roll[B.last]>tgt?B.roll[B.last]:null)),borderColor:ok,backgroundColor:ok,borderWidth:2.5,borderDash:[8,5],spanGaps:true,pointRadius:c=>c.dataIndex===B.goal?8:3,pointStyle:'rectRot',yAxisID:'y2',order:0})}
   const jan=c=>(L[c.index]||'').endsWith('-01');
   if(charts.cChr){const c=charts.cChr;c.data.labels=L;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y2.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y2.title.color=txt;c.options.scales.y.grid.color=grid;c.options.scales.x.ticks.callback=(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):'';c.options.scales.x.grid.color=cx=>jan(cx)?grid:'rgba(0,0,0,0)';c.update()}
   else charts.cChr=new Chart($('cChr'),{data:{labels:L,datasets:dsC},plugins:[chrPlugin],options:{maintainAspectRatio:false,layout:{padding:{bottom:116,top:8}},interaction:{mode:'index',intersect:false},
@@ -1322,7 +1335,21 @@ function renderChr(){
   charts.cChr.update('none');
   $('chrNote').innerHTML='◆ événement marquant · ● projet terminé · un chiffre indique plusieurs éléments proches (cliquez dessus pour le détail).'+(B.ann?' Les années saisies uniquement en total annuel sont réparties à parts égales sur 12 mois.':'')+' La courbe noire (12 mois glissants) lisse les saisons : c’est elle qui montre le mieux une baisse durable.';
   $('chrInfo').innerHTML='<p class="note" style="margin:0">Cliquez sur un repère de la frise pour voir son détail.</p>';
-  renderEvList()}
+  renderObj(B);renderEvList()}
+let objectif=null;
+function renderObj(B){
+  const o=$('objInd');if(document.activeElement!==$('objPct'))$('objPct').value=objectif!=null?objectif:'';
+  if(B.base==null){o.innerHTML='<p class="note" style="margin:0">Pour mesurer l’économie, saisissez l’année '+REF+' complète (12 mois ou total annuel, gaz et électricité) dans la page Relevés.</p>';return}
+  if(B.last<0){o.innerHTML='<p class="note" style="margin:0">Il faut 12 mois consécutifs complets (gaz et électricité) pour mesurer l’économie réalisée.</p>';return}
+  const cur=B.roll[B.last],lm=B.labels[B.last],sv=(B.base-cur)/B.base*100,col=sv>=0?'var(--ok)':'var(--bad)',mth=MOIS[+lm.slice(5)-1]+' '+lm.slice(0,4);
+  let h=`<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span style="font-size:2.4rem;font-weight:800;line-height:1.1;color:${col};font-variant-numeric:tabular-nums">${sv>=0?'':'+'}${fmt(Math.abs(sv),1)} %</span><span>${sv>=0?'d’économie réalisée':'de hausse'} par rapport à ${REF}<br><small style="color:var(--mute)">sur les 12 mois jusqu’à ${mth} : ${fmt(cur)} MWh, contre ${fmt(B.base)} MWh en ${REF}</small></span></div>`;
+  if(objectif==null||objectif<=0)h+='<p class="note" style="margin:8px 0 0">Aucun objectif défini : indiquez à gauche le pourcentage d’économie visé en 2030.</p>';
+  else{const tgt=B.base*(1-objectif/100),prog=sv/objectif*100,w=Math.max(0,Math.min(100,prog)),rem=cur-tgt,yrs=Math.max(.1,(B.goal-B.last)/12);
+    h+=`<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:4px"><b>${fmt(Math.max(0,prog),0)} % de l’objectif atteint</b><span style="color:var(--mute)">objectif 2030 : −${fmt(objectif,1)} % (${fmt(tgt)} MWh/an)</span></div><div style="height:22px;border-radius:11px;background:var(--line);overflow:hidden;position:relative"><div style="height:100%;width:${w}%;background:linear-gradient(90deg,#8ce99a,var(--ok));border-radius:11px;transition:width .4s"></div></div></div>
+    <p class="note" style="margin:8px 0 0">${rem>0?'Reste à économiser : <b>'+fmt(rem)+' MWh/an</b>, soit environ '+fmt(rem/yrs)+' MWh/an de moins chaque année d’ici fin 2030.':'<b style="color:var(--ok)">Objectif atteint.</b> La consommation sur 12 mois est déjà sous le niveau visé pour 2030.'}</p>`}
+  o.innerHTML=h}
+$('objForm').onsubmit=ev=>{ev.preventDefault();const r=$('objPct').value.trim(),v=r===''?null:Math.max(0,Math.min(100,parseFloat(r)));if(r!==''&&!isFinite(v))return;
+  setDoc(doc(db,'releves','_objectif'),{pct:v,an:2030,ref:REF}).catch(refus)};
 function renderEvList(){
   const l=Object.entries(evts).filter(([,o])=>o&&isoOk(o.d)).sort((a,b)=>b[1].d.localeCompare(a[1].d));
   $('evList').innerHTML=l.length?l.map(([id,o])=>`<div class="chi"><b style="color:#c2255c">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span> <button type="button" data-ee="${id}">Modifier</button> <button type="button" data-ed="${id}">Supprimer</button>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`).join(''):'<p class="note">Aucun événement pour le moment.</p>'}
@@ -1398,7 +1425,7 @@ onAuthStateChanged(auth,async u=>{
   const bt=document.getElementById('boot');if(bt)bt.remove();
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};evts={};actu={};archs={};first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};evts={};actu={};archs={};objectif=null;first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
