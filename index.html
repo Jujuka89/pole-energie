@@ -640,7 +640,7 @@ function rapportProjet(id){
   doc.save('rapport-'+nom+'.pdf');
 }
 
-const LIGHT={'--ink':'#1d2528','--mute':'#667075','--line':'#dde0dc','--card':'#ffffff','--elec':'#2b7de9','--gaz':'#e6b800','--prev':'#b9bfc2','--ok':'#0f9d3a','--bad':'#e11d2e'};
+const LIGHT={'--evt':'#c2255c','--ink':'#1d2528','--mute':'#667075','--line':'#dde0dc','--card':'#ffffff','--elec':'#2b7de9','--gaz':'#e6b800','--prev':'#b9bfc2','--ok':'#0f9d3a','--bad':'#e11d2e'};
 function withLight(fn){const r=document.documentElement;Object.entries(LIGHT).forEach(([k,v])=>r.style.setProperty(k,v));try{return fn()}finally{Object.keys(LIGHT).forEach(k=>r.style.removeProperty(k))}}
 function cfgImg(cf,wpx,hpx){
   const cv=document.createElement('canvas');cv.width=wpx;cv.height=hpx;
@@ -679,6 +679,29 @@ function rapportGeneral(){
     eco.forEach(d=>{const e=d.querySelector('.delta'),k=e.classList.contains('up')?RD:e.classList.contains('down')?GR:MU,sm=d.querySelector('small');
       doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...k);const ls=doc.splitTextToSize(pf(e.textContent.trim()),L);ensure(5*ls.length+6);doc.text(ls,M,y);y+=5*ls.length;
       if(sm){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);const l2=doc.splitTextToSize(pf(sm.textContent.trim()),L);doc.text(l2,M,y);y+=4.5*l2.length}y+=3})}
+  // --- objectif 2030 (repris de la page Chronologie)
+  {const B=chrBuild();chrS=B;const S=objStats(B);
+    title('Objectif 2030',60);
+    if(S.err==='base')note('Pour mesurer l’économie, l’année '+REF+' doit être saisie en entier (gaz et électricité).');
+    else if(S.err==='cur')note('Il faut 12 mois consécutifs complets (gaz et électricité) pour mesurer l’économie réalisée.');
+    else{
+      const c0=S.sv>=0?GR:RD,mth=MOIS[+S.lm.slice(5)-1]+' '+S.lm.slice(0,4);ensure(20);
+      doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(...c0);const big=pf((S.sv>=0?'':'+')+fmt(Math.abs(S.sv),1)+' %');doc.text(big,M,y+6);
+      const bw=doc.getTextWidth(big);doc.setFontSize(10);doc.setTextColor(...INK);doc.text(pf((S.sv>=0?'d’économie réalisée':'de hausse')+' par rapport à '+REF),M+bw+3,y+6);y+=10;
+      note('Sur les 12 mois jusqu’à '+mth+' : '+fmt(S.cur)+' MWh, contre '+fmt(S.base)+' MWh en '+REF+'.');
+      if(S.tgt==null)note('Aucun objectif défini pour 2030.');
+      else{
+        if(S.ex!=null){const k=S.near?MU:S.gap>0?GR:RD;ensure(18);
+          doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...k);doc.text(pf(S.near?'Dans la trajectoire':S.gap>0?'En avance sur la trajectoire':'En retard sur la trajectoire'),M,y+4);y+=7;
+          doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...INK);
+          const tx=pf('La droite '+REF+' -> 2030 prévoit à ce jour -'+fmt(S.exp,1)+' % ('+fmt(S.ex)+' MWh/an). Vous êtes à '+(S.sv>=0?'-':'+')+fmt(Math.abs(S.sv),1)+' % ('+fmt(S.cur)+' MWh/an)'+(S.near?'.':' : '+fmt(Math.abs(S.gap))+' MWh/an '+(S.gap>0?'d’avance':'de retard')+' ('+fmt(Math.abs(S.pt),1)+' point'+(Math.abs(S.pt)>=2?'s':'')+' de pourcentage).')),ls=doc.splitTextToSize(tx,L);
+          doc.text(ls,M,y+3);y+=4.4*ls.length+4}
+        ensure(18);doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(pf(fmt(Math.max(0,S.prog),0)+' % de l’objectif atteint'),M,y+3);
+        doc.setFont('helvetica','normal');doc.setTextColor(...MU);doc.text(pf('objectif 2030 : -'+fmt(objectif,1)+' % ('+fmt(S.tgt)+' MWh/an)'),W-M,y+3,{align:'right'});y+=6;
+        doc.setFillColor(222,226,224);doc.roundedRect(M,y,L,5,2.5,2.5,'F');const wf=Math.max(0,Math.min(100,S.prog))/100*L;if(wf>0.5){doc.setFillColor(...GR);doc.roundedRect(M,y,Math.max(wf,5),5,2.5,2.5,'F')}y+=9;
+        note(S.rem>0?'Reste à économiser : '+fmt(S.rem)+' MWh/an, soit environ '+fmt(S.rem/S.yrs)+' MWh/an de moins chaque année d’ici fin 2030.':'Objectif atteint : la consommation sur 12 mois est déjà sous le niveau visé pour 2030.');
+        const oi=withLight(()=>cfgImg(chrCfg(B),1100,600)),oh=L*600/1100;pic(oi,oh);
+        note('Barres : consommation mensuelle (électricité + gaz). Courbe noire : total sur 12 mois glissants. Droite verte : trajectoire de '+REF+' à l’objectif 2030. Losanges et ronds de la frise : événements marquants et projets terminés.')}}}
   // --- graphiques de la première page
   const tm=totMode,im=withLight(()=>{const o={};o.cumul=cfgImg(cumulCfg(),900,420);
     try{totMode='annee';o.mois=cfgImg(totalCfg(),900,380);totMode='toutes';o.ans=cfgImg(totalCfg(),900,380)}finally{totMode=tm}return o});
@@ -1295,7 +1318,7 @@ const chrPlugin={id:'chr',afterDraw(ch){
     const pts=L.items.map(o=>({o,x:xs.getPixelForValue(S.pos(o.d))})).filter(p=>p.x>=A.left-2&&p.x<=A.right+2).sort((a,b)=>a.x-b.x),gr=[];
     pts.forEach(p=>{const q=gr[gr.length-1];if(q&&p.x-q.x0<=20)q.p.push(p);else gr.push({x0:p.x,p:[p]})});
     gr.forEach(q=>{q.x=q.p.reduce((a,p)=>a+p.x,0)/q.p.length});
-    gr.forEach(q=>{ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=L.col;ctx.globalAlpha=matchMedia('(prefers-color-scheme: dark)').matches?.9:.55;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(q.x,A.top);ctx.lineTo(q.x,L.y);ctx.stroke();ctx.restore()});
+    gr.forEach(q=>{ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=L.col;ctx.globalAlpha=matchMedia('(prefers-color-scheme: dark)').matches&&!document.documentElement.style.getPropertyValue('--card')?.9:.55;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(q.x,A.top);ctx.lineTo(q.x,L.y);ctx.stroke();ctx.restore()});
     gr.forEach((q,gi)=>{const n=q.p.length,r=n>1?12:8;
       ctx.fillStyle=L.col;ctx.strokeStyle=card;ctx.lineWidth=2;ctx.beginPath();
       if(L.sh==='d'&&n===1){ctx.moveTo(q.x,L.y-r-1);ctx.lineTo(q.x+r+1,L.y);ctx.lineTo(q.x,L.y+r+1);ctx.lineTo(q.x-r-1,L.y);ctx.closePath()}else ctx.arc(q.x,L.y,r,0,6.2832);
@@ -1320,8 +1343,7 @@ function chrBuild(){
   const tE=yearTotal(REF,'e'),tG=yearTotal(REF,'g'),base=full(REF,'e')&&full(REF,'g')&&tE!=null&&tG!=null?(tE+tG)/1000:null;
   let last=-1;roll.forEach((v,i)=>{if(v!=null)last=i});
   return{labels,e,g,roll,ev,pr,pos,ann,sy,base,last,goal:labels.indexOf('2030-12'),start:labels.indexOf(REF+'-12')}}
-function renderChr(){
-  const B=chrBuild();chrS=B;
+function chrCfg(B){
   const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),L=B.labels;
   const dsC=[{type:'bar',label:'Électricité (MWh/mois)',data:B.e,backgroundColor:col('--elec'),stack:'s',yAxisID:'y',order:2},{type:'bar',label:'Gaz (MWh/mois)',data:B.g,backgroundColor:col('--gaz'),stack:'s',yAxisID:'y',order:2},
     {type:'line',label:'Total sur 12 mois glissants (MWh)',data:B.roll,borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,pointRadius:0,tension:.25,spanGaps:false,yAxisID:'y2',order:1}];
@@ -1329,15 +1351,25 @@ function renderChr(){
     dsC.push({type:'line',label:'Référence 2018 : '+fmt(B.base)+' MWh/an',data:L.map(()=>B.base),borderColor:txt,backgroundColor:txt,borderWidth:1.5,borderDash:[2,5],pointRadius:0,yAxisID:'y2',order:0});
     dsC.push({type:'line',label:'Trajectoire '+REF+' → 2030 : objectif '+fmt(tgt)+' MWh/an (−'+fmt(objectif,1)+' %)',data:L.map((_,i)=>i===B.goal?tgt:(i===B.start?B.base:null)),borderColor:ok,backgroundColor:ok,borderWidth:2.5,borderDash:[8,5],spanGaps:true,pointRadius:c=>c.dataIndex===B.goal?8:(c.dataIndex===B.start?4:0),pointStyle:'rectRot',yAxisID:'y2',order:0})}
   const jan=c=>(L[c.index]||'').endsWith('-01');
-  if(charts.cChr){const c=charts.cChr;c.data.labels=L;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y2.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y2.title.color=txt;c.options.scales.y.grid.color=grid;c.options.scales.x.ticks.callback=(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):'';c.options.scales.x.grid.color=cx=>jan(cx)?grid:'rgba(0,0,0,0)';c.update()}
-  else charts.cChr=new Chart($('cChr'),{data:{labels:L,datasets:dsC},plugins:[chrPlugin],options:{maintainAspectRatio:false,layout:{padding:{bottom:116,top:8}},interaction:{mode:'index',intersect:false},
+  return {data:{labels:L,datasets:dsC},plugins:[chrPlugin],options:{maintainAspectRatio:false,layout:{padding:{bottom:116,top:8}},interaction:{mode:'index',intersect:false},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{title:it=>{const l=L[it[0].dataIndex];return MOIS[+l.slice(5)-1]+' '+l.slice(0,4)},label:c=>` ${c.dataset.label.replace(/ \(.*/,'')} : ${fmt(c.parsed.y,1)} MWh`,footer:it=>{const v=it.filter(x=>x.dataset.stack).reduce((a,x)=>a+(x.parsed.y||0),0);return v?'Total du mois : '+fmt(v,1)+' MWh':''}}}},
-    scales:{x:{stacked:true,ticks:{color:txt,autoSkip:false,maxRotation:0,callback:(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):''},grid:{color:cx=>jan(cx)?grid:'rgba(0,0,0,0)'}},y:{stacked:true,beginAtZero:true,position:'left',title:{display:true,text:'MWh par mois',color:txt},ticks:{color:txt},grid:{color:grid}},y2:{beginAtZero:true,position:'right',title:{display:true,text:'MWh sur 12 mois',color:txt},ticks:{color:txt},grid:{display:false}}}}});
+    scales:{x:{stacked:true,ticks:{color:txt,autoSkip:false,maxRotation:0,callback:(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):''},grid:{color:cx=>jan(cx)?grid:'rgba(0,0,0,0)'}},y:{stacked:true,beginAtZero:true,position:'left',title:{display:true,text:'MWh par mois',color:txt},ticks:{color:txt},grid:{color:grid}},y2:{beginAtZero:true,position:'right',title:{display:true,text:'MWh sur 12 mois',color:txt},ticks:{color:txt},grid:{display:false}}}}};
+}
+function renderChr(){
+  const B=chrBuild();chrS=B;const cf=chrCfg(B);
+  if(charts.cChr){const c=charts.cChr;c.data.labels=cf.data.labels;c.data.datasets=cf.data.datasets;c.options.plugins=cf.options.plugins;c.options.scales=cf.options.scales}
+  else charts.cChr=new Chart($('cChr'),cf);
   charts.cChr.update('none');
   $('chrNote').innerHTML='◆ événement marquant · ● projet terminé · un chiffre indique plusieurs éléments proches (cliquez dessus pour le détail).'+(B.ann?' Les années saisies uniquement en total annuel sont réparties à parts égales sur 12 mois.':'')+' La courbe noire (12 mois glissants) lisse les saisons : c’est elle qui montre le mieux une baisse durable.';
   $('chrInfo').innerHTML='<p class="note" style="margin:0">Cliquez sur un repère de la frise pour voir son détail.</p>';
   renderObj(B);renderEvList()}
 let objectif=null;
+function objStats(B){
+  if(B.base==null)return{err:'base'};if(B.last<0)return{err:'cur'};
+  const cur=B.roll[B.last],lm=B.labels[B.last],sv=(B.base-cur)/B.base*100,o={base:B.base,cur,lm,sv};
+  if(objectif!=null&&objectif>0){const tgt=B.base*(1-objectif/100);o.tgt=tgt;o.prog=sv/objectif*100;o.rem=cur-tgt;o.yrs=Math.max(.1,(B.goal-B.last)/12);
+    if(B.start>=0&&B.last>=B.start&&B.goal>B.start){const ex=B.base+(tgt-B.base)*(B.last-B.start)/(B.goal-B.start);o.ex=ex;o.gap=ex-cur;o.exp=(B.base-ex)/B.base*100;o.pt=sv-o.exp;o.near=Math.abs(o.gap)<B.base*.005}}
+  return o}
 function renderObj(B){
   const o=$('objInd');if(document.activeElement!==$('objPct'))$('objPct').value=objectif!=null?objectif:'';
   if(B.base==null){o.innerHTML='<p class="note" style="margin:0">Pour mesurer l’économie, saisissez l’année '+REF+' complète (12 mois ou total annuel, gaz et électricité) dans la page Relevés.</p>';return}
