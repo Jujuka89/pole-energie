@@ -111,6 +111,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .pop{background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;animation:popin .25s ease-out}
 .pop.f{border-left-color:var(--ok)}.pop h3{margin:0 0 4px;font-size:1rem}.pop ul{margin:4px 0 10px;padding-left:18px;font-size:.92rem;overflow-wrap:anywhere}.pop .pb{display:flex;gap:8px;justify-content:flex-end}
 @keyframes popin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+:root{--evt:#c2255c}@media (prefers-color-scheme:dark){:root{--evt:#ff7aa8}}
 #vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 #vArc{max-width:1000px;margin:0 auto}.act{padding:8px 0;border-bottom:1px solid var(--line)}.act p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem}.act .ab{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.act button{padding:2px 8px;font-size:.8rem}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
@@ -1286,7 +1287,7 @@ function chrItems(){
   return{ev,pr}}
 const chrPlugin={id:'chr',afterDraw(ch){
   const S=chrS;if(!S)return;const ctx=ch.ctx,xs=ch.scales.x,A=ch.chartArea,H=ch.height,css=getComputedStyle(document.documentElement),g=x=>css.getPropertyValue(x).trim(),ink=g('--ink'),mute=g('--mute'),line=g('--line'),card=g('--card'),F='"Segoe UI",system-ui,sans-serif';
-  const lanes=[{items:S.ev,y:H-82,col:'#c2255c',name:'Événements marquants',sh:'d'},{items:S.pr,y:H-38,col:g('--ok'),name:'Projets terminés',sh:'c'}];
+  const lanes=[{items:S.ev,y:H-82,col:g('--evt'),name:'Événements marquants',sh:'d'},{items:S.pr,y:H-38,col:g('--ok'),name:'Projets terminés',sh:'c'}];
   ch.$hits=[];
   lanes.forEach(L=>{
     ctx.save();ctx.strokeStyle=line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(A.left,L.y);ctx.lineTo(A.right,L.y);ctx.stroke();
@@ -1294,7 +1295,7 @@ const chrPlugin={id:'chr',afterDraw(ch){
     const pts=L.items.map(o=>({o,x:xs.getPixelForValue(S.pos(o.d))})).filter(p=>p.x>=A.left-2&&p.x<=A.right+2).sort((a,b)=>a.x-b.x),gr=[];
     pts.forEach(p=>{const q=gr[gr.length-1];if(q&&p.x-q.x0<=20)q.p.push(p);else gr.push({x0:p.x,p:[p]})});
     gr.forEach(q=>{q.x=q.p.reduce((a,p)=>a+p.x,0)/q.p.length});
-    gr.forEach(q=>{ctx.save();ctx.setLineDash([3,4]);ctx.strokeStyle=L.col;ctx.globalAlpha=.4;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(q.x,A.top);ctx.lineTo(q.x,L.y);ctx.stroke();ctx.restore()});
+    gr.forEach(q=>{ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=L.col;ctx.globalAlpha=matchMedia('(prefers-color-scheme: dark)').matches?.9:.55;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(q.x,A.top);ctx.lineTo(q.x,L.y);ctx.stroke();ctx.restore()});
     gr.forEach((q,gi)=>{const n=q.p.length,r=n>1?12:8;
       ctx.fillStyle=L.col;ctx.strokeStyle=card;ctx.lineWidth=2;ctx.beginPath();
       if(L.sh==='d'&&n===1){ctx.moveTo(q.x,L.y-r-1);ctx.lineTo(q.x+r+1,L.y);ctx.lineTo(q.x,L.y+r+1);ctx.lineTo(q.x-r-1,L.y);ctx.closePath()}else ctx.arc(q.x,L.y,r,0,6.2832);
@@ -1354,10 +1355,10 @@ $('objForm').onsubmit=ev=>{ev.preventDefault();const r=$('objPct').value.trim(),
   setDoc(doc(db,'releves','_objectif'),{pct:v,an:2030,ref:REF}).catch(refus)};
 function renderEvList(){
   const l=Object.entries(evts).filter(([,o])=>o&&isoOk(o.d)).sort((a,b)=>b[1].d.localeCompare(a[1].d));
-  $('evList').innerHTML=l.length?l.map(([id,o])=>`<div class="chi"><b style="color:#c2255c">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span> <button type="button" data-ee="${id}">Modifier</button> <button type="button" data-ed="${id}">Supprimer</button>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`).join(''):'<p class="note">Aucun événement pour le moment.</p>'}
+  $('evList').innerHTML=l.length?l.map(([id,o])=>`<div class="chi"><b style="color:var(--evt)">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span> <button type="button" data-ee="${id}">Modifier</button> <button type="button" data-ed="${id}">Supprimer</button>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`).join(''):'<p class="note">Aucun événement pour le moment.</p>'}
 function chrShow(items){
   const it=items.slice().sort((a,b)=>a.d.localeCompare(b.d)),np=it.filter(o=>o.k==='p').length;
-  $('chrInfo').innerHTML=(it.length>1?`<p style="margin:0 0 4px"><b>${it.length} éléments proches${np===it.length?' : '+np+' projets terminés':''}</b></p>`:'')+it.map(o=>o.k==='e'?`<div class="chi"><b style="color:#c2255c">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`:`<div class="chi"><b style="color:var(--ok)">● ${esc(o.t)}</b> <span class="note">terminé le ${dfr(o.d)}</span> <button type="button" data-pv="${o.id}">Voir le projet</button></div>`).join('')}
+  $('chrInfo').innerHTML=(it.length>1?`<p style="margin:0 0 4px"><b>${it.length} éléments proches${np===it.length?' : '+np+' projets terminés':''}</b></p>`:'')+it.map(o=>o.k==='e'?`<div class="chi"><b style="color:var(--evt)">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`:`<div class="chi"><b style="color:var(--ok)">● ${esc(o.t)}</b> <span class="note">terminé le ${dfr(o.d)}</span> <button type="button" data-pv="${o.id}">Voir le projet</button></div>`).join('')}
 function evReset(){evEdit=null;$('evForm').reset();$('evSave').textContent='Ajouter l’événement';$('evCancel').hidden=true}
 $('evForm').onsubmit=ev=>{ev.preventDefault();const d=$('evD').value,t=$('evT').value.trim();if(!d||!t)return;const id=evEdit||uid();
   setDoc(doc(db,'releves','_evt'),{l:{[id]:{d,t,n:$('evN').value.trim(),u:$('evU').value.trim()}}},{merge:true}).then(evReset).catch(refus)};
