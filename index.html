@@ -111,6 +111,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .pop{background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;animation:popin .25s ease-out}
 .pop.f{border-left-color:var(--ok)}.pop h3{margin:0 0 4px;font-size:1rem}.pop ul{margin:4px 0 10px;padding-left:18px;font-size:.92rem;overflow-wrap:anywhere}.pop .pb{display:flex;gap:8px;justify-content:flex-end}
 @keyframes popin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+#vChr{max-width:1700px;margin:0 auto}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
 body.out .edit-only{display:none!important}
@@ -163,7 +164,7 @@ body.out .edit-only{display:none!important}
     <h1>Dashboard Pôle Energie</h1>
 
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Chronologie</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="dash">
@@ -268,6 +269,33 @@ body.out .edit-only{display:none!important}
   <div class="scroll"><div id="lClos"></div></div>
 </section>
 </div>
+<div id="vChr" hidden>
+<header>
+  <div>
+    <h1>Chronologie</h1>
+    <p class="sub">Consommation totale depuis 2018, événements marquants et projets terminés</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<section>
+  <h2>Consommation totale et frise chronologique</h2>
+  <div class="box" style="height:560px;position:relative"><canvas id="cChr"></canvas><div id="chrTip"></div></div>
+  <p class="note" id="chrNote" style="margin:8px 0 0"></p>
+  <div id="chrInfo" style="margin-top:10px"></div>
+</section>
+<section>
+  <h2>Événements marquants</h2>
+  <p class="note" style="margin:0 0 8px">Ajoutez ce qui a pu faire évoluer la consommation (isolation des toits, changement de chaudière, travaux, changement d’usage…). L’événement apparaît sur la frise, à sa date, sous le graphique.</p>
+  <form id="evForm" style="display:grid;grid-template-columns:170px 1fr;gap:10px 12px;align-items:end;max-width:780px;margin:10px 0">
+    <label>Date <input type="date" id="evD" required></label>
+    <label>Titre <input type="text" id="evT" maxlength="80" required placeholder="Ex. Isolation des toits" style="width:100%"></label>
+    <label style="grid-column:1/-1">Description (facultatif) <textarea id="evN" rows="2" maxlength="400" style="width:100%"></textarea></label>
+    <label style="grid-column:1/-1">Lien (facultatif) <input type="url" id="evU" placeholder="https://…" style="width:100%"></label>
+    <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap"><button class="main" id="evSave" type="submit">Ajouter l’événement</button><button type="button" id="evCancel" hidden>Annuler la modification</button></div>
+  </form>
+  <div id="evList"></div>
+</section>
+</div>
 <div id="vDju" hidden>
 <header>
   <div>
@@ -309,7 +337,7 @@ body.out .edit-only{display:none!important}
 
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch,addDoc,updateDoc,getDoc} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import {getFirestore,collection,onSnapshot,doc,setDoc,deleteDoc,writeBatch,addDoc,updateDoc,getDoc,deleteField} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,EmailAuthProvider,reauthenticateWithCredential,updatePassword} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 const firebaseConfig={
   apiKey:"AIzaSyCOTfF1ZkMJTQTbQ0kAE_Yv4Wut2P6d_QE",
@@ -331,10 +359,10 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
-    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');
+    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
 const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
@@ -824,7 +852,7 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const refus=()=>alert('Action refusée : êtes-vous connecté avec un compte autorisé ?');
 function listenProj(){
   if(unsubP)unsubP();
-  unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj();checkPopups()},
+  unsubP=onSnapshot(collection(db,'projets'),snap=>{projets=snap.docs.map(d=>({id:d.id,...d.data()}));renderProj();safe(renderChr,'chronologie');checkPopups()},
     ()=>{projets=[];$('lCours').innerHTML='<p class="empty">Lecture impossible : connectez-vous ou vérifiez les règles Firestore (collection « projets »).</p>'});
 }
 const statutOf=p=>{if(p.statut==='a_realiser')return 'a';if(p.statut==='cloture')return 'clos';const t=p.taches||[];return t.length&&t.every(x=>x.fait)?'fini':'cours'};
@@ -1225,7 +1253,83 @@ $('file').onchange=async ev=>{
   }catch(e){alert('Import impossible : fichier non reconnu ou droits insuffisants.')}
   ev.target.value='';
 };
-function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju';$('vDash').hidden=r||pj||dj;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+
+let evts={},evEdit=null,chrS=null;
+const isoOk=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'');
+const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
+function goProj(ids){ids.forEach(i=>openA.add(i));if(location.hash==='#projets')renderProj();else location.hash='#projets';
+  setTimeout(()=>{renderProj();const el=document.querySelector('#vProj details.pr[data-id="'+ids[0]+'"]');if(el)el.scrollIntoView({block:'center'})},80)}
+function chrItems(){
+  const ev=Object.entries(evts).filter(([,o])=>o&&isoOk(o.d)).map(([id,o])=>({k:'e',id,d:o.d,t:o.t||'(sans titre)',n:o.n||'',u:o.u||''}));
+  const pr=projets.filter(p=>{const st=statutOf(p);return st==='fini'||st==='clos'}).map(p=>({k:'p',id:p.id,d:p.termine||(statutOf(p)==='clos'?p.cloture:null),t:p.nom||'(projet)'})).filter(o=>isoOk(o.d));
+  return{ev,pr}}
+const chrPlugin={id:'chr',afterDraw(ch){
+  const S=chrS;if(!S)return;const ctx=ch.ctx,xs=ch.scales.x,A=ch.chartArea,H=ch.height,css=getComputedStyle(document.documentElement),g=x=>css.getPropertyValue(x).trim(),ink=g('--ink'),mute=g('--mute'),line=g('--line'),card=g('--card'),F='"Segoe UI",system-ui,sans-serif';
+  const lanes=[{items:S.ev,y:H-82,col:'#c2255c',name:'Événements marquants',sh:'d'},{items:S.pr,y:H-38,col:g('--ok'),name:'Projets terminés',sh:'c'}];
+  ch.$hits=[];
+  lanes.forEach(L=>{
+    ctx.save();ctx.strokeStyle=line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(A.left,L.y);ctx.lineTo(A.right,L.y);ctx.stroke();
+    ctx.fillStyle=mute;ctx.font='600 10.5px '+F;ctx.textAlign='left';ctx.textBaseline='bottom';ctx.fillText(L.name,A.left,L.y-12);
+    const pts=L.items.map(o=>({o,x:xs.getPixelForValue(S.pos(o.d))})).filter(p=>p.x>=A.left-2&&p.x<=A.right+2).sort((a,b)=>a.x-b.x),gr=[];
+    pts.forEach(p=>{const q=gr[gr.length-1];if(q&&p.x-q.x0<=20)q.p.push(p);else gr.push({x0:p.x,p:[p]})});
+    gr.forEach(q=>{q.x=q.p.reduce((a,p)=>a+p.x,0)/q.p.length});
+    gr.forEach(q=>{ctx.save();ctx.setLineDash([3,4]);ctx.strokeStyle=L.col;ctx.globalAlpha=.4;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(q.x,A.top);ctx.lineTo(q.x,L.y);ctx.stroke();ctx.restore()});
+    gr.forEach((q,gi)=>{const n=q.p.length,r=n>1?12:8;
+      ctx.fillStyle=L.col;ctx.strokeStyle=card;ctx.lineWidth=2;ctx.beginPath();
+      if(L.sh==='d'&&n===1){ctx.moveTo(q.x,L.y-r-1);ctx.lineTo(q.x+r+1,L.y);ctx.lineTo(q.x,L.y+r+1);ctx.lineTo(q.x-r-1,L.y);ctx.closePath()}else ctx.arc(q.x,L.y,r,0,6.2832);
+      ctx.fill();ctx.stroke();
+      if(n>1){ctx.fillStyle='#fff';ctx.font='700 11.5px '+F;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(n),q.x,L.y+.5)}
+      else{const nx=gr[gi+1]?gr[gi+1].x-16:A.right,av=nx-q.x-16;
+        if(av>34){ctx.font='600 11px '+F;let t=q.p[0].o.t;if(ctx.measureText(t).width>av){while(t.length>1&&ctx.measureText(t+'…').width>av)t=t.slice(0,-1);t+='…'}
+          const w=ctx.measureText(t).width;ctx.fillStyle=card;ctx.fillRect(q.x+r+3,L.y-9,w+6,18);ctx.fillStyle=ink;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t,q.x+r+6,L.y+.5)}}
+      ch.$hits.push({x:q.x,y:L.y,r:r+6,items:q.p.map(p=>p.o)})});
+    ctx.restore()})}};
+function chrBuild(){
+  const {ev,pr}=chrItems(),now=new Date(),ds=[...ev,...pr].map(o=>o.d),
+    ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),...ds.map(d=>+d.slice(0,4))].filter(Number.isFinite),
+    sy=Math.min(2018,...ys);let ey=now.getFullYear(),em=now.getMonth()+1;
+  ds.forEach(d=>{const y=+d.slice(0,4),m=+d.slice(5,7);if(y*12+m>ey*12+em){ey=y;em=m}});
+  const labels=[];for(let y=sy;y<=ey;y++)for(let m=1;m<=12;m++){if(y*12+m>ey*12+em)break;labels.push(ymKey(y,m))}
+  const E={},G={};let ann=false;for(let y=sy;y<=ey;y++){E[y]=sp(y,'e');G[y]=sp(y,'g');if(annualOnly(y,'e')||annualOnly(y,'g'))ann=true}
+  const at=(A,l)=>{const v=A[+l.slice(0,4)][+l.slice(5)-1];return v!=null?v/1000:null},e=labels.map(l=>at(E,l)),g=labels.map(l=>at(G,l));
+  const roll=labels.map((_,i)=>{if(i<11)return null;let t=0;for(let k=i-11;k<=i;k++){if(e[k]==null||g[k]==null)return null;t+=e[k]+g[k]}return t});
+  const pos=d=>{const y=+d.slice(0,4),m=+d.slice(5,7),dd=+d.slice(8,10),dim=new Date(y,m,0).getDate();return(y-sy)*12+(m-1)+(dd-.5)/dim-.5};
+  return{labels,e,g,roll,ev,pr,pos,ann,sy}}
+function renderChr(){
+  const B=chrBuild();chrS=B;
+  const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line'),L=B.labels;
+  const dsC=[{type:'bar',label:'Électricité (MWh/mois)',data:B.e,backgroundColor:col('--elec'),stack:'s',yAxisID:'y',order:2},{type:'bar',label:'Gaz (MWh/mois)',data:B.g,backgroundColor:col('--gaz'),stack:'s',yAxisID:'y',order:2},
+    {type:'line',label:'Total sur 12 mois glissants (MWh)',data:B.roll,borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,pointRadius:0,tension:.25,spanGaps:false,yAxisID:'y2',order:1}];
+  const jan=c=>(L[c.index]||'').endsWith('-01');
+  if(charts.cChr){const c=charts.cChr;c.data.labels=L;c.data.datasets=dsC;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y2.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y2.title.color=txt;c.options.scales.y.grid.color=grid;c.options.scales.x.ticks.callback=(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):'';c.options.scales.x.grid.color=cx=>jan(cx)?grid:'rgba(0,0,0,0)';c.update()}
+  else charts.cChr=new Chart($('cChr'),{data:{labels:L,datasets:dsC},plugins:[chrPlugin],options:{maintainAspectRatio:false,layout:{padding:{bottom:116,top:8}},interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{title:it=>{const l=L[it[0].dataIndex];return MOIS[+l.slice(5)-1]+' '+l.slice(0,4)},label:c=>` ${c.dataset.label.replace(/ \(.*/,'')} : ${fmt(c.parsed.y,1)} MWh`,footer:it=>{const v=it.filter(x=>x.dataset.stack).reduce((a,x)=>a+(x.parsed.y||0),0);return v?'Total du mois : '+fmt(v,1)+' MWh':''}}}},
+    scales:{x:{stacked:true,ticks:{color:txt,autoSkip:false,maxRotation:0,callback:(v,i)=>L[i]&&L[i].endsWith('-01')?L[i].slice(0,4):''},grid:{color:cx=>jan(cx)?grid:'rgba(0,0,0,0)'}},y:{stacked:true,beginAtZero:true,position:'left',title:{display:true,text:'MWh par mois',color:txt},ticks:{color:txt},grid:{color:grid}},y2:{beginAtZero:true,position:'right',title:{display:true,text:'MWh sur 12 mois',color:txt},ticks:{color:txt},grid:{display:false}}}}});
+  charts.cChr.update('none');
+  $('chrNote').innerHTML='◆ événement marquant · ● projet terminé · un chiffre indique plusieurs éléments proches (cliquez dessus pour le détail).'+(B.ann?' Les années saisies uniquement en total annuel sont réparties à parts égales sur 12 mois.':'')+' La courbe noire (12 mois glissants) lisse les saisons : c’est elle qui montre le mieux une baisse durable.';
+  $('chrInfo').innerHTML='<p class="note" style="margin:0">Cliquez sur un repère de la frise pour voir son détail.</p>';
+  renderEvList()}
+function renderEvList(){
+  const l=Object.entries(evts).filter(([,o])=>o&&isoOk(o.d)).sort((a,b)=>b[1].d.localeCompare(a[1].d));
+  $('evList').innerHTML=l.length?l.map(([id,o])=>`<div class="chi"><b style="color:#c2255c">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span> <button type="button" data-ee="${id}">Modifier</button> <button type="button" data-ed="${id}">Supprimer</button>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`).join(''):'<p class="note">Aucun événement pour le moment.</p>'}
+function chrShow(items){
+  const it=items.slice().sort((a,b)=>a.d.localeCompare(b.d)),np=it.filter(o=>o.k==='p').length;
+  $('chrInfo').innerHTML=(it.length>1?`<p style="margin:0 0 4px"><b>${it.length} éléments proches${np===it.length?' : '+np+' projets terminés':''}</b></p>`:'')+it.map(o=>o.k==='e'?`<div class="chi"><b style="color:#c2255c">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`:`<div class="chi"><b style="color:var(--ok)">● ${esc(o.t)}</b> <span class="note">terminé le ${dfr(o.d)}</span> <button type="button" data-pv="${o.id}">Voir le projet</button></div>`).join('')}
+function evReset(){evEdit=null;$('evForm').reset();$('evSave').textContent='Ajouter l’événement';$('evCancel').hidden=true}
+$('evForm').onsubmit=ev=>{ev.preventDefault();const d=$('evD').value,t=$('evT').value.trim();if(!d||!t)return;const id=evEdit||uid();
+  setDoc(doc(db,'releves','_evt'),{l:{[id]:{d,t,n:$('evN').value.trim(),u:$('evU').value.trim()}}},{merge:true}).then(evReset).catch(refus)};
+$('evCancel').onclick=evReset;
+$('evList').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
+  if(b.dataset.ee){const o=evts[b.dataset.ee];if(!o)return;evEdit=b.dataset.ee;$('evD').value=o.d;$('evT').value=o.t||'';$('evN').value=o.n||'';$('evU').value=o.u||'';$('evSave').textContent='Enregistrer la modification';$('evCancel').hidden=false;$('evForm').scrollIntoView({block:'center'})}
+  if(b.dataset.ed&&confirm('Supprimer cet événement ?'))setDoc(doc(db,'releves','_evt'),{l:{[b.dataset.ed]:deleteField()}},{merge:true}).catch(refus)};
+$('chrInfo').onclick=ev=>{const b=ev.target.closest('[data-pv]');if(b)goProj([b.dataset.pv])};
+{const cv=$('cChr'),hit=ev=>{const c=charts.cChr;if(!c||!c.$hits)return null;const r=cv.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;return c.$hits.find(h=>Math.hypot(h.x-x,h.y-y)<=h.r)||null};
+  cv.addEventListener('mousemove',ev=>{const h=hit(ev),tip=$('chrTip');cv.style.cursor=h?'pointer':'';if(!h){tip.style.display='none';return}
+    const it=h.items;tip.innerHTML=it.length>1?`<b>${it.length} éléments</b><br>`+it.slice(0,6).map(o=>(o.k==='e'?'◆ ':'● ')+esc(o.t)).join('<br>')+(it.length>6?'<br>…':''):`${it[0].k==='e'?'◆':'●'} <b>${esc(it[0].t)}</b><br>${dfr(it[0].d)}`;
+    const r=cv.getBoundingClientRect();tip.style.display='block';tip.style.left=Math.min(ev.clientX-r.left+12,r.width-tip.offsetWidth-4)+'px';tip.style.top=Math.max(4,ev.clientY-r.top-tip.offsetHeight-12)+'px'});
+  cv.addEventListener('mouseleave',()=>{$('chrTip').style.display='none'});
+  cv.addEventListener('click',ev=>{const h=hit(ev);if(h)chrShow(h.items)})}
+function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie';$('vDash').hidden=r||pj||dj||ch;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
@@ -1255,7 +1359,7 @@ onAuthStateChanged(auth,async u=>{
   const bt=document.getElementById('boot');if(bt)bt.remove();
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};evts={};first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
