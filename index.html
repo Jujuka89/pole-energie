@@ -112,6 +112,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .pop.f{border-left-color:var(--ok)}.pop h3{margin:0 0 4px;font-size:1rem}.pop ul{margin:4px 0 10px;padding-left:18px;font-size:.92rem;overflow-wrap:anywhere}.pop .pb{display:flex;gap:8px;justify-content:flex-end}
 @keyframes popin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 #vChr{max-width:1700px;margin:0 auto}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
+#vArc{max-width:1000px;margin:0 auto}.act{padding:8px 0;border-bottom:1px solid var(--line)}.act p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem}.act .ab{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.act button{padding:2px 8px;font-size:.8rem}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
 body.out .edit-only{display:none!important}
@@ -164,7 +165,7 @@ body.out .edit-only{display:none!important}
     <h1>Dashboard Pôle Energie</h1>
 
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Chronologie</a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#releves">Relevés</a><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Chronologie</a><a class="btn main" href="#archives">Archives</a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="dash">
@@ -185,7 +186,10 @@ body.out .edit-only{display:none!important}
 </section>
 </div>
 </div>
-<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#releves">Voir les compteurs</a></p></section></aside>
+<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Actualité <span class="badge cnt" id="sNa"></span></h2><div id="actuList"></div>
+<form id="actuForm" style="margin-top:8px"><textarea id="actuT" rows="2" maxlength="600" placeholder="Écrire une actualité…" style="width:100%"></textarea>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="main" id="actuSave" type="submit">Ajouter</button><button type="button" id="actuCancel" hidden>Annuler</button><button type="button" id="actuArch" style="margin-left:auto">Archivage</button></div></form>
+<p class="note" style="margin:8px 0 0"><a href="#archives">Voir les archives</a> · à archiver après le point du jeudi</p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#releves">Voir les compteurs</a></p></section></aside>
 </div>
 </div>
 
@@ -268,6 +272,16 @@ body.out .edit-only{display:none!important}
   <h2 class="stt">Clôturés <span class="badge cnt" id="nClos"></span></h2>
   <div class="scroll"><div id="lClos"></div></div>
 </section>
+</div>
+<div id="vArc" hidden>
+<header>
+  <div>
+    <h1>Archives</h1>
+    <p class="sub">Actualités archivées après chaque point économie d’énergie du jeudi</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<div id="arcList"></div>
 </div>
 <div id="vChr" hidden>
 <header>
@@ -359,10 +373,10 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
-    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');
+    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
 const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
@@ -1329,7 +1343,32 @@ $('chrInfo').onclick=ev=>{const b=ev.target.closest('[data-pv]');if(b)goProj([b.
     const r=cv.getBoundingClientRect();tip.style.display='block';tip.style.left=Math.min(ev.clientX-r.left+12,r.width-tip.offsetWidth-4)+'px';tip.style.top=Math.max(4,ev.clientY-r.top-tip.offsetHeight-12)+'px'});
   cv.addEventListener('mouseleave',()=>{$('chrTip').style.display='none'});
   cv.addEventListener('click',ev=>{const h=hit(ev);if(h)chrShow(h.items)})}
-function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie';$('vDash').hidden=r||pj||dj||ch;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+
+let actu={},archs={},actuEdit=null;
+const dLong=d=>new Date(d+'T00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+function renderActu(){
+  const l=Object.entries(actu).filter(([,o])=>o&&o.t).sort((a,b)=>(b[1].c||0)-(a[1].c||0));
+  $('sNa').textContent=l.length||'';$('actuArch').disabled=!l.length;
+  $('actuList').innerHTML=l.length?l.map(([id,o])=>`<div class="act"><p>${esc(o.t)}</p><div class="ab"><small style="color:var(--mute)">${o.d?dfr(o.d):''}</small><button type="button" data-ae="${id}">Modifier</button><button type="button" data-ad="${id}">Supprimer</button></div></div>`).join(''):'<p class="note" style="margin:0">Aucune actualité en cours.</p>'}
+function renderArc(){
+  const l=Object.entries(archs).filter(([,o])=>o&&o.d).sort((a,b)=>b[1].d.localeCompare(a[1].d)||(b[1].c||0)-(a[1].c||0));
+  $('arcList').innerHTML=l.length?l.map(([id,o])=>`<section><h2 style="margin:0 0 8px">${esc(dLong(o.d).replace(/^./,c=>c.toUpperCase()))}</h2><p class="note" style="margin:0 0 6px">Point économie d’énergie · ${(o.items||[]).length} actualité${(o.items||[]).length>1?'s':''}</p>${(o.items||[]).map(i=>`<div class="act"><p>${esc(i.t)}</p><small style="color:var(--mute)">${i.d?'Saisie le '+dfr(i.d):''}</small></div>`).join('')}</section>`).join(''):'<section><p class="note" style="margin:0">Aucune archive pour le moment. Utilisez le bouton « Archivage » de la case Actualité du tableau de bord.</p></section>'}
+function actuReset(){actuEdit=null;$('actuT').value='';$('actuSave').textContent='Ajouter';$('actuCancel').hidden=true}
+$('actuForm').onsubmit=ev=>{ev.preventDefault();const t=$('actuT').value.trim();if(!t)return;const id=actuEdit||uid(),old=actu[id]||{};
+  setDoc(doc(db,'releves','_actu'),{l:{[id]:{t,d:old.d||today(),c:old.c||Date.now()}}},{merge:true}).then(actuReset).catch(refus)};
+$('actuT').onkeydown=ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey))$('actuForm').requestSubmit()};
+$('actuCancel').onclick=actuReset;
+$('actuList').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
+  if(b.dataset.ae){const o=actu[b.dataset.ae];if(!o)return;actuEdit=b.dataset.ae;$('actuT').value=o.t;$('actuSave').textContent='Enregistrer';$('actuCancel').hidden=false;$('actuT').focus()}
+  if(b.dataset.ad&&confirm('Supprimer cette actualité ?'))setDoc(doc(db,'releves','_actu'),{l:{[b.dataset.ad]:deleteField()}},{merge:true}).catch(refus)};
+$('actuArch').onclick=()=>{
+  const items=Object.values(actu).filter(o=>o&&o.t).sort((a,b)=>(a.c||0)-(b.c||0));if(!items.length)return;
+  if(!confirm('Archiver les '+items.length+' actualité'+(items.length>1?'s':'')+' du point du '+dLong(today())+' ? Elles seront déplacées dans la page Archives.'))return;
+  const wb=writeBatch(db);
+  wb.set(doc(db,'releves','_archives'),{l:{[uid()]:{d:today(),c:Date.now(),items:items.map(o=>({t:o.t,d:o.d||''}))}}},{merge:true});
+  wb.set(doc(db,'releves','_actu'),{l:{}});
+  wb.commit().catch(refus)};
+function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives';$('vDash').hidden=r||pj||dj||ch||ar;$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
@@ -1359,7 +1398,7 @@ onAuthStateChanged(auth,async u=>{
   const bt=document.getElementById('boot');if(bt)bt.remove();
   document.body.classList.toggle('out',!u);user=u;
   document.querySelector('main').hidden=true;
-  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};evts={};first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
+  if(!u){if(unsub)unsub();if(unsubP)unsubP();unsub=unsubP=null;if(unsubC)unsubC();unsubC=null;compteurs=[];cptKey='';data=[];projets=[];prices={};totaux={};dju={};djuC={};evts={};actu={};archs={};first=true;popDone=false;$('popBox').innerHTML='';closeForm();$('gate').hidden=false;setGate('login');return}
   $('gate').hidden=true;
   let ok=false;try{const sn=await getDoc(doc(db,'utilisateurs',u.uid));ok=sn.exists()&&sn.data().mdpChange===true}catch(e){}
   if(user!==u)return;
