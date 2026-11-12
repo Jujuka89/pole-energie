@@ -206,9 +206,11 @@ body.out .edit-only{display:none!important}
 <p id="status" class="note" role="status"></p>
 
 <section id="gridsSec">
-  <h2>Compteurs principaux : gaz et électricité</h2>
-  <p class="note" style="margin:0 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
+  <details class="djs">
+  <summary><h2>Compteurs principaux : gaz et électricité</h2></summary>
+  <p class="note" style="margin:8px 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
   <div id="grids"></div>
+  </details>
 </section>
 <div id="vCpt">
 <section>
@@ -855,7 +857,7 @@ function buildGrids(){
   const ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number)],cur=new Date().getFullYear(),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
   if(key===gridKey)return;gridKey=key;let h='';
   for(let y=top;y>=bot;y--){
-    h+=`<details class="yr" ${y===cur?'open':''}><summary><b>${y}</b> <span class="badge" data-n="${y}"></span></summary>
+    h+=`<details class="yr"><summary><b>${y}</b> <span class="badge" data-n="${y}"></span></summary>
     <div class="prixy"><label>Prix électricité (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|e"></label><label>Prix gaz (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|g"></label></div>
     <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th></tr></thead><tbody>
     ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell ce" placeholder="–" data-c="${m}|e"></td><td><input type="number" min="0" step="any" class="cell cg" placeholder="–" data-c="${m}|g"></td><td data-cost="${m}|e"></td><td data-cost="${m}|g"></td></tr>`}).join('')}
