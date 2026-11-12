@@ -679,29 +679,6 @@ function rapportGeneral(){
     eco.forEach(d=>{const e=d.querySelector('.delta'),k=e.classList.contains('up')?RD:e.classList.contains('down')?GR:MU,sm=d.querySelector('small');
       doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...k);const ls=doc.splitTextToSize(pf(e.textContent.trim()),L);ensure(5*ls.length+6);doc.text(ls,M,y);y+=5*ls.length;
       if(sm){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...MU);const l2=doc.splitTextToSize(pf(sm.textContent.trim()),L);doc.text(l2,M,y);y+=4.5*l2.length}y+=3})}
-  // --- objectif 2030 (repris de la page Chronologie)
-  {const B=chrBuild();chrS=B;const S=objStats(B);
-    title('Objectif 2030',60);
-    if(S.err==='base')note('Pour mesurer l’économie, l’année '+REF+' doit être saisie en entier (gaz et électricité).');
-    else if(S.err==='cur')note('Il faut 12 mois consécutifs complets (gaz et électricité) pour mesurer l’économie réalisée.');
-    else{
-      const c0=S.sv>=0?GR:RD,mth=MOIS[+S.lm.slice(5)-1]+' '+S.lm.slice(0,4);ensure(20);
-      doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(...c0);const big=pf((S.sv>=0?'':'+')+fmt(Math.abs(S.sv),1)+' %');doc.text(big,M,y+6);
-      const bw=doc.getTextWidth(big);doc.setFontSize(10);doc.setTextColor(...INK);doc.text(pf((S.sv>=0?'d’économie réalisée':'de hausse')+' par rapport à '+REF),M+bw+3,y+6);y+=10;
-      note('Sur les 12 mois jusqu’à '+mth+' : '+fmt(S.cur)+' MWh, contre '+fmt(S.base)+' MWh en '+REF+'.');
-      if(S.tgt==null)note('Aucun objectif défini pour 2030.');
-      else{
-        if(S.ex!=null){const k=S.near?MU:S.gap>0?GR:RD;ensure(18);
-          doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...k);doc.text(pf(S.near?'Dans la trajectoire':S.gap>0?'En avance sur la trajectoire':'En retard sur la trajectoire'),M,y+4);y+=7;
-          doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...INK);
-          const tx=pf('La droite '+REF+' -> 2030 prévoit à ce jour -'+fmt(S.exp,1)+' % ('+fmt(S.ex)+' MWh/an). Vous êtes à '+(S.sv>=0?'-':'+')+fmt(Math.abs(S.sv),1)+' % ('+fmt(S.cur)+' MWh/an)'+(S.near?'.':' : '+fmt(Math.abs(S.gap))+' MWh/an '+(S.gap>0?'d’avance':'de retard')+' ('+fmt(Math.abs(S.pt),1)+' point'+(Math.abs(S.pt)>=2?'s':'')+' de pourcentage).')),ls=doc.splitTextToSize(tx,L);
-          doc.text(ls,M,y+3);y+=4.4*ls.length+4}
-        ensure(18);doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(pf(fmt(Math.max(0,S.prog),0)+' % de l’objectif atteint'),M,y+3);
-        doc.setFont('helvetica','normal');doc.setTextColor(...MU);doc.text(pf('objectif 2030 : -'+fmt(objectif,1)+' % ('+fmt(S.tgt)+' MWh/an)'),W-M,y+3,{align:'right'});y+=6;
-        doc.setFillColor(222,226,224);doc.roundedRect(M,y,L,5,2.5,2.5,'F');const wf=Math.max(0,Math.min(100,S.prog))/100*L;if(wf>0.5){doc.setFillColor(...GR);doc.roundedRect(M,y,Math.max(wf,5),5,2.5,2.5,'F')}y+=9;
-        note(S.rem>0?'Reste à économiser : '+fmt(S.rem)+' MWh/an, soit environ '+fmt(S.rem/S.yrs)+' MWh/an de moins chaque année d’ici fin 2030.':'Objectif atteint : la consommation sur 12 mois est déjà sous le niveau visé pour 2030.');
-        const oi=withLight(()=>cfgImg(chrCfg(B),1100,600)),oh=L*600/1100;pic(oi,oh);
-        note('Barres : consommation mensuelle (électricité + gaz). Courbe noire : total sur 12 mois glissants. Droite verte : trajectoire de '+REF+' à l’objectif 2030. Losanges et ronds de la frise : événements marquants et projets terminés.')}}}
   // --- graphiques de la première page
   const tm=totMode,im=withLight(()=>{const o={};o.cumul=cfgImg(cumulCfg(),900,420);
     try{totMode='annee';o.mois=cfgImg(totalCfg(),900,380);totMode='toutes';o.ans=cfgImg(totalCfg(),900,380)}finally{totMode=tm}return o});
@@ -726,6 +703,30 @@ function rapportGeneral(){
     if(g&&!g.none&&g.conv){const dm=-g.mwh;e={t:sg(dm)+fmt(Math.abs(dm),decs(Math.abs(dm)))+' MWh',c:dm<0?GR:dm>0?RD:INK,b:true};if(g.ne){const de=-g.eur;eu={t:sg(de)+fmt(Math.abs(de))+' EUR',c:de<0?GR:de>0?RD:INK,b:true}}}
     return [{t:p.nom,b:true},m==null?'-':m>=12?'Terminé':m+'/12 mois',p.termine?dfr(p.termine):'-',e,eu]}),'Aucun projet à contrôler.');
   if(ps.some(p=>statutOf(p)==='fini'))note('Écart : comparaison avec les mêmes mois un an plus tôt depuis la fin du projet. Le signe - indique une consommation plus faible (gain, vert), le signe + une consommation plus forte (perte, rouge).');
+  // --- objectif 2030 : dernière page du rapport
+  doc.addPage();y=20;
+  {const B=chrBuild();chrS=B;const S=objStats(B);
+    title('Objectif 2030',60);
+    if(S.err==='base')note('Pour mesurer l’économie, l’année '+REF+' doit être saisie en entier (gaz et électricité).');
+    else if(S.err==='cur')note('Il faut 12 mois consécutifs complets (gaz et électricité) pour mesurer l’économie réalisée.');
+    else{
+      const c0=S.sv>=0?GR:RD,mth=MOIS[+S.lm.slice(5)-1]+' '+S.lm.slice(0,4);ensure(20);
+      doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(...c0);const big=pf((S.sv>=0?'':'+')+fmt(Math.abs(S.sv),1)+' %');doc.text(big,M,y+6);
+      const bw=doc.getTextWidth(big);doc.setFontSize(10);doc.setTextColor(...INK);doc.text(pf((S.sv>=0?'d’économie réalisée':'de hausse')+' par rapport à '+REF),M+bw+3,y+6);y+=10;
+      note('Sur les 12 mois jusqu’à '+mth+' : '+fmt(S.cur)+' MWh, contre '+fmt(S.base)+' MWh en '+REF+'.');
+      if(S.tgt==null)note('Aucun objectif défini pour 2030.');
+      else{
+        if(S.ex!=null){const k=S.near?MU:S.gap>0?GR:RD;ensure(18);
+          doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...k);doc.text(pf(S.near?'Dans la trajectoire':S.gap>0?'En avance sur la trajectoire':'En retard sur la trajectoire'),M,y+4);y+=7;
+          doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...INK);
+          const tx=pf('La droite '+REF+' -> 2030 prévoit à ce jour -'+fmt(S.exp,1)+' % ('+fmt(S.ex)+' MWh/an). Vous êtes à '+(S.sv>=0?'-':'+')+fmt(Math.abs(S.sv),1)+' % ('+fmt(S.cur)+' MWh/an)'+(S.near?'.':' : '+fmt(Math.abs(S.gap))+' MWh/an '+(S.gap>0?'d’avance':'de retard')+' ('+fmt(Math.abs(S.pt),1)+' point'+(Math.abs(S.pt)>=2?'s':'')+' de pourcentage).')),ls=doc.splitTextToSize(tx,L);
+          doc.text(ls,M,y+3);y+=4.4*ls.length+4}
+        ensure(18);doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(pf(fmt(Math.max(0,S.prog),0)+' % de l’objectif atteint'),M,y+3);
+        doc.setFont('helvetica','normal');doc.setTextColor(...MU);doc.text(pf('objectif 2030 : -'+fmt(objectif,1)+' % ('+fmt(S.tgt)+' MWh/an)'),W-M,y+3,{align:'right'});y+=6;
+        doc.setFillColor(222,226,224);doc.roundedRect(M,y,L,5,2.5,2.5,'F');const wf=Math.max(0,Math.min(100,S.prog))/100*L;if(wf>0.5){doc.setFillColor(...GR);doc.roundedRect(M,y,Math.max(wf,5),5,2.5,2.5,'F')}y+=9;
+        note(S.rem>0?'Reste à économiser : '+fmt(S.rem)+' MWh/an, soit environ '+fmt(S.rem/S.yrs)+' MWh/an de moins chaque année d’ici fin 2030.':'Objectif atteint : la consommation sur 12 mois est déjà sous le niveau visé pour 2030.');
+        const oi=withLight(()=>cfgImg(chrCfg(B),1100,600)),oh=L*600/1100;pic(oi,oh);
+        note('Barres : consommation mensuelle (électricité + gaz). Courbe noire : total sur 12 mois glissants. Droite verte : trajectoire de '+REF+' à l’objectif 2030. Losanges et ronds de la frise : événements marquants et projets terminés.')}}}
   const np=doc.getNumberOfPages();for(let i=1;i<=np;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...MU);doc.text('Page '+i+'/'+np,W-M,290,{align:'right'})}
   doc.save('rapport-energie-'+year+'.pdf');
 }
