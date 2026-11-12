@@ -348,7 +348,7 @@ body.out .edit-only{display:none!important}
   <p class="note" id="djuKNote" style="margin:8px 0 0"></p>
 </section>
 <section>
-  <h2 id="djuHTitle" style="margin:0 0 12px">Évolution depuis 2018, corrigée de la météo</h2>
+  <h2 id="djuHTitle" style="margin:0 0 12px">Évolution corrigée de la météo</h2>
   <div class="box"><canvas id="cDjuH"></canvas></div>
   <p class="note" id="djuHNote" style="margin:8px 0 0"></p>
 </section>
@@ -819,23 +819,29 @@ function renderDju(){
 }
 function renderDjuHist(){
   const css=getComputedStyle(document.documentElement),col=x=>css.getPropertyValue(x).trim(),txt=col('--mute'),grid=col('--line');
-  const dj=y=>{let t=0;for(let i=0;i<12;i++){const k=y+'-'+String(i+1).padStart(2,'0');if(dju[k]==null&&djuC[k]==null)return null;t+=(dju[k]||0)+(djuC[k]||0)}return t};
-  const tot=y=>full(y,'e')&&full(y,'g')?(yearTotal(y,'e')+yearTotal(y,'g'))/1000:null;
-  const top=Math.max(...data.map(d=>+d.m.slice(0,4)),REF);
-  const rows=[];for(let y=REF;y<=top;y++){const t=tot(y),d=dj(y);if(t!=null&&d>0)rows.push({y,t,d})}
-  const base=rows.find(r=>r.y===REF),fm=v=>fmt(v,v<0.1?4:3);
-  if(!base){if(charts.cDjuH){charts.cDjuH.destroy();delete charts.cDjuH}
-    $('djuHNote').textContent='Pour tracer ce graphique, il faut '+REF+' avec les totaux annuels de gaz et d’électricité (page Relevés) et les 12 mois de DJU (chaud et/ou froid) saisis.';return}
-  const rr=base.t/base.d,L=rows.filter(r=>r.y!==REF).map(r=>({...r,att:rr*r.d,ec:r.t-rr*r.d,pc:(r.t-rr*r.d)/(rr*r.d)*100}));
-  $('djuHTitle').textContent='Évolution depuis '+REF+', corrigée de la météo';
+  const R=djuRef,kOf=(y,i)=>y+'-'+String(i+1).padStart(2,'0');
+  const mon=(y,i)=>{const ee=val(y,'e')[i],gg=val(y,'g')[i],ch=dju[kOf(y,i)]||0,fr=djuC[kOf(y,i)]||0;
+    if(i<4||i>8)return ee!=null&&gg!=null&&ch>0?{t:(ee+gg)/1000,d:ch}:null;
+    return ee!=null&&fr>0?{t:ee/1000,d:fr}:null};
+  const top=Math.max(...data.map(d=>+d.m.slice(0,4)),R||0),L=[];
+  if(R!=null)for(let y=Math.min(...data.map(d=>+d.m.slice(0,4)));y<=top;y++){if(y===R)continue;
+    const acc={c:[0,0,0,0],f:[0,0,0,0]};let n=0;
+    for(let i=0;i<12;i++){const a=mon(R,i),b=mon(y,i);if(!a||!b)continue;const g=acc[i<4||i>8?'c':'f'];g[0]+=a.t;g[1]+=a.d;g[2]+=b.t;g[3]+=b.d;n++}
+    if(!n)continue;let att=0,reel=0;
+    for(const g of Object.values(acc))if(g[1]>0){att+=g[0]/g[1]*g[3];reel+=g[2]}
+    if(att>0)L.push({y,n,att,t:reel,pc:(reel-att)/att*100})}
+  $('djuHTitle').textContent='Évolution corrigée de la météo'+(R!=null?' · référence '+R:'');
+  if(!L.length){if(charts.cDjuH){charts.cDjuH.destroy();delete charts.cDjuH}
+    $('djuHNote').textContent='Aucune année à comparer pour l’instant : il faut au moins un mois saisi (consommation et DJU) à la fois dans l’année de référence et dans une autre année.'+(annualOnly(REF,'e')?' Pour '+REF+', seuls les totaux annuels sont saisis : saisissez ses mois pour l’utiliser comme référence.':'');return}
+  const lab=L.map(r=>[r.y+'',r.n+(r.n>1?' mois':' mois')]);
   const ds=[{label:'Consommation réelle',data:L.map(r=>r.t),backgroundColor:col('--accent'),order:2},
-            {label:'Attendue avec le niveau de '+REF+' et la météo de l’année',data:L.map(r=>r.att),backgroundColor:col('--prev'),order:2}];
-  $('djuHNote').textContent='Ratio '+REF+' : '+fm(rr)+' MWh par DJU (gaz + électricité ÷ DJU chaud + froid sur l’année). Attendue = ce ratio × DJU de l’année. Le pourcentage au-dessus des barres est l’écart réel − attendue : vert avec « - » = moins que ce que la météo demandait, rouge avec « + » = plus. Seules les années complètes (12 mois de consommation et de DJU) sont tracées.'+(L.length?'':' Aucune autre année complète pour l’instant.');
+            {label:'Attendue avec le niveau de '+R+' et la météo de l’année',data:L.map(r=>r.att),backgroundColor:col('--prev'),order:2}];
+  $('djuHNote').textContent='Chaque année est comparée à '+R+' sur les seuls mois saisis (consommation et DJU) dans les deux années ; le nombre de mois est indiqué sous l’année, donc une année incomplète est utilisable. Attendue = ratio MWh/DJU de '+R+' par saison × DJU de l’année. Pourcentage : vert avec « - » = moins que ce que la météo demandait, rouge avec « + » = plus. La référence se change dans le bloc ci-dessus.'+(R!==REF?' ('+REF+' n’est pas utilisable : seuls ses totaux annuels sont saisis.)':'');
   const plug={id:'djuH',afterDatasetsDraw(ch){const ctx=ch.ctx,c=getComputedStyle(document.documentElement);ctx.save();ctx.font='700 12px "Segoe UI",system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
     const m0=ch.getDatasetMeta(0),m1=ch.getDatasetMeta(1);(ch.$L||[]).forEach((r,i)=>{const a=m0.data[i],b=m1.data[i];if(!a||!b)return;const n=Math.round(r.pc*10)/10;ctx.fillStyle=c.getPropertyValue(n>0?'--bad':n<0?'--ok':'--mute').trim();ctx.fillText((n>0?'+':n<0?'-':'')+fmt(Math.abs(n),1)+' %',(a.x+b.x)/2,Math.min(a.y,b.y)-6)});ctx.restore()}};
-  if(charts.cDjuH){const c=charts.cDjuH;c.data.labels=L.map(r=>r.y+'');c.data.datasets=ds;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y.grid.color=grid;c.update()}
-  else charts.cDjuH=new Chart($('cDjuH'),{type:'bar',data:{labels:L.map(r=>r.y+''),datasets:ds},plugins:[plug],
-    options:{maintainAspectRatio:false,layout:{padding:{top:26}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.label.split(' avec')[0]} : ${fmt(c.parsed.y,1)} MWh`}}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
+  if(charts.cDjuH){const c=charts.cDjuH;c.data.labels=lab;c.data.datasets=ds;c.options.plugins.legend.labels.color=txt;c.options.scales.x.ticks.color=txt;c.options.scales.y.ticks.color=txt;c.options.scales.y.title.color=txt;c.options.scales.y.grid.color=grid}
+  else charts.cDjuH=new Chart($('cDjuH'),{type:'bar',data:{labels:lab,datasets:ds},plugins:[plug],
+    options:{maintainAspectRatio:false,layout:{padding:{top:26}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.label.split(' avec')[0]} : ${fmt(c.parsed.y,1)} MWh`}}},scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh (mois comparés)',color:txt},ticks:{color:txt},grid:{color:grid}}}}});
   charts.cDjuH.$L=L;charts.cDjuH.update('none')
 }
 
@@ -867,7 +873,7 @@ function renderDjuCorr(){
   const t=ok.reduce((x,r)=>x+r.ecart,0);
   $('djuKNote').textContent='Attendu = ratio MWh/DJU de '+R+' (total des MWh ÷ total des DJU de la saison) × DJU de '+Y+'. Seuls les mois saisis (consommation et DJU) dans les deux années sont comparés. Un écart en vert avec « - » = vous avez consommé moins que ce que la météo '+Y+' aurait demandé avec le niveau de '+R+' ; en rouge avec « + » = plus. '+(ok.length?'':'Aucune comparaison possible. ')+(R!==REF?'('+REF+' n’est pas utilisable ici : seuls ses totaux annuels sont saisis, donc '+R+' sert de référence.) ':'');
 }
-$('djuRef').onchange=ev=>{djuRef=+ev.target.value;renderDjuCorr()};
+$('djuRef').onchange=ev=>{djuRef=+ev.target.value;renderDjuCorr();safe(renderDjuHist,'DJU historique')};
 $('djuYear').onchange=ev=>{djuYear=+ev.target.value;renderDju()};
 [['djuGrids','_dju',()=>dju],['djuGridsC','_djuc',()=>djuC]].forEach(([id,docId,get])=>{
   $(id).onchange=ev=>{const t=ev.target,ym=t.dataset.dj;if(!ym)return;const v=t.value===''?null:+t.value;if(v==null&&get()[ym]==null)return;
