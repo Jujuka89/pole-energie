@@ -343,7 +343,8 @@ body.out .edit-only{display:none!important}
   <p class="note" id="djuCNote" style="margin:8px 0 0"></p>
 </section>
 <section id="djuNormSec">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuNTitle" style="margin:0">Consommation normale selon les DJU</h2><label>Référence <select id="djuRef"></select></label></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuNTitle" style="margin:0">Consommation normale selon les DJU</h2></div>
+  <div id="djuNB" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px"></div>
   <div id="djuN"></div>
   <p class="note" id="djuNNote" style="margin:8px 0 0"></p>
   <h3 style="margin:16px 0 8px;font-size:1rem">Tester une valeur</h3>
@@ -819,25 +820,21 @@ function renderDju(){
       options:{maintainAspectRatio:false,layout:{padding:{top:22}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.type==='line'?c.dataset.label:c.dataset.label.split(' :')[0]} : ${fm(c.parsed.y)} MWh/DJU`}}},scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'MWh / DJU',color:txt},ticks:{color:txt},grid:{color:grid}}}}})}
   safe(renderDjuNorm,'DJU normale')
 }
-let djuRef=0;
 const djuMon=(y,i)=>{const k=y+'-'+String(i+1).padStart(2,'0'),ee=val(y,'e')[i],gg=val(y,'g')[i],ch=dju[k]||0,fr=djuC[k]||0;
   if(i<4||i>8)return ee!=null&&gg!=null&&ch>0?{t:(ee+gg)/1000,d:ch}:null;
   return ee!=null&&fr>0?{t:ee/1000,d:fr}:null};
 const djuYears=()=>[...new Set(data.map(d=>+d.m.slice(0,4)))].sort();
 function djuNormal(i,exc){
-  const ys=djuYears().filter(y=>y!==exc&&(djuRef===0||y===djuRef)),ch=i<4||i>8;let t=0,d=0,n=0;
+  const ys=djuYears(),ch=i<4||i>8;let t=0,d=0,n=0;
   ys.forEach(y=>{for(let j=0;j<12;j++){if((j<4||j>8)!==ch)continue;const o=djuMon(y,j);if(o){t+=o.t;d+=o.d;n++}}});
-  return d>0?{r:t/d,n}:null}
+  return d>0?{r:t/d,n,t,d}:null}
 const NTOL=5,nFm=v=>fmt(v,v<0.1?4:v<10?3:2),nSg=v=>v>0?'+':v<0?'-':'';
 const nPill=(att,reel)=>{const e=reel-att,pc=e/att*100,ok=Math.abs(pc)<=NTOL;
   return `<span class="delta ${ok?'flat':e>0?'up':'down'}">${ok?'≈ normal':nSg(pc)+fmt(Math.abs(pc),1)+' %'}<br><small>${nSg(e)}${fmt(Math.abs(e),0)} MWh</small></span>`};
 function renderDjuNorm(){
   const Y=djuYear;
-  const ys=djuYears().filter(y=>y!==Y&&Array.from({length:12},(_,i)=>djuMon(y,i)).some(Boolean));
-  if(djuRef!==0&&!ys.includes(djuRef))djuRef=0;
-  $('djuRef').innerHTML='<option value="0">Moyenne des autres années</option>'+ys.map(y=>`<option value="${y}">${y}</option>`).join('');
-  $('djuRef').value=String(djuRef);
   $('djuNTitle').textContent='Consommation normale selon les DJU · '+Y;
+  $('djuNB').innerHTML=[['Ratio moyen chaud','#e8590c',0,'gaz + élec. ÷ DJU chaud, octobre à avril'],['Ratio moyen froid','#7048e8',5,'élec. ÷ DJU froid, mai à septembre']].map(([t,c,i,d])=>{const r=djuNormal(i,Y);return `<div style="border:2px solid ${c};border-radius:10px;padding:10px 14px;background:color-mix(in srgb,${c} 10%,transparent)"><div style="font-weight:700;color:${c}">${t}</div><div style="font-size:1.9rem;font-weight:800;line-height:1.2">${r?nFm(r.r):'–'} <small style="font-size:.85rem;font-weight:600;color:var(--mute)">MWh/DJU</small></div><div class="note" style="margin:2px 0 0">${r?r.n+' mois, '+fmt(r.t,0)+' MWh ÷ '+fmt(r.d,0)+' DJU':'Aucun mois exploitable'}<br>${d}</div></div>`}).join('');
   const nm=$('nMois');if(!nm.options.length){nm.innerHTML=MOISL.map((m,i)=>`<option value="${i}">${m}</option>`).join('')}
   let h='',ta=0,tr=0,n=0;
   for(let i=0;i<12;i++){const o=djuMon(Y,i);if(!o)continue;const nr=djuNormal(i,Y),ch=i<4||i>8;
@@ -847,7 +844,7 @@ function renderDjuNorm(){
     h+=`<tr><td style="text-align:left"><b>${MOIS[i]}</b><br><small style="color:${ch?'#e8590c':'#7048e8'};font-weight:600">${ch?'chaud':'froid'}</small></td><td>${fmt(o.d,0)}</td><td>${fmt(o.t,1)}</td><td>${nFm(o.t/o.d)}</td>${c4}</tr>`}
   if(n>1)h+=`<tr><td style="text-align:left"><b>Total</b></td><td></td><td>${fmt(tr,1)}</td><td></td><td></td><td>${fmt(ta,1)}</td><td>${nPill(ta,tr)}</td></tr>`;
   $('djuN').innerHTML=h?'<div style="overflow-x:auto"><table style="font-size:.9rem"><thead><tr><th style="text-align:left">Mois</th><th>DJU</th><th>Réel (MWh)</th><th>Ratio réel</th><th>Ratio normal</th><th>Attendu (MWh)</th><th>Écart</th></tr></thead><tbody>'+h+'</tbody></table></div>':'<p class="note">Aucun mois de '+Y+' avec consommation et DJU saisis.</p>';
-  $('djuNNote').textContent='Ratio = MWh ÷ DJU. Le ratio normal est fixe pour toute la saison : total des MWh ÷ total des DJU de tous les mois de chauffe (octobre à avril : gaz + électricité ÷ DJU chaud) pour le chaud, et de tous les mois de climatisation (mai à septembre : électricité ÷ DJU froid) pour le froid, sur les années de référence (hors '+Y+'). Attendu = ratio normal × DJU du mois, donc proportionnel aux DJU. Entre -'+NTOL+' % et +'+NTOL+' % : normal ; vert avec « - » = moins que d’habitude, rouge avec « + » = plus.'+(ys.length?'':' Aucune autre année avec des relevés exploitables pour l’instant.');
+  $('djuNNote').textContent='Ratio = MWh ÷ DJU. Les deux ratios moyens sont calculés sur tous les mois saisis de toutes les années (total des MWh ÷ total des DJU) : le chaud sur les mois d’octobre à avril (gaz + électricité), le froid sur les mois de mai à septembre (électricité). Attendu = ratio moyen × DJU du mois, donc proportionnel aux DJU. Entre -'+NTOL+' % et +'+NTOL+' % : normal ; vert avec « - » = moins que d’habitude, rouge avec « + » = plus.'+(h?'':' Aucune donnée exploitable pour l’instant.');
   djuNormCalc()}
 function djuNormCalc(){
   const i=+$('nMois').value||0,ch=i<4||i>8;$('nDjuL').textContent=ch?'DJU chaud':'DJU froid';
@@ -858,7 +855,6 @@ function djuNormCalc(){
   let t=`Pour <b>${fmt(d,0)} DJU</b> en ${MOISL[i].toLowerCase()}, la consommation normale est d’environ <b>${fmt(att,0)} MWh</b> (ratio normal ${ch?'chaud':'froid'} : ${nFm(nr.r)} MWh/DJU).`;
   if(c>=0&&!isNaN(c)){t+=`<br>Votre valeur : ${fmt(c,0)} MWh, soit un ratio de ${nFm(c/d)} → ${nPill(att,c)}`}
   R.innerHTML=t}
-$('djuRef').onchange=ev=>{djuRef=+ev.target.value;renderDjuNorm()};
 ['nMois','nDju','nConso'].forEach(id=>$(id).addEventListener('input',djuNormCalc));
 $('djuYear').onchange=ev=>{djuYear=+ev.target.value;renderDju()};
 [['djuGrids','_dju',()=>dju],['djuGridsC','_djuc',()=>djuC]].forEach(([id,docId,get])=>{
