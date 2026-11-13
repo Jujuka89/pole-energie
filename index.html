@@ -825,11 +825,9 @@ const djuMon=(y,i)=>{const k=y+'-'+String(i+1).padStart(2,'0'),ee=val(y,'e')[i],
   return ee!=null&&fr>0?{t:ee/1000,d:fr}:null};
 const djuYears=()=>[...new Set(data.map(d=>+d.m.slice(0,4)))].sort();
 function djuNormal(i,exc){
-  const ys=djuYears().filter(y=>y!==exc&&(djuRef===0||y===djuRef)),m=ys.map(y=>djuMon(y,i)).filter(Boolean);
-  if(m.length){const t=m.reduce((a,o)=>a+o.t,0),d=m.reduce((a,o)=>a+o.d,0),rs=m.map(o=>o.t/o.d);return{r:t/d,lo:Math.min(...rs),hi:Math.max(...rs),n:m.length,season:false}}
-  const ch=i<4||i>8;let t=0,d=0,n=0;
+  const ys=djuYears().filter(y=>y!==exc&&(djuRef===0||y===djuRef)),ch=i<4||i>8;let t=0,d=0,n=0;
   ys.forEach(y=>{for(let j=0;j<12;j++){if((j<4||j>8)!==ch)continue;const o=djuMon(y,j);if(o){t+=o.t;d+=o.d;n++}}});
-  return d>0?{r:t/d,lo:null,hi:null,n,season:true}:null}
+  return d>0?{r:t/d,n}:null}
 const NTOL=5,nFm=v=>fmt(v,v<0.1?4:v<10?3:2),nSg=v=>v>0?'+':v<0?'-':'';
 const nPill=(att,reel)=>{const e=reel-att,pc=e/att*100,ok=Math.abs(pc)<=NTOL;
   return `<span class="delta ${ok?'flat':e>0?'up':'down'}">${ok?'≈ normal':nSg(pc)+fmt(Math.abs(pc),1)+' %'}<br><small>${nSg(e)}${fmt(Math.abs(e),0)} MWh</small></span>`};
@@ -845,11 +843,11 @@ function renderDjuNorm(){
   for(let i=0;i<12;i++){const o=djuMon(Y,i);if(!o)continue;const nr=djuNormal(i,Y),ch=i<4||i>8;
     let c4='<td>–</td><td>–</td><td>–</td>';
     if(nr){const att=nr.r*o.d;ta+=att;tr+=o.t;n++;
-      c4=`<td>${nFm(nr.r)}${nr.season?'<br><small class="note">saison</small>':nr.n>1?`<br><small class="note">${nFm(nr.lo)} – ${nFm(nr.hi)}</small>`:''}</td><td>${fmt(att,1)}</td><td>${nPill(att,o.t)}</td>`}
+      c4=`<td>${nFm(nr.r)}</td><td>${fmt(att,1)}</td><td>${nPill(att,o.t)}</td>`}
     h+=`<tr><td style="text-align:left"><b>${MOIS[i]}</b><br><small style="color:${ch?'#e8590c':'#7048e8'};font-weight:600">${ch?'chaud':'froid'}</small></td><td>${fmt(o.d,0)}</td><td>${fmt(o.t,1)}</td><td>${nFm(o.t/o.d)}</td>${c4}</tr>`}
   if(n>1)h+=`<tr><td style="text-align:left"><b>Total</b></td><td></td><td>${fmt(tr,1)}</td><td></td><td></td><td>${fmt(ta,1)}</td><td>${nPill(ta,tr)}</td></tr>`;
   $('djuN').innerHTML=h?'<div style="overflow-x:auto"><table style="font-size:.9rem"><thead><tr><th style="text-align:left">Mois</th><th>DJU</th><th>Réel (MWh)</th><th>Ratio réel</th><th>Ratio normal</th><th>Attendu (MWh)</th><th>Écart</th></tr></thead><tbody>'+h+'</tbody></table></div>':'<p class="note">Aucun mois de '+Y+' avec consommation et DJU saisis.</p>';
-  $('djuNNote').textContent='Ratio = MWh ÷ DJU. Ratio normal d’un mois = total des MWh ÷ total des DJU du même mois dans les années de référence (hors '+Y+'), avec en dessous la plage min – max de ces années ; « saison » = pas d’historique pour ce mois, on prend le ratio de la saison. Attendu = ratio normal × DJU du mois. Entre -'+NTOL+' % et +'+NTOL+' % : normal ; vert avec « - » = moins que d’habitude, rouge avec « + » = plus. Chauffage (octobre à avril) : gaz + électricité ÷ DJU chaud ; climatisation (mai à septembre) : électricité ÷ DJU froid.'+(ys.length?'':' Aucune autre année avec des relevés exploitables pour l’instant.');
+  $('djuNNote').textContent='Ratio = MWh ÷ DJU. Le ratio normal est fixe pour toute la saison : total des MWh ÷ total des DJU de tous les mois de chauffe (octobre à avril : gaz + électricité ÷ DJU chaud) pour le chaud, et de tous les mois de climatisation (mai à septembre : électricité ÷ DJU froid) pour le froid, sur les années de référence (hors '+Y+'). Attendu = ratio normal × DJU du mois, donc proportionnel aux DJU. Entre -'+NTOL+' % et +'+NTOL+' % : normal ; vert avec « - » = moins que d’habitude, rouge avec « + » = plus.'+(ys.length?'':' Aucune autre année avec des relevés exploitables pour l’instant.');
   djuNormCalc()}
 function djuNormCalc(){
   const i=+$('nMois').value||0,ch=i<4||i>8;$('nDjuL').textContent=ch?'DJU chaud':'DJU froid';
@@ -857,7 +855,7 @@ function djuNormCalc(){
   if(!(d>0)){R.innerHTML='<span class="note">Saisissez un DJU pour obtenir la consommation normale.</span>';return}
   if(!nr){R.innerHTML='<span class="note">Pas assez d’historique pour '+MOISL[i].toLowerCase()+' : saisissez d’autres années.</span>';return}
   const att=nr.r*d;
-  let t=`Pour <b>${fmt(d,0)} DJU</b> en ${MOISL[i].toLowerCase()}, la consommation normale est d’environ <b>${fmt(att,0)} MWh</b> (ratio normal ${nFm(nr.r)} MWh/DJU${nr.lo!=null&&nr.n>1?', habituellement entre '+nFm(nr.lo)+' et '+nFm(nr.hi):nr.season?', ratio de la saison':''}).`;
+  let t=`Pour <b>${fmt(d,0)} DJU</b> en ${MOISL[i].toLowerCase()}, la consommation normale est d’environ <b>${fmt(att,0)} MWh</b> (ratio normal ${ch?'chaud':'froid'} : ${nFm(nr.r)} MWh/DJU).`;
   if(c>=0&&!isNaN(c)){t+=`<br>Votre valeur : ${fmt(c,0)} MWh, soit un ratio de ${nFm(c/d)} → ${nPill(att,c)}`}
   R.innerHTML=t}
 $('djuRef').onchange=ev=>{djuRef=+ev.target.value;renderDjuNorm()};
