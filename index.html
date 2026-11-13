@@ -333,6 +333,11 @@ body.out .edit-only{display:none!important}
 <aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 4px;color:#e8590c">DJU chaud <small style="color:var(--mute);font-weight:400">(Chauffagiste)</small></h2><div id="djuGH"></div></section></aside>
 <div class="centre"><div class="dcenter">
 <section>
+  <h2 id="djuMTitle" style="margin:0 0 8px">Les 12 mois de l’année</h2>
+  <div style="overflow-x:auto"><div id="djuGM" style="min-width:640px"></div></div>
+  <p class="note" style="margin:6px 0 0">À gauche, les mois froids (DJU chaud : chauffage) ; à droite, les mois chauds (DJU froid : climatisation). Chaque mois est placé selon son DJU dominant, sur les mêmes échelles que les jauges latérales.</p>
+</section>
+<section>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuRTitle" style="margin:0">Consommation / DJU</h2><span style="display:flex;gap:12px;flex-wrap:wrap"><label>Année <select id="djuYear"></select></label></span></div>
   <div class="box"><canvas id="cDjuR"></canvas></div>
   <p class="note" id="djuRNote" style="margin:8px 0 0"></p>
@@ -773,6 +778,25 @@ function djuGauge(S,cfg,pts){
     <rect x="90" y="${top}" width="38" height="${H}" rx="6" fill="url(#${gid})"/>${zones}${marks}
     <text x="109" y="12" text-anchor="middle" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${fmt(max,0)} (max)</text><text x="109" y="458" text-anchor="middle" style="fill:var(--mute);font:10.5px system-ui,sans-serif">0</text></svg>`;
 }
+function djuGaugeH(){
+  const Y=djuYear,kf=i=>Y+'-'+String(i+1).padStart(2,'0');
+  const mxOf=(S,d)=>{const a=Object.values(S).filter(v=>v!=null&&v>=0),m=a.length&&Math.max(...a)>0?Math.max(...a):d;return{max:Math.ceil(m/10)*10,rk:Object.keys(S).filter(k=>S[k]===m).sort()[0]}};
+  const C=mxOf(dju,450),F=mxOf(djuC,130),W=760,x0=50,bw=W-100,half=bw/2,mid=x0+half,bh=34;
+  const pts=[];for(let i=0;i<12;i++){const k=kf(i),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)continue;
+    if((ch||0)>=(fr||0)){const v=ch||0;pts.push({i,v,x:mid-Math.min(v,C.max)/C.max*half,rec:C.rk===k})}
+    else{pts.push({i,v:fr,x:mid+Math.min(fr,F.max)/F.max*half,rec:F.rk===k})}}
+  pts.sort((a,b)=>a.x-b.x);const ends=[];
+  pts.forEach(o=>{const w=(MOIS[o.i].length+fmt(o.v,0).length+1)*7.2+(o.rec?56:0);o.w=w;let r=0;while(ends[r]!=null&&o.x-w/2<ends[r]+8)r++;ends[r]=o.x+w/2;o.r=r});
+  const R=Math.max(1,ends.length),by=14+R*17,H=by+bh+78,gid='ggM';
+  const L=['Très froid','Froid','Frais','Doux','Très doux','Aucun besoin','Léger','Chaud','Très chaud','Canicule'],
+    I=['🥶','😬','😐','🙂','😎','😌','🙂','😅','🥵','🥵🔥'];
+  const zones=L.map((nm,k)=>{const cx=x0+(k+.5)*bw/10;return `${k?`<line x1="${x0+k*bw/10}" x2="${x0+k*bw/10}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="${k===5?3:1.5}"/>`:''}<text x="${cx}" y="${by+bh+16}" text-anchor="middle" style="fill:var(--ink);font:700 10.5px system-ui,sans-serif">${nm}</text><text x="${cx}" y="${by+bh+36}" text-anchor="middle" style="font:16px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${I[k]}</text>`}).join('');
+  const marks=pts.map(o=>{const ty=by-10-o.r*17;return `<line x1="${o.x}" x2="${o.x}" y1="${ty+3}" y2="${by+bh}" style="stroke:var(--mute)" stroke-width="1"/><rect x="${o.x-2.5}" y="${by-3}" width="5" height="${bh+6}" rx="2" style="fill:var(--ink)"/><text x="${o.x}" y="${ty}" text-anchor="middle" style="fill:var(--ink);font:600 11px system-ui,sans-serif;stroke:var(--card);stroke-width:3.5px;paint-order:stroke">${MOIS[o.i]} <tspan style="font-weight:800">${fmt(o.v,0)}</tspan>${o.rec?'<tspan style="fill:#e03131;font-weight:700"> (Record)</tspan>':''}</text>`}).join('');
+  const cap=(x,a,t)=>`<text x="${x}" y="${by+bh+62}" text-anchor="${a}" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${t}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Les 12 mois de ${Y} sur l’échelle chaud / froid"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b4aa8"/><stop offset=".47" stop-color="#e3f0ff"/><stop offset=".53" stop-color="#ffe3e3"/><stop offset="1" stop-color="#a51111"/></linearGradient></defs>
+    <rect x="${x0}" y="${by}" width="${bw}" height="${bh}" rx="6" fill="url(#${gid})"/>${zones}${marks}
+    ${cap(x0-30,'start','← DJU chaud · '+fmt(C.max,0)+' (max)')}${cap(mid,'middle','0')}${cap(W-x0+30,'end',fmt(F.max,0)+' (max) · DJU froid →')}</svg>`
+}
 function renderDju(){
   buildDju();const act=document.activeElement;
   const fillG=(box,S)=>{const q=a=>document.querySelectorAll(box+' ['+a+']');
@@ -783,6 +807,7 @@ function renderDju(){
   const mh=[],mf=[];for(let i=0;i<12;i++){const k=djuYear+'-'+String(i+1).padStart(2,'0'),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)continue;if((ch||0)>=(fr||0))mh.push({i,v:ch||0});else mf.push({i,v:fr})}
   $('djuGH').innerHTML=djuGauge(dju,{id:'H',name:'DJU chaud',dflt:450,c0:'#e3f0ff',c1:'#0b4aa8',levels:['Très doux','Doux','Frais','Froid','Très froid'],icons:['😎','🙂','😐','😬','🥶']},mh);
   $('djuGF').innerHTML=djuGauge(djuC,{id:'F',name:'DJU froid',dflt:130,c0:'#ffe3e3',c1:'#a51111',levels:['Aucun besoin','Léger','Chaud','Très chaud','Canicule'],icons:['😌','🙂','😅','🥵','🥵🔥']},mf);
+  $('djuMTitle').textContent='Les 12 mois de l’année · '+djuYear;safe(()=>{$('djuGM').innerHTML=djuGaugeH()},'Jauge mensuelle');
   $('djuYear').value=djuYear;
   const arr=S=>Array.from({length:12},(_,i)=>{const v=S[djuYear+'-'+String(i+1).padStart(2,'0')];return v!=null?v:null});
   const vals=arr(dju),valsC=arr(djuC);
