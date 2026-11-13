@@ -832,7 +832,7 @@ function djuNormal(i,exc){
   return d>0?{r:t/d,lo:null,hi:null,n,season:true}:null}
 const NTOL=5,nFm=v=>fmt(v,v<0.1?4:v<10?3:2),nSg=v=>v>0?'+':v<0?'-':'';
 const nPill=(att,reel)=>{const e=reel-att,pc=e/att*100,ok=Math.abs(pc)<=NTOL;
-  return `<span class="delta ${ok?'flat':e>0?'up':'down'}">${ok?'≈ normal':nSg(pc)+fmt(Math.abs(pc),1)+' %'}<br><small>${nSg(e)}${fmt(Math.abs(e),1)} MWh</small></span>`};
+  return `<span class="delta ${ok?'flat':e>0?'up':'down'}">${ok?'≈ normal':nSg(pc)+fmt(Math.abs(pc),1)+' %'}<br><small>${nSg(e)}${fmt(Math.abs(e),0)} MWh</small></span>`};
 function renderDjuNorm(){
   const Y=djuYear;
   const ys=djuYears().filter(y=>y!==Y&&Array.from({length:12},(_,i)=>djuMon(y,i)).some(Boolean));
