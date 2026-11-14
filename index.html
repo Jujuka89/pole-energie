@@ -803,14 +803,14 @@ function djuGaugeH(){
 }
 function djuGaugeU(){
   const Y=djuYear,kf=i=>Y+'-'+String(i+1).padStart(2,'0');
-  const mxOf=(S,d)=>{const a=Object.values(S).filter(v=>v!=null&&v>=0),m=a.length&&Math.max(...a)>0?Math.max(...a):d;return Math.ceil(m/10)*10};
-  const C=mxOf(dju,450),F=mxOf(djuC,130),W=760,x0=20,cw=(W-2*x0)/12,by=66,bh=40,gid='ggU';
+  const us=[...new Set([...Object.keys(dju),...Object.keys(djuC)])].filter(k=>dju[k]!=null||djuC[k]!=null).map(k=>(dju[k]||0)-(djuC[k]||0));
+  const C=Math.ceil(Math.max(450*0,...us,1)/10)*10,F=Math.ceil(Math.max(0,...us.map(v=>-v),1)/10)*10,pw=f=>Math.pow(f,.7),W=760,x0=20,cw=(W-2*x0)/12,by=66,bh=40,gid='ggU';
   const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),mix=(a,b,t)=>'#'+hx(a).map((v,i)=>Math.round(v+(hx(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
   const LP=[['Très doux','😎'],['Doux','🙂'],['Frais','😐'],['Froid','😬'],['Très froid','🥶']],LN=[['Aucun besoin','😌'],['Léger','🙂'],['Chaud','😅'],['Très chaud','🥵'],['Canicule','🥵🔥']];
   const ms=Array.from({length:12},(_,i)=>{const k=kf(i),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)return{i,none:true,c:'#d5d9df'};
     const v=(ch||0)-(fr||0);
-    if(v>=0){const f=Math.min(1,v/C),l=LP[Math.min(4,Math.floor(f*5))];return{i,v,nm:l[0],ic:l[1],c:mix('#e3f0ff','#0b4aa8',f)}}
-    const f=Math.min(1,-v/F),l=LN[Math.min(4,Math.floor(f*5))];return{i,v,nm:l[0],ic:l[1],c:mix('#ffe3e3','#a51111',f)}});
+    if(v>=0){const f=Math.min(1,v/C),l=LP[Math.min(4,Math.floor(f*5))];return{i,v,nm:l[0],ic:l[1],c:mix('#cfe3ff','#0a3a9c',pw(f))}}
+    const f=Math.min(1,-v/F),l=LN[Math.min(4,Math.floor(f*5))];return{i,v,nm:l[0],ic:l[1],c:mix('#ffd0d0','#a30d0d',pw(f))}});
   const cols=ms.map(m=>{const cx=x0+(m.i+.5)*cw;
     const top=m.none?'':`<text x="${cx}" y="22" text-anchor="middle" style="font:20px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${m.ic}</text><text x="${cx}" y="38" text-anchor="middle" style="fill:var(--ink);font:700 9.5px system-ui,sans-serif">${m.nm}</text><text x="${cx}" y="57" text-anchor="middle" style="fill:var(--ink);font:800 13px system-ui,sans-serif">${m.v>0?'+':m.v<0?'-':''}${fmt(Math.abs(m.v),0)}</text>`;
     return `${m.i?`<line x1="${x0+m.i*cw}" x2="${x0+m.i*cw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="1.5"/>`:''}${top}<text x="${cx}" y="${by+bh+18}" text-anchor="middle" style="fill:var(--ink);font:700 12px system-ui,sans-serif">${MOIS[m.i]}</text>`}).join('');
@@ -825,7 +825,7 @@ function renderDjuU(){
     h+=`<tr><td style="text-align:left"><b>${MOIS[i]}</b></td><td>${ch!=null?fmt(ch,0):'–'}</td><td>${fr!=null?fmt(fr,0):'–'}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
   if(n>1){const v=sc-sf;h+=`<tr><td style="text-align:left"><b>Total</b></td><td>${fmt(sc,0)}</td><td>${fmt(sf,0)}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
   $('djuUT').innerHTML=h?'<div style="overflow-x:auto"><table style="font-size:.9rem"><thead><tr><th style="text-align:left">Mois</th><th>DJU chaud</th><th>DJU froid</th><th>DJU Unique</th></tr></thead><tbody>'+h+'</tbody></table></div>':'<p class="note">Aucun DJU saisi pour '+Y+'.</p>';
-  $('djuUNote').textContent='Les 12 mois, de janvier à décembre. La couleur suit le DJU Unique : bleu quand il fait froid (positif), de plus en plus foncé avec la valeur ; rouge quand il fait chaud (négatif). Au-dessus de chaque mois : l’emoji, le niveau (très froid, froid, etc.) et le DJU Unique. Les niveaux se calculent par cinquièmes du record de chaque côté (DJU chaud pour le positif, DJU froid pour le négatif), arrondi à la dizaine supérieure, comme les autres jauges.'}
+  $('djuUNote').textContent='Les 12 mois, de janvier à décembre. La couleur suit le DJU Unique : bleu quand il fait froid (positif), rouge quand il fait chaud (négatif), de plus en plus soutenu avec la valeur. Au-dessus de chaque mois : l’emoji, le niveau (très froid, froid, etc.) et le DJU Unique. Les niveaux et les couleurs se calculent par cinquièmes du record de chaque côté : le plus grand DJU Unique positif et le plus grand négatif de toutes les années saisies, arrondis à la dizaine supérieure.'}
 function renderDju(){
   buildDju();const act=document.activeElement;
   const fillG=(box,S)=>{const q=a=>document.querySelectorAll(box+' ['+a+']');
