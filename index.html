@@ -259,7 +259,7 @@ body.out .edit-only{display:none!important}
 </section>
 <section class="st st-fini" id="skSec">
   <h2 class="stt" style="margin-bottom:4px">Économies des projets à contrôler <small style="color:var(--mute);font-weight:400">(MWh)</small></h2>
-  <p class="note" style="margin:0 0 8px">Chaque projet terminé à contrôler alimente l’économie totale : en vert ce qui est économisé (« - »), en rouge ce qui est perdu (« + »). La largeur des flux est proportionnelle aux MWh.</p>
+  <p class="note" style="margin:0 0 8px">À droite, l’économie totale de l’année affichée (gaz + électricité, comparée à l’année précédente). À gauche, ce que chaque projet terminé à contrôler y apporte, et le « non classé » = économie qui ne vient d’aucun de ces projets. En vert ce qui est économisé (« - »), en rouge ce qui est perdu (« + »). La largeur des flux est proportionnelle aux MWh.</p>
   <div style="overflow-x:auto"><div id="skBox" style="min-width:620px"></div></div>
 </section>
 <section class="st st-a">
@@ -1012,7 +1012,7 @@ const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)windo
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  safe(kpis,'cartes');safe(sideEco,'économies');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');$('pdf').textContent='Télécharger le rapport PDF '+year;
+  safe(kpis,'cartes');safe(sideEco,'économies');safe(renderSankey,'sankey');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
 
@@ -1217,10 +1217,16 @@ const HEAD_B='<div class="prow head b"><span>Projet</span><span>Avancement</span
 const nFait=p=>(p.taches||[]).filter(x=>x.fait).length;
 const avance=p=>{const n=(p.taches||[]).length;return n?nFait(p)/n:0};
 const byAvance=(x,y)=>avance(y)-avance(x)||nFait(y)-nFait(x)||(x.cree||0)-(y.cree||0);
+function ecoTotal(y,ref){
+  let sav=0,n=0;
+  ['g','e'].forEach(k=>{const a=val(y,k),b=val(ref,k);let s1=0,s0=0,m=0;a.forEach((v,i)=>{if(v!=null&&b[i]!=null){s1+=v;s0+=b[i];m++}});if(m&&s0){sav+=(s0-s1)/1000;n++}});
+  return n?sav:null}
 function renderSankey(){
   const box=$('skBox');
   const L=projets.filter(x=>statutOf(x)==='fini').map(pj=>({pj,g:projGain(pj)})).filter(o=>o.g&&!o.g.none&&o.g.conv).sort((a,b)=>b.g.mwh-a.g.mwh);
-  if(!L.length){box.innerHTML='<p class="note" style="margin:0">Aucun projet terminé à contrôler avec des valeurs pour calculer l’économie.</p>';return}
+  const totY=ecoTotal(year,year-1),sp=L.reduce((a,o)=>a+o.g.mwh,0);
+  if(totY!=null){const ni=totY-sp,o={pj:{nom:'Non classé (hors projets)'},g:{mwh:ni,ne:0},nc:true};const at=L.findIndex(x=>x.g.mwh<ni);if(at<0)L.push(o);else L.splice(at,0,o)}
+  if(!L.length){box.innerHTML='<p class="note" style="margin:0">Aucun projet terminé à contrôler avec des valeurs, et pas de comparaison '+year+' / '+(year-1)+' pour calculer l’économie.</p>';return}
   const W=760,xl=290,wb=14,xr=600,MIN=8,SL=34,GAP=8,tot=L.reduce((a,o)=>a+Math.abs(o.g.mwh),0)||1,k=Math.min(300/tot,60);
   const hOf=o=>Math.max(MIN,Math.abs(o.g.mwh)*k),pos=v=>v>0?'-':v<0?'+':'',cl=v=>v>0?'var(--ok)':v<0?'var(--bad)':'var(--mute)';
   let y=14;L.forEach(o=>{o.h=hOf(o);const slot=Math.max(o.h,SL);o.y=y+(slot-o.h)/2;o.cy=y+slot/2;y+=slot+GAP});
@@ -1235,7 +1241,7 @@ function renderSankey(){
   const nodes=L.map(o=>`<rect x="${xl}" y="${o.y}" width="${wb}" height="${o.h}" rx="2" style="fill:${cl(o.g.mwh)}"><title>${tip(o)}</title></rect><rect x="${xr}" y="${o.ry}" width="${wb}" height="${o.h}" style="fill:${cl(o.g.mwh)}"/>
     <text x="${xl-8}" y="${o.cy-3}" text-anchor="end" style="fill:var(--ink);font:600 12px system-ui,sans-serif">${esc(cut(o.pj.nom||''))}</text><text x="${xl-8}" y="${o.cy+13}" text-anchor="end" style="fill:${cl(o.g.mwh)};font:800 12.5px system-ui,sans-serif">${dm(o.g.mwh)}</text>`).join('');
   const mid=(r0+(r0+rTot))/2;
-  const rl=`<text x="${xr+wb+10}" y="${mid-12}" style="fill:var(--ink);font:700 12px system-ui,sans-serif">Économie nette</text><text x="${xr+wb+10}" y="${mid+8}" style="fill:${cl(net)};font:800 17px system-ui,sans-serif">${dm(net)}</text>`+(gH&&lH?`<text x="${xr+wb+10}" y="${mid+26}" style="fill:var(--mute);font:11px system-ui,sans-serif">gains ${pos(sumG)}${fmt(Math.abs(sumG),decs(Math.abs(sumG)))} · pertes ${pos(sumL)}${fmt(Math.abs(sumL),decs(Math.abs(sumL)))}</text>`:'');
+  const rl=`<text x="${xr+wb+10}" y="${mid-12}" style="fill:var(--ink);font:700 12px system-ui,sans-serif">${totY!=null?'Économie totale '+year:'Économie nette'}</text><text x="${xr+wb+10}" y="${mid+8}" style="fill:${cl(net)};font:800 17px system-ui,sans-serif">${dm(net)}</text>`+(gH&&lH?`<text x="${xr+wb+10}" y="${mid+26}" style="fill:var(--mute);font:11px system-ui,sans-serif">gains ${pos(sumG)}${fmt(Math.abs(sumG),decs(Math.abs(sumG)))} · pertes ${pos(sumL)}${fmt(Math.abs(sumL),decs(Math.abs(sumL)))}</text>`:'');
   box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Économies par projet terminé à contrôler">${rib}${nodes}${rl}</svg>`
 }
 function renderProj(){
