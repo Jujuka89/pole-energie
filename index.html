@@ -377,7 +377,6 @@ body.out .edit-only{display:none!important}
 <section id="djuUSec">
   <h2 id="djuUTitle" style="margin:0 0 4px">DJU Unique <small style="color:var(--mute);font-weight:400">(test)</small></h2>
   <p class="note" style="margin:0 0 10px">DJU Unique = DJU chaud − DJU froid. Positif quand il fait froid (chauffage), négatif quand il fait chaud (climatisation).</p>
-  <div style="overflow-x:auto"><div id="djuGU" style="min-width:640px"></div></div>
   <div id="djuUT" style="margin-top:12px"></div>
   <p class="note" id="djuUNote" style="margin:8px 0 0"></p>
 </section>
@@ -828,14 +827,13 @@ function djuGaugeL(){
 }
 function renderDjuU(){
   const Y=djuYear;$('djuUTitle').innerHTML='DJU Unique <small style="color:var(--mute);font-weight:400">(test) · '+Y+'</small>';
-  $('djuGU').innerHTML=djuGaugeU('b');
   $('djuGL').innerHTML=djuGaugeL();$('djuLNote').textContent='Très doux : de '+DJU_TD[0]+' à +'+DJU_TD[1]+'. Au-delà, chaque côté est partagé en 4 niveaux égaux jusqu’au record de toutes les années saisies (arrondi à la dizaine supérieure) : le plus grand DJU Unique négatif côté chaud, le plus grand positif côté froid.';
   let h='',sc=0,sf=0,n=0;
   for(let i=0;i<12;i++){const k=Y+'-'+String(i+1).padStart(2,'0'),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)continue;const v=(ch||0)-(fr||0);n++;sc+=ch||0;sf+=fr||0;
     h+=`<tr><td style="text-align:left"><b>${MOIS[i]}</b></td><td>${ch!=null?fmt(ch,0):'–'}</td><td>${fr!=null?fmt(fr,0):'–'}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
   if(n>1){const v=sc-sf;h+=`<tr><td style="text-align:left"><b>Total</b></td><td>${fmt(sc,0)}</td><td>${fmt(sf,0)}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
   $('djuUT').innerHTML=h?'<div style="overflow-x:auto"><table style="font-size:.9rem"><thead><tr><th style="text-align:left">Mois</th><th>DJU chaud</th><th>DJU froid</th><th>DJU Unique</th></tr></thead><tbody>'+h+'</tbody></table></div>':'<p class="note">Aucun DJU saisi pour '+Y+'.</p>';
-  $('djuUNote').textContent='Les 12 mois, de janvier à décembre. La couleur suit le DJU Unique : bleu quand il fait froid (positif), rouge quand il fait chaud (négatif), de plus en plus soutenu avec la valeur (échelle des records de toutes les années). Au-dessus de chaque mois : l’emoji, le niveau et le DJU Unique ; les niveaux sont détaillés dans l’échelle tout en bas de la page.'}
+  $('djuUNote').textContent='DJU Unique mois par mois pour l’année affichée. La jauge est en haut de la page, et l’échelle des niveaux et des emoticons tout en bas.'}
 function renderDju(){
   buildDju();const act=document.activeElement;
   const fillG=(box,S)=>{const q=a=>document.querySelectorAll(box+' ['+a+']');
