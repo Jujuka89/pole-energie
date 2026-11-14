@@ -114,7 +114,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .pop.f{border-left-color:var(--ok)}.pop h3{margin:0 0 4px;font-size:1rem}.pop ul{margin:4px 0 10px;padding-left:18px;font-size:.92rem;overflow-wrap:anywhere}.pop .pb{display:flex;gap:8px;justify-content:flex-end}
 @keyframes popin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 :root{--evt:#c2255c}@media (prefers-color-scheme:dark){:root{--evt:#ff7aa8}}
-#vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
+#vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip,#cumTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 #vArc{max-width:1000px;margin:0 auto}.act{padding:8px 0;border-bottom:1px solid var(--line)}.act p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem}.act .ab{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.act button{padding:2px 8px;font-size:.8rem}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
@@ -175,7 +175,7 @@ body.out .edit-only{display:none!important}
 <aside class="side"><section style="margin-top:0"><h2 id="sEcoT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sEco"></div></section><section id="sRefSec" style="margin-top:14px"><h2 id="sRefT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sRef"></div></section></aside>
 <div class="centre">
 <div class="dcenter">
-<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div></section>
+<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box" style="height:400px"><canvas id="cC"></canvas><div id="cumTip"></div></div><div id="cumInfo"></div></section>
 <section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
 <div class="kpis" id="kpisTop" style="margin-top:16px"></div>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
@@ -518,6 +518,10 @@ const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
   }
   ctx.restore();
 }};
+const cumulLanes={id:'cumulLanes',afterDraw(ch){
+  const {ev,pr}=chrItems(),Y=year+'-',f=o=>o.d.startsWith(Y);
+  ch.$S={ev:ev.filter(f),pr:pr.filter(f),pos:d=>{const m=+d.slice(5,7),dd=+d.slice(8,10),dim=new Date(year,m,0).getDate();return(m-1)+(dd-.5)/dim-.5}};
+  chrPlugin.afterDraw(ch)}};
 const cumulToday={id:'cumulToday',afterDatasetsDraw(ch){
   const n=new Date();if(year!==n.getFullYear())return;
   const dim=new Date(n.getFullYear(),n.getMonth()+1,0).getDate(),idx=n.getMonth()+(n.getDate()-.5)/dim-.5,xs=ch.scales.x,ca=ch.chartArea;
@@ -537,7 +541,7 @@ function cumulCfg(){
     {label:'Électricité '+year,data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
     {label:'Gaz '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
     {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
-  return{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin,cumulToday],options:{maintainAspectRatio:false,layout:{padding:{right:24,top:16}},interaction:{mode:'index',intersect:false},
+  return{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin,cumulToday,cumulLanes],options:{maintainAspectRatio:false,layout:{padding:{right:24,top:16,bottom:116}},interaction:{mode:'index',intersect:false},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`}}},
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}};
 }
@@ -1501,7 +1505,7 @@ function chrItems(){
   const pr=projets.filter(p=>{const st=statutOf(p);return st==='fini'||st==='clos'}).map(p=>({k:'p',id:p.id,d:p.termine||(statutOf(p)==='clos'?p.cloture:null),t:p.nom||'(projet)'})).filter(o=>isoOk(o.d));
   return{ev,pr}}
 const chrPlugin={id:'chr',afterDraw(ch){
-  const S=chrS;if(!S)return;const ctx=ch.ctx,xs=ch.scales.x,A=ch.chartArea,H=ch.height,css=getComputedStyle(document.documentElement),g=x=>css.getPropertyValue(x).trim(),ink=g('--ink'),mute=g('--mute'),line=g('--line'),card=g('--card'),F='"Segoe UI",system-ui,sans-serif';
+  const S=ch.$S||chrS;if(!S)return;const ctx=ch.ctx,xs=ch.scales.x,A=ch.chartArea,H=ch.height,css=getComputedStyle(document.documentElement),g=x=>css.getPropertyValue(x).trim(),ink=g('--ink'),mute=g('--mute'),line=g('--line'),card=g('--card'),F='"Segoe UI",system-ui,sans-serif';
   const lanes=[{items:S.ev,y:H-82,col:g('--evt'),name:'Événements marquants',sh:'d'},{items:S.pr,y:H-38,col:g('--ok'),name:'Projets terminés',sh:'c'}];
   ch.$hits=[];
   lanes.forEach(L=>{
@@ -1580,9 +1584,9 @@ $('objForm').onsubmit=ev=>{ev.preventDefault();const r=$('objPct').value.trim(),
 function renderEvList(){
   const l=Object.entries(evts).filter(([,o])=>o&&isoOk(o.d)).sort((a,b)=>b[1].d.localeCompare(a[1].d));
   $('evList').innerHTML=l.length?l.map(([id,o])=>`<div class="chi"><b style="color:var(--evt)">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span> <button type="button" data-ee="${id}">Modifier</button> <button type="button" data-ed="${id}">Supprimer</button>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`).join(''):'<p class="note">Aucun événement pour le moment.</p>'}
-function chrShow(items){
+function chrShow(items,tg){
   const it=items.slice().sort((a,b)=>a.d.localeCompare(b.d)),np=it.filter(o=>o.k==='p').length;
-  $('chrInfo').innerHTML=(it.length>1?`<p style="margin:0 0 4px"><b>${it.length} éléments proches${np===it.length?' : '+np+' projets terminés':''}</b></p>`:'')+it.map(o=>o.k==='e'?`<div class="chi"><b style="color:var(--evt)">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`:`<div class="chi"><b style="color:var(--ok)">● ${esc(o.t)}</b> <span class="note">terminé le ${dfr(o.d)}</span> <button type="button" data-pv="${o.id}">Voir le projet</button></div>`).join('')}
+  $(tg||'chrInfo').innerHTML=(it.length>1?`<p style="margin:0 0 4px"><b>${it.length} éléments proches${np===it.length?' : '+np+' projets terminés':''}</b></p>`:'')+it.map(o=>o.k==='e'?`<div class="chi"><b style="color:var(--evt)">◆ ${esc(o.t)}</b> <span class="note">${dfr(o.d)}</span>${o.n?`<p style="margin:4px 0">${esc(o.n)}</p>`:''}${safeUrl(o.u)?`<a href="${esc(o.u)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:o.u?`<span class="note">${esc(o.u)}</span>`:''}</div>`:`<div class="chi"><b style="color:var(--ok)">● ${esc(o.t)}</b> <span class="note">terminé le ${dfr(o.d)}</span> <button type="button" data-pv="${o.id}">Voir le projet</button></div>`).join('')}
 function evReset(){evEdit=null;$('evForm').reset();$('evSave').textContent='Ajouter l’événement';$('evCancel').hidden=true}
 $('evForm').onsubmit=ev=>{ev.preventDefault();const d=$('evD').value,t=$('evT').value.trim();if(!d||!t)return;const id=evEdit||uid();
   setDoc(doc(db,'releves','_evt'),{l:{[id]:{d,t,n:$('evN').value.trim(),u:$('evU').value.trim()}}},{merge:true}).then(evReset).catch(refus)};
@@ -1590,6 +1594,13 @@ $('evCancel').onclick=evReset;
 $('evList').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
   if(b.dataset.ee){const o=evts[b.dataset.ee];if(!o)return;evEdit=b.dataset.ee;$('evD').value=o.d;$('evT').value=o.t||'';$('evN').value=o.n||'';$('evU').value=o.u||'';$('evSave').textContent='Enregistrer la modification';$('evCancel').hidden=false;$('evForm').scrollIntoView({block:'center'})}
   if(b.dataset.ed&&confirm('Supprimer cet événement ?'))setDoc(doc(db,'releves','_evt'),{l:{[b.dataset.ed]:deleteField()}},{merge:true}).catch(refus)};
+{const cv=$('cC'),hit=ev=>{const c=charts.cC;if(!c||!c.$hits)return null;const r=cv.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;return c.$hits.find(h=>Math.hypot(h.x-x,h.y-y)<=h.r)||null};
+  cv.addEventListener('mousemove',ev=>{const h=hit(ev),tip=$('cumTip');cv.style.cursor=h?'pointer':'';if(!h){tip.style.display='none';return}
+    const it=h.items;tip.innerHTML=it.length>1?`<b>${it.length} éléments</b><br>`+it.slice(0,6).map(o=>(o.k==='e'?'◆ ':'● ')+esc(o.t)).join('<br>')+(it.length>6?'<br>…':''):`${it[0].k==='e'?'◆':'●'} <b>${esc(it[0].t)}</b><br>${dfr(it[0].d)}`;
+    const r=cv.getBoundingClientRect();tip.style.display='block';tip.style.left=Math.min(ev.clientX-r.left+12,r.width-tip.offsetWidth-4)+'px';tip.style.top=Math.max(4,ev.clientY-r.top-tip.offsetHeight-12)+'px'});
+  cv.addEventListener('mouseleave',()=>{$('cumTip').style.display='none'});
+  cv.addEventListener('click',ev=>{const h=hit(ev);if(h)chrShow(h.items,'cumInfo')})}
+$('cumInfo').onclick=ev=>{const b=ev.target.closest('[data-pv]');if(b)goProj([b.dataset.pv])};
 $('chrInfo').onclick=ev=>{const b=ev.target.closest('[data-pv]');if(b)goProj([b.dataset.pv])};
 {const cv=$('cChr'),hit=ev=>{const c=charts.cChr;if(!c||!c.$hits)return null;const r=cv.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;return c.$hits.find(h=>Math.hypot(h.x-x,h.y-y)<=h.r)||null};
   cv.addEventListener('mousemove',ev=>{const h=hit(ev),tip=$('chrTip');cv.style.cursor=h?'pointer':'';if(!h){tip.style.display='none';return}
