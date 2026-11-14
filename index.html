@@ -830,7 +830,7 @@ function djuLevel(v,C,F){
   const [lo,hi]=DJU_TD;if(v>=lo&&v<=hi)return{nm:'Très doux',ic:'😎'};
   if(v>hi){const st=Math.max(1,(C-hi)/4),l=DJU_LP[Math.min(3,Math.floor((v-hi)/st))];return{nm:l[0],ic:l[1]}}
   const st=Math.max(1,(F+lo)/4),l=DJU_LN[Math.min(3,Math.floor((lo-v)/st))];return{nm:l[0],ic:l[1]}}
-const djuUCol=(v,C,F)=>{const pw=f=>Math.pow(f,.7);return v>=0?djuMix('#cfe3ff','#0a3a9c',pw(Math.min(1,v/C))):djuMix('#ffd0d0','#a30d0d',pw(Math.min(1,-v/F)))};
+const djuUCol=(v,C,F)=>{const pw=f=>Math.pow(f,.7),[lo,hi]=DJU_TD;if(v>=lo&&v<=hi)return '#ffffff';return v>hi?djuMix('#cfe3ff','#0a3a9c',pw(Math.min(1,(v-hi)/Math.max(1,C-hi)))):djuMix('#ffd0d0','#a30d0d',pw(Math.min(1,(lo-v)/Math.max(1,F+lo))))};
 function djuGaugeU(id){
   const Y=djuYear,kf=i=>Y+'-'+String(i+1).padStart(2,'0'),{C,F,rp,rn}=djuRec(),W=760,x0=20,cw=(W-2*x0)/12,by=78,bh=40,gid='ggU'+id;
   const ms=Array.from({length:12},(_,i)=>{const k=kf(i),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)return{i,none:true,c:'#d5d9df'};
@@ -839,7 +839,7 @@ function djuGaugeU(id){
     const top=m.none?'':`<text x="${cx}" y="22" text-anchor="middle" style="font:20px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${m.ic}</text><text x="${cx}" y="38" text-anchor="middle" style="fill:var(--ink);font:700 9.5px system-ui,sans-serif">${m.nm}</text><text x="${cx}" y="57" text-anchor="middle" style="fill:var(--ink);font:800 13px system-ui,sans-serif">${m.v>0?'+':m.v<0?'-':''}${fmt(Math.abs(m.v),0)}</text>${m.rec?`<text x="${cx}" y="70" text-anchor="middle" style="fill:#e03131;font:700 9.5px system-ui,sans-serif">(Record)</text>`:''}`;
     return `${m.i?`<line x1="${x0+m.i*cw}" x2="${x0+m.i*cw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="1.5"/>`:''}${top}<text x="${cx}" y="${by+bh+18}" text-anchor="middle" style="fill:var(--ink);font:700 12px system-ui,sans-serif">${MOIS[m.i]}</text>`}).join('');
   return `<svg viewBox="0 0 ${W} ${by+bh+28}" width="100%" role="img" aria-label="DJU Unique des 12 mois de ${Y}"><defs><linearGradient id="${gid}" x1="${x0}" y1="0" x2="${W-x0}" y2="0" gradientUnits="userSpaceOnUse">${ms.map(m=>`<stop offset="${(((m.i+.5)/12)*100).toFixed(2)}%" stop-color="${m.c}"/>`).join('')}</linearGradient></defs>
-    <rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6" fill="url(#${gid})"/>${cols}</svg>`
+    <rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6" fill="url(#${gid})" style="stroke:var(--line)" stroke-width="1"/>${cols}</svg>`
 }
 function djuGaugeL(){
   const {C,F}=djuRec(),[lo,hi]=DJU_TD,W=760,x0=20,zw=(W-2*x0)/9,by=58,bh=34,r=v=>fmt(Math.round(v),0),sg=v=>(v>0?'+':v<0?'-':'')+r(Math.abs(v));
@@ -852,7 +852,7 @@ function djuGaugeL(){
   const cols=Z.map((z,k)=>{const cx=x0+(k+.5)*zw;
     return `<text x="${cx}" y="26" text-anchor="middle" style="font:22px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${z.ic}</text><text x="${cx}" y="46" text-anchor="middle" style="fill:var(--ink);font:700 10.5px system-ui,sans-serif">${z.nm}</text>${k?`<line x1="${x0+k*zw}" x2="${x0+k*zw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="1.5"/>`:''}<text x="${cx}" y="${by+bh+16}" text-anchor="middle" style="fill:var(--ink);font:600 10px system-ui,sans-serif">${z.t}</text>`}).join('');
   const cap=(x,a,t)=>`<text x="${x}" y="${by+bh+36}" text-anchor="${a}" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${t}</text>`;
-  return `<svg viewBox="0 0 ${W} ${by+bh+46}" width="100%" role="img" aria-label="Échelle des sensations selon le DJU Unique"><defs><clipPath id="clL"><rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6"/></clipPath></defs><g clip-path="url(#clL)">${Z.map((z,k)=>`<rect x="${x0+k*zw}" y="${by}" width="${zw+.5}" height="${bh}" style="fill:${z.c}"/>`).join('')}</g>${cols}
+  return `<svg viewBox="0 0 ${W} ${by+bh+46}" width="100%" role="img" aria-label="Échelle des sensations selon le DJU Unique"><defs><clipPath id="clL"><rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6"/></clipPath></defs><g clip-path="url(#clL)">${Z.map((z,k)=>`<rect x="${x0+k*zw}" y="${by}" width="${zw+.5}" height="${bh}" style="fill:${z.c}"/>`).join('')}</g><rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6" fill="none" style="stroke:var(--line)" stroke-width="1"/>${cols}
     ${cap(x0,'start','← plus chaud (négatif)')}${cap(W-x0,'end','plus froid (positif) →')}</svg>`
 }
 function renderDjuU(){
