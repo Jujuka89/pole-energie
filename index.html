@@ -175,7 +175,7 @@ body.out .edit-only{display:none!important}
 <aside class="side"><section style="margin-top:0"><h2 id="sEcoT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sEco"></div></section><section id="sRefSec" style="margin-top:14px"><h2 id="sRefT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sRef"></div></section></aside>
 <div class="centre">
 <div class="dcenter">
-<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Cumul de l’énergie depuis janvier (MWh)</h2><label style="display:flex;flex-direction:row;align-items:center;gap:8px;font-size:.92rem;cursor:pointer;color:var(--ink)"><input type="checkbox" id="cumLanesChk" checked style="width:auto;margin:0"> Événements et projets</label></div><div class="box" id="cumBox" style="height:400px"><canvas id="cC"></canvas><div id="cumTip"></div></div><div id="cumInfo"></div></section>
+<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Cumul de l’énergie depuis janvier (MWh)</h2><label style="display:flex;flex-direction:row;align-items:center;gap:8px;font-size:.92rem;cursor:pointer;color:var(--ink)"><input type="checkbox" id="cumLanesChk" style="width:auto;margin:0"> Événements et projets</label></div><div class="box" id="cumBox" style="height:280px"><canvas id="cC"></canvas><div id="cumTip"></div></div><div id="cumInfo"></div></section>
 <section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
 <div class="kpis" id="kpisTop" style="margin-top:16px"></div>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
@@ -518,7 +518,7 @@ const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
   }
   ctx.restore();
 }};
-let cumShow=true;try{cumShow=localStorage.getItem('cumLanes')!=='0'}catch(e){}
+let cumShow=false;try{cumShow=localStorage.getItem('cumLanes')==='1'}catch(e){}
 const cumulLanes={id:'cumulLanes',afterDraw(ch){
   if(!cumShow){ch.$hits=[];return}
   const {ev,pr}=chrItems(),Y=year+'-',f=o=>o.d.startsWith(Y);
