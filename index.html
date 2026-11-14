@@ -192,7 +192,7 @@ body.out .edit-only{display:none!important}
 <aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Actualité <span class="badge cnt" id="sNa"></span></h2><div id="actuList"></div>
 <form id="actuForm" style="margin-top:8px"><textarea id="actuT" rows="2" maxlength="600" placeholder="Écrire une actualité…" style="width:100%"></textarea>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="main" id="actuSave" type="submit">Ajouter</button><button type="button" id="actuCancel" hidden>Annuler</button><button type="button" id="actuArch" style="margin-left:auto">Archivage</button></div></form>
-<p class="note" style="margin:8px 0 0"><a href="#archives">Voir les archives</a> · à archiver après le point du jeudi</p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Compteurs à mettre à jour <span class="badge cnt" id="sNk"></span></h2><div id="sideCpt"></div><p class="note" style="margin:10px 0 0"><a href="#releves">Voir les compteurs</a></p></section></aside>
+<p class="note" style="margin:8px 0 0"><a href="#archives">Voir les archives</a> · à archiver après le point du jeudi</p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section></aside>
 </div>
 </div>
 
@@ -205,6 +205,8 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <p id="status" class="note" role="status"></p>
+
+<section id="relTodo" hidden></section>
 
 <section id="gridsSec">
   <details class="djs">
@@ -1244,17 +1246,33 @@ function sideCtl(){
 }
 function lateList(){
   const n=new Date(),pm=new Date(n.getFullYear(),n.getMonth()-1,1),need=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');
+  const nx=k=>{const y=+k.slice(0,4),m=+k.slice(5,7);return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0')};
+  const miss=last=>{if(!last||last>=need)return last?[]:[need];const o=[];let k=nx(last);while(k<=need&&o.length<12){o.push(k);k=nx(k)}return o.slice(-6)};
   const lastOf=k=>{let l=null;data.forEach(d=>{if(d[k]!=null&&(l==null||d.m>l))l=d.m});return l};
-  const main=[['Électricité (compteur principal)','e'],['Gaz (compteur principal)','g']].map(([nom,k])=>({c:{nom},last:lastOf(k)}));
-  const sec=compteurs.map(c=>{const ks=Object.keys(c.valeurs||{}).filter(k=>c.valeurs[k]!=null).sort();return{c,last:ks.length?ks[ks.length-1]:null}});
-  return{need,late:[...main,...sec].filter(o=>!o.last||o.last<need)}}
+  const main=[['Électricité (compteur principal)','e'],['Gaz (compteur principal)','g']].map(([nom,k])=>{const last=lastOf(k);return{c:{nom,unite:'kWh'},k,last,miss:miss(last)}});
+  const sec=compteurs.map(c=>{const ks=Object.keys(c.valeurs||{}).filter(k=>c.valeurs[k]!=null).sort(),last=ks.length?ks[ks.length-1]:null;return{c,id:c.id,last,miss:miss(last)}});
+  return{need,late:[...main,...sec].filter(o=>o.miss.length)}}
 function sideCpt(){
-  const {need,late}=lateList();
-  $('sNk').textContent=late.length;
+  const {late}=lateList();
   const bd=$('badgeRel');bd.textContent=late.length;bd.hidden=!late.length;bd.title=late.length+' compteur'+(late.length>1?'s':'')+' à mettre à jour';
-  const lab=k=>MOISL[+k.slice(5,7)-1].toLowerCase()+' '+k.slice(0,4);
-  $('sideCpt').innerHTML=late.length?late.map(o=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(o.c.nom||'')}</div><small style="color:var(--bad)">${o.last?'Dernière valeur : '+lab(o.last):'Aucune valeur saisie'} · attendu : ${lab(need)}</small></div>`).join(''):'<p class="note" style="margin:0">Tous les compteurs sont à jour ('+lab(need)+').</p>';
+  renderTodo()
 }
+let todoPending=false;
+function renderTodo(){
+  const el=$('relTodo'),ae=document.activeElement;
+  if(el.contains(ae)&&ae.tagName==='INPUT'){todoPending=true;return}
+  todoPending=false;
+  const {late}=lateList(),lab=k=>MOISL[+k.slice(5,7)-1].toLowerCase()+' '+k.slice(0,4);
+  if(!late.length){el.hidden=true;el.innerHTML='';return}
+  el.hidden=false;
+  el.innerHTML=`<h2 style="margin:0 0 4px">À mettre à jour <span class="badge cnt">${late.length}</span></h2><p class="note" style="margin:0 0 10px">Saisissez la valeur du mois : elle s’enregistre dès que vous quittez la case (Tab ou Entrée). Le compteur disparaît de cette liste une fois à jour.</p>`+
+    late.map(o=>`<div style="padding:10px 12px;margin-bottom:8px;border-radius:8px;border:1px solid var(--line);border-left:5px solid var(--bad);background:var(--card)"><div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;margin-bottom:8px"><b style="overflow-wrap:anywhere">${esc(o.c.nom||'')}</b><small style="color:var(--mute)">${o.last?'Dernière valeur : '+lab(o.last):'Aucune valeur saisie'}</small></div><div style="display:flex;flex-wrap:wrap;gap:10px 16px">${o.miss.map(m=>`<label style="display:flex;flex-direction:column;gap:3px;font-size:.9rem"><span style="font-weight:600">${lab(m)}</span><span style="display:flex;align-items:center;gap:6px"><input type="number" step="any" inputmode="decimal" style="width:130px" ${o.k?`data-tm="${o.k}|${m}"`:`data-tc="${o.id}|${m}"`}><small style="color:var(--mute)">${esc(o.c.unite||'')}</small></span></label>`).join('')}</div></div>`).join('')
+}
+$('relTodo').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;if(v==null||isNaN(v))return;
+  if(t.dataset.tm){const[k,m]=t.dataset.tm.split('|');setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();todoPending=true;renderTodo()})}
+  if(t.dataset.tc){const[id,m]=t.dataset.tc.split('|');setDoc(doc(db,'compteurs',id),{valeurs:{[m]:v}},{merge:true}).catch(()=>{refus();todoPending=true;renderTodo()})}};
+$('relTodo').addEventListener('focusout',()=>setTimeout(()=>{if(todoPending&&!$('relTodo').contains(document.activeElement))renderTodo()},0));
+$('relTodo').onkeydown=ev=>{if(ev.key!=='Enter'||ev.target.tagName!=='INPUT')return;ev.preventDefault();const i=[...$('relTodo').querySelectorAll('input')],n=i[i.indexOf(ev.target)+1];if(n)n.focus();else ev.target.blur()};
 function ecoBoxes(ref,tag,fn){
   const noms={g:['Gaz','--gaz'],e:['Électricité','--elec'],t:['Total gaz + électricité','--ink']},res={},T={sav:0,s0:0,eur:0,ng:0,n:0};
   ['g','e'].forEach(k=>{
