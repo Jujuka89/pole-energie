@@ -107,6 +107,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .g2 .gt{position:absolute;left:0;top:0;width:120px;line-height:20px;text-align:center;font-size:.74rem;font-weight:700;color:var(--ink);white-space:nowrap}
 .g2 .gf{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ok)}.g2 .gf .gt{color:#fff}.g2.cours .gf{background:var(--s-cours)}
 @media (prefers-color-scheme:dark){.g2 .gf .gt{color:#14191b}}
+#vDju>header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}#vDju .dhead{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}#vDju .dyear{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:600;font-size:1.05rem;color:var(--ink)}#vDju .dyear select{font-size:1.05rem;margin-left:6px}
 #vDash>header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}#vDash>header>.tools{justify-content:center;align-items:end}
 #popBox{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:150;display:flex;flex-direction:column;gap:10px;width:min(440px,calc(100vw - 24px))}
 .pop{background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;animation:popin .25s ease-out}
@@ -323,9 +324,12 @@ body.out .edit-only{display:none!important}
 </div>
 <div id="vDju" hidden>
 <header>
-  <div>
-    <h1>DJU</h1>
-    <p class="sub">Degrés-jours unifiés mensuels, depuis 2018</p>
+  <div class="dhead">
+    <div>
+      <h1>DJU</h1>
+      <p class="sub">Degrés-jours unifiés mensuels, depuis 2018</p>
+    </div>
+    <label class="dyear">Année <select id="djuYear"></select></label>
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
@@ -338,7 +342,7 @@ body.out .edit-only{display:none!important}
   <p class="note" style="margin:6px 0 0">DJU Unique = DJU chaud − DJU froid : positif quand il fait froid (bleu), négatif quand il fait chaud (rouge). Détail par mois et explications en bas de page.</p>
 </section>
 <section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuRTitle" style="margin:0">Consommation / DJU</h2><span style="display:flex;gap:12px;flex-wrap:wrap"><label>Année <select id="djuYear"></select></label></span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="djuRTitle" style="margin:0">Consommation / DJU</h2></div>
   <div class="box"><canvas id="cDjuR"></canvas></div>
   <p class="note" id="djuRNote" style="margin:8px 0 0"></p>
 </section>
