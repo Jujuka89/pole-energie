@@ -166,7 +166,7 @@ body.out .edit-only{display:none!important}
 <header>
   <div>
     <h1>Dashboard Pôle Energie</h1>
-
+    <p class="sub" id="todayStr" style="font-weight:600"></p>
   </div>
   <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Chronologie</a><a class="btn main" href="#releves">Relevés</a></div>
 </header>
@@ -511,6 +511,15 @@ const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
   }
   ctx.restore();
 }};
+const cumulToday={id:'cumulToday',afterDatasetsDraw(ch){
+  const n=new Date();if(year!==n.getFullYear())return;
+  const dim=new Date(n.getFullYear(),n.getMonth()+1,0).getDate(),idx=n.getMonth()+(n.getDate()-.5)/dim-.5,xs=ch.scales.x,ca=ch.chartArea;
+  const x=xs.getPixelForValue(Math.floor(idx))+(xs.getPixelForValue(Math.floor(idx)+1)-xs.getPixelForValue(Math.floor(idx)))*(idx-Math.floor(idx));
+  if(!(x>=ca.left&&x<=ca.right))return;
+  const css=getComputedStyle(document.documentElement),ctx=ch.ctx,t='Aujourd’hui · '+n.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  ctx.save();ctx.strokeStyle=css.getPropertyValue('--evt').trim()||'#c2255c';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(x,ca.top);ctx.lineTo(x,ca.bottom);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.textBaseline='top';const w=ctx.measureText(t).width,right=x+w+10>ca.right;ctx.textAlign=right?'right':'left';
+  ctx.lineWidth=3.5;ctx.strokeStyle=css.getPropertyValue('--card').trim();ctx.strokeText(t,right?x-6:x+6,ca.top+4);ctx.fillStyle=css.getPropertyValue('--evt').trim()||'#c2255c';ctx.fillText(t,right?x-6:x+6,ca.top+4);ctx.restore()}};
 function cumulCfg(){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),grid=col('--line');
   const c=cumul(year),p=cumul(year-1);
@@ -521,7 +530,7 @@ function cumulCfg(){
     {label:'Électricité '+year,data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
     {label:'Gaz '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
     {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
-  return{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin],options:{maintainAspectRatio:false,layout:{padding:{right:24,top:16}},interaction:{mode:'index',intersect:false},
+  return{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin,cumulToday],options:{maintainAspectRatio:false,layout:{padding:{right:24,top:16}},interaction:{mode:'index',intersect:false},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`}}},
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}};
 }
@@ -1016,6 +1025,8 @@ $('pdf').onclick=rapportGeneral;
 
 let projets=[],user=null,unsubP=null;
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function setToday(){const t=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});const el=$('todayStr');if(el)el.textContent=t.charAt(0).toUpperCase()+t.slice(1)}
+setToday();setInterval(setToday,60000);
 const dfr=v=>v?new Date(v+'T00:00').toLocaleDateString('fr-FR'):'';
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
