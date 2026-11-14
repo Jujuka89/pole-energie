@@ -1290,7 +1290,7 @@ function ecoBoxes(ref,tag,fn){
     if(r){const sav=r.sav,sg=sav>0?'-':sav<0?'+':'';
       cl=sav>0?'var(--ok)':sav<0?'var(--bad)':'var(--mute)';
       mw=sg+fmt(Math.abs(sav),Math.abs(sav)<10?1:0)+' MWh'+(r.eur!=null?' soit '+sg+fmt(Math.abs(r.eur))+' €'+(r.part?'*':''):' (prix manquant)');
-      pc=`<b style="display:block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums">${sg}${fmt(Math.abs(r.q),1)} %</b>`}
+      pc=`<div style="text-align:center;margin:8px 0 6px"><b style="display:inline-block;font-size:2rem;line-height:1.15;color:${cl};font-variant-numeric:tabular-nums;border:2px solid ${cl};border-radius:8px;padding:4px 20px;background:color-mix(in srgb,${cl} 9%,var(--card))">${sg}${fmt(Math.abs(r.q),1)} %</b></div>`}
     return `<div style="border-top:4px solid var(${cv});background:linear-gradient(160deg,color-mix(in srgb,var(${cv}) ${k==='t'?14:34}%,var(--card)),color-mix(in srgb,var(${cv}) ${k==='t'?3:8}%,var(--card)));border-radius:8px;padding:12px;margin-bottom:10px"><span style="display:block;color:var(--mute);font-size:.9rem;font-weight:600">${lib}</span>${pc}<b style="display:block;font-size:1.05rem;line-height:1.3;margin-top:4px;color:${cl};font-variant-numeric:tabular-nums">${mw}</b></div>`}).join('');
 }
 function sideEco(){
