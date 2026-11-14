@@ -381,6 +381,12 @@ body.out .edit-only{display:none!important}
   <div id="djuUT" style="margin-top:12px"></div>
   <p class="note" id="djuUNote" style="margin:8px 0 0"></p>
 </section>
+<section id="djuLSec">
+  <h2 style="margin:0 0 4px">Échelle des sensations <small style="color:var(--mute);font-weight:400">(DJU Unique)</small></h2>
+  <p class="note" style="margin:0 0 10px">Le niveau et l’emoticon d’un mois se lisent ici d’après son DJU Unique (DJU chaud − DJU froid).</p>
+  <div style="overflow-x:auto"><div id="djuGL" style="min-width:640px"></div></div>
+  <p class="note" id="djuLNote" style="margin:8px 0 0"></p>
+</section>
 </div></div>
 <aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 4px;color:#7048e8">DJU froid <small style="color:var(--mute);font-weight:400">(Climaticien)</small></h2><div id="djuGF"></div></section></aside>
 </div>
@@ -801,9 +807,25 @@ function djuGaugeU(id){
   return `<svg viewBox="0 0 ${W} ${by+bh+28}" width="100%" role="img" aria-label="DJU Unique des 12 mois de ${Y}"><defs><linearGradient id="${gid}" x1="${x0}" y1="0" x2="${W-x0}" y2="0" gradientUnits="userSpaceOnUse">${ms.map(m=>`<stop offset="${(((m.i+.5)/12)*100).toFixed(2)}%" stop-color="${m.c}"/>`).join('')}</linearGradient></defs>
     <rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6" fill="url(#${gid})"/>${cols}</svg>`
 }
+function djuGaugeL(){
+  const uk=[...new Set([...Object.keys(dju),...Object.keys(djuC)])].filter(k=>dju[k]!=null||djuC[k]!=null),us=uk.map(k=>(dju[k]||0)-(djuC[k]||0));
+  const C=Math.ceil(Math.max(0,...us,1)/10)*10,F=Math.ceil(Math.max(0,...us.map(v=>-v),1)/10)*10,pw=f=>Math.pow(f,.7);
+  const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),mix=(a,b,t)=>'#'+hx(a).map((v,i)=>Math.round(v+(hx(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
+  const LP=[['Très doux','😎'],['Doux','🙂'],['Frais','😐'],['Froid','😬'],['Très froid','🥶']],LN=[['Aucun besoin','😌'],['Léger','🙂'],['Chaud','😅'],['Très chaud','🥵'],['Canicule','🥵🔥']];
+  const W=760,x0=20,zw=(W-2*x0)/10,by=58,bh=34;const r=v=>fmt(Math.round(v),0);
+  // zones de gauche (négatif, chaud) à droite (positif, froid)
+  const Z=[];for(let j=4;j>=0;j--)Z.push({nm:LN[j][0],ic:LN[j][1],c:mix('#ffd0d0','#a30d0d',pw((j+.5)/5)),t:j===4?'≤ -'+r(F*.8):'-'+r(F*(j+1)/5)+' à '+(j?'-'+r(F*j/5):'0')});
+  for(let j=0;j<5;j++)Z.push({nm:LP[j][0],ic:LP[j][1],c:mix('#cfe3ff','#0a3a9c',pw((j+.5)/5)),t:j===4?'≥ +'+r(C*.8):(j?'+'+r(C*j/5):'0')+' à +'+r(C*(j+1)/5)});
+  const cols=Z.map((z,k)=>{const cx=x0+(k+.5)*zw;
+    return `<text x="${cx}" y="26" text-anchor="middle" style="font:22px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${z.ic}</text><text x="${cx}" y="46" text-anchor="middle" style="fill:var(--ink);font:700 10.5px system-ui,sans-serif">${z.nm}</text><rect x="${x0+k*zw}" y="${by}" width="${zw}" height="${bh}" style="fill:${z.c}"/>${k?`<line x1="${x0+k*zw}" x2="${x0+k*zw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="${k===5?3:1.5}"/>`:''}<text x="${cx}" y="${by+bh+16}" text-anchor="middle" style="fill:var(--ink);font:600 10px system-ui,sans-serif">${z.t}</text>`}).join('');
+  const cap=(x,a,t)=>`<text x="${x}" y="${by+bh+36}" text-anchor="${a}" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${t}</text>`;
+  return `<svg viewBox="0 0 ${W} ${by+bh+46}" width="100%" role="img" aria-label="Échelle des sensations selon le DJU Unique"><defs><clipPath id="clL"><rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6"/></clipPath></defs><g clip-path="url(#clL)">${Z.map((z,k)=>`<rect x="${x0+k*zw}" y="${by}" width="${zw+.5}" height="${bh}" style="fill:${z.c}"/>`).join('')}</g>${cols.replace(/<rect x="[^"]*" y="58" width="[^"]*" height="34" style="fill:[^"]*"\/>/g,'')}
+    ${cap(x0,'start','← plus chaud (négatif)')}${cap(x0+5*zw,'middle','0')}${cap(W-x0,'end','plus froid (positif) →')}</svg>`
+}
 function renderDjuU(){
   const Y=djuYear;$('djuUTitle').innerHTML='DJU Unique <small style="color:var(--mute);font-weight:400">(test) · '+Y+'</small>';
   $('djuGU').innerHTML=djuGaugeU('b');
+  $('djuGL').innerHTML=djuGaugeL();$('djuLNote').textContent='Seuils calculés sur les records de toutes les années saisies (même échelle que les jauges ci-dessus) : cinquièmes du plus grand DJU Unique négatif (côté chaud) et du plus grand positif (côté froid), arrondis à la dizaine supérieure.';
   let h='',sc=0,sf=0,n=0;
   for(let i=0;i<12;i++){const k=Y+'-'+String(i+1).padStart(2,'0'),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)continue;const v=(ch||0)-(fr||0);n++;sc+=ch||0;sf+=fr||0;
     h+=`<tr><td style="text-align:left"><b>${MOIS[i]}</b></td><td>${ch!=null?fmt(ch,0):'–'}</td><td>${fr!=null?fmt(fr,0):'–'}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
