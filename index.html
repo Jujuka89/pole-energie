@@ -791,16 +791,21 @@ function djuGauge(S,cfg,pts){
     <rect x="90" y="${top}" width="38" height="${H}" rx="6" fill="url(#${gid})"/>${zones}${marks}
     <text x="109" y="12" text-anchor="middle" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${fmt(max,0)} (max)</text><text x="109" y="458" text-anchor="middle" style="fill:var(--mute);font:10.5px system-ui,sans-serif">0</text></svg>`;
 }
+const DJU_TD=[-20,80];
+const djuHx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),djuMix=(a,b,t)=>'#'+djuHx(a).map((v,i)=>Math.round(v+(djuHx(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
+function djuRec(){
+  const uk=[...new Set([...Object.keys(dju),...Object.keys(djuC)])].filter(k=>dju[k]!=null||djuC[k]!=null).sort(),us=uk.map(k=>(dju[k]||0)-(djuC[k]||0));
+  return{uk,us,C:Math.ceil(Math.max(0,...us,1)/10)*10,F:Math.ceil(Math.max(0,...us.map(v=>-v),1)/10)*10,rp:uk[us.indexOf(Math.max(...us))],rn:uk[us.indexOf(Math.min(...us))]}}
+const DJU_LP=[['Doux','🙂'],['Frais','😐'],['Froid','😬'],['Très froid','🥶']],DJU_LN=[['Doux','🙂'],['Chaud','😅'],['Très chaud','🥵'],['Canicule','🥵🔥']];
+function djuLevel(v,C,F){
+  const [lo,hi]=DJU_TD;if(v>=lo&&v<=hi)return{nm:'Très doux',ic:'😎'};
+  if(v>hi){const st=Math.max(1,(C-hi)/4),l=DJU_LP[Math.min(3,Math.floor((v-hi)/st))];return{nm:l[0],ic:l[1]}}
+  const st=Math.max(1,(F+lo)/4),l=DJU_LN[Math.min(3,Math.floor((lo-v)/st))];return{nm:l[0],ic:l[1]}}
+const djuUCol=(v,C,F)=>{const pw=f=>Math.pow(f,.7);return v>=0?djuMix('#cfe3ff','#0a3a9c',pw(Math.min(1,v/C))):djuMix('#ffd0d0','#a30d0d',pw(Math.min(1,-v/F)))};
 function djuGaugeU(id){
-  const Y=djuYear,kf=i=>Y+'-'+String(i+1).padStart(2,'0');
-  const uk=[...new Set([...Object.keys(dju),...Object.keys(djuC)])].filter(k=>dju[k]!=null||djuC[k]!=null).sort(),us=uk.map(k=>(dju[k]||0)-(djuC[k]||0)),rp=uk[us.indexOf(Math.max(...us))],rn=uk[us.indexOf(Math.min(...us))];
-  const C=Math.ceil(Math.max(450*0,...us,1)/10)*10,F=Math.ceil(Math.max(0,...us.map(v=>-v),1)/10)*10,pw=f=>Math.pow(f,.7),W=760,x0=20,cw=(W-2*x0)/12,by=78,bh=40,gid='ggU'+id;
-  const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),mix=(a,b,t)=>'#'+hx(a).map((v,i)=>Math.round(v+(hx(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
-  const LP=[['Très doux','😎'],['Doux','🙂'],['Frais','😐'],['Froid','😬'],['Très froid','🥶']],LN=[['Aucun besoin','😌'],['Léger','🙂'],['Chaud','😅'],['Très chaud','🥵'],['Canicule','🥵🔥']];
+  const Y=djuYear,kf=i=>Y+'-'+String(i+1).padStart(2,'0'),{C,F,rp,rn}=djuRec(),W=760,x0=20,cw=(W-2*x0)/12,by=78,bh=40,gid='ggU'+id;
   const ms=Array.from({length:12},(_,i)=>{const k=kf(i),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)return{i,none:true,c:'#d5d9df'};
-    const v=(ch||0)-(fr||0);
-    if(v>=0){const f=Math.min(1,v/C),l=LP[Math.min(4,Math.floor(f*5))];return{i,v,nm:l[0],ic:l[1],c:mix('#cfe3ff','#0a3a9c',pw(f)),rec:v>0&&rp===k}}
-    const f=Math.min(1,-v/F),l=LN[Math.min(4,Math.floor(f*5))];return{i,v,nm:l[0],ic:l[1],c:mix('#ffd0d0','#a30d0d',pw(f)),rec:rn===k}});
+    const v=(ch||0)-(fr||0),l=djuLevel(v,C,F);return{i,v,nm:l.nm,ic:l.ic,c:djuUCol(v,C,F),rec:v>0?rp===k:rn===k&&v<0}});
   const cols=ms.map(m=>{const cx=x0+(m.i+.5)*cw;
     const top=m.none?'':`<text x="${cx}" y="22" text-anchor="middle" style="font:20px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${m.ic}</text><text x="${cx}" y="38" text-anchor="middle" style="fill:var(--ink);font:700 9.5px system-ui,sans-serif">${m.nm}</text><text x="${cx}" y="57" text-anchor="middle" style="fill:var(--ink);font:800 13px system-ui,sans-serif">${m.v>0?'+':m.v<0?'-':''}${fmt(Math.abs(m.v),0)}</text>${m.rec?`<text x="${cx}" y="70" text-anchor="middle" style="fill:#e03131;font:700 9.5px system-ui,sans-serif">(Record)</text>`:''}`;
     return `${m.i?`<line x1="${x0+m.i*cw}" x2="${x0+m.i*cw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="1.5"/>`:''}${top}<text x="${cx}" y="${by+bh+18}" text-anchor="middle" style="fill:var(--ink);font:700 12px system-ui,sans-serif">${MOIS[m.i]}</text>`}).join('');
@@ -808,30 +813,29 @@ function djuGaugeU(id){
     <rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6" fill="url(#${gid})"/>${cols}</svg>`
 }
 function djuGaugeL(){
-  const uk=[...new Set([...Object.keys(dju),...Object.keys(djuC)])].filter(k=>dju[k]!=null||djuC[k]!=null),us=uk.map(k=>(dju[k]||0)-(djuC[k]||0));
-  const C=Math.ceil(Math.max(0,...us,1)/10)*10,F=Math.ceil(Math.max(0,...us.map(v=>-v),1)/10)*10,pw=f=>Math.pow(f,.7);
-  const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),mix=(a,b,t)=>'#'+hx(a).map((v,i)=>Math.round(v+(hx(b)[i]-v)*t).toString(16).padStart(2,'0')).join('');
-  const LP=[['Très doux','😎'],['Doux','🙂'],['Frais','😐'],['Froid','😬'],['Très froid','🥶']],LN=[['Aucun besoin','😌'],['Léger','🙂'],['Chaud','😅'],['Très chaud','🥵'],['Canicule','🥵🔥']];
-  const W=760,x0=20,zw=(W-2*x0)/10,by=58,bh=34;const r=v=>fmt(Math.round(v),0);
-  // zones de gauche (négatif, chaud) à droite (positif, froid)
-  const Z=[];for(let j=4;j>=0;j--)Z.push({nm:LN[j][0],ic:LN[j][1],c:mix('#ffd0d0','#a30d0d',pw((j+.5)/5)),t:j===4?'≤ -'+r(F*.8):'-'+r(F*(j+1)/5)+' à '+(j?'-'+r(F*j/5):'0')});
-  for(let j=0;j<5;j++)Z.push({nm:LP[j][0],ic:LP[j][1],c:mix('#cfe3ff','#0a3a9c',pw((j+.5)/5)),t:j===4?'≥ +'+r(C*.8):(j?'+'+r(C*j/5):'0')+' à +'+r(C*(j+1)/5)});
+  const {C,F}=djuRec(),[lo,hi]=DJU_TD,W=760,x0=20,zw=(W-2*x0)/9,by=58,bh=34,r=v=>fmt(Math.round(v),0),sg=v=>(v>0?'+':v<0?'-':'')+r(Math.abs(v));
+  const sN=Math.max(1,(F+lo)/4),pS=Math.max(1,(C-hi)/4);
+  const Z=[];
+  for(let j=3;j>=0;j--){const l=DJU_LN[j],up=lo-j*sN,dn=lo-(j+1)*sN;Z.push({nm:l[0],ic:l[1],c:djuUCol((up+dn)/2,C,F),t:j===3?'≤ '+sg(up):sg(dn)+' à '+sg(up)})}
+  Z.push({nm:'Très doux',ic:'😎',c:djuUCol((lo+hi)/2,C,F),t:sg(lo)+' à '+sg(hi)});
+  for(let j=0;j<4;j++){const l=DJU_LP[j],dn=hi+j*pS,up=hi+(j+1)*pS;Z.push({nm:l[0],ic:l[1],c:djuUCol((dn+up)/2,C,F),t:j===3?'≥ '+sg(dn):sg(dn)+' à '+sg(up)})}
+  const zero=x0+(Z.findIndex(z=>z.nm==='Très doux')+(0-lo)/(hi-lo))*zw;
   const cols=Z.map((z,k)=>{const cx=x0+(k+.5)*zw;
-    return `<text x="${cx}" y="26" text-anchor="middle" style="font:22px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${z.ic}</text><text x="${cx}" y="46" text-anchor="middle" style="fill:var(--ink);font:700 10.5px system-ui,sans-serif">${z.nm}</text><rect x="${x0+k*zw}" y="${by}" width="${zw}" height="${bh}" style="fill:${z.c}"/>${k?`<line x1="${x0+k*zw}" x2="${x0+k*zw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="${k===5?3:1.5}"/>`:''}<text x="${cx}" y="${by+bh+16}" text-anchor="middle" style="fill:var(--ink);font:600 10px system-ui,sans-serif">${z.t}</text>`}).join('');
+    return `<text x="${cx}" y="26" text-anchor="middle" style="font:22px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">${z.ic}</text><text x="${cx}" y="46" text-anchor="middle" style="fill:var(--ink);font:700 10.5px system-ui,sans-serif">${z.nm}</text>${k?`<line x1="${x0+k*zw}" x2="${x0+k*zw}" y1="${by}" y2="${by+bh}" style="stroke:var(--card)" stroke-width="1.5"/>`:''}<text x="${cx}" y="${by+bh+16}" text-anchor="middle" style="fill:var(--ink);font:600 10px system-ui,sans-serif">${z.t}</text>`}).join('');
   const cap=(x,a,t)=>`<text x="${x}" y="${by+bh+36}" text-anchor="${a}" style="fill:var(--mute);font:10.5px system-ui,sans-serif">${t}</text>`;
-  return `<svg viewBox="0 0 ${W} ${by+bh+46}" width="100%" role="img" aria-label="Échelle des sensations selon le DJU Unique"><defs><clipPath id="clL"><rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6"/></clipPath></defs><g clip-path="url(#clL)">${Z.map((z,k)=>`<rect x="${x0+k*zw}" y="${by}" width="${zw+.5}" height="${bh}" style="fill:${z.c}"/>`).join('')}</g>${cols.replace(/<rect x="[^"]*" y="58" width="[^"]*" height="34" style="fill:[^"]*"\/>/g,'')}
-    ${cap(x0,'start','← plus chaud (négatif)')}${cap(x0+5*zw,'middle','0')}${cap(W-x0,'end','plus froid (positif) →')}</svg>`
+  return `<svg viewBox="0 0 ${W} ${by+bh+46}" width="100%" role="img" aria-label="Échelle des sensations selon le DJU Unique"><defs><clipPath id="clL"><rect x="${x0}" y="${by}" width="${W-2*x0}" height="${bh}" rx="6"/></clipPath></defs><g clip-path="url(#clL)">${Z.map((z,k)=>`<rect x="${x0+k*zw}" y="${by}" width="${zw+.5}" height="${bh}" style="fill:${z.c}"/>`).join('')}</g>${cols}
+    ${cap(x0,'start','← plus chaud (négatif)')}${cap(W-x0,'end','plus froid (positif) →')}</svg>`
 }
 function renderDjuU(){
   const Y=djuYear;$('djuUTitle').innerHTML='DJU Unique <small style="color:var(--mute);font-weight:400">(test) · '+Y+'</small>';
   $('djuGU').innerHTML=djuGaugeU('b');
-  $('djuGL').innerHTML=djuGaugeL();$('djuLNote').textContent='Seuils calculés sur les records de toutes les années saisies (même échelle que les jauges ci-dessus) : cinquièmes du plus grand DJU Unique négatif (côté chaud) et du plus grand positif (côté froid), arrondis à la dizaine supérieure.';
+  $('djuGL').innerHTML=djuGaugeL();$('djuLNote').textContent='Très doux : de '+DJU_TD[0]+' à +'+DJU_TD[1]+'. Au-delà, chaque côté est partagé en 4 niveaux égaux jusqu’au record de toutes les années saisies (arrondi à la dizaine supérieure) : le plus grand DJU Unique négatif côté chaud, le plus grand positif côté froid.';
   let h='',sc=0,sf=0,n=0;
   for(let i=0;i<12;i++){const k=Y+'-'+String(i+1).padStart(2,'0'),ch=dju[k],fr=djuC[k];if(ch==null&&fr==null)continue;const v=(ch||0)-(fr||0);n++;sc+=ch||0;sf+=fr||0;
     h+=`<tr><td style="text-align:left"><b>${MOIS[i]}</b></td><td>${ch!=null?fmt(ch,0):'–'}</td><td>${fr!=null?fmt(fr,0):'–'}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
   if(n>1){const v=sc-sf;h+=`<tr><td style="text-align:left"><b>Total</b></td><td>${fmt(sc,0)}</td><td>${fmt(sf,0)}</td><td><b>${v>0?'+':v<0?'-':''}${fmt(Math.abs(v),1)}</b></td></tr>`}
   $('djuUT').innerHTML=h?'<div style="overflow-x:auto"><table style="font-size:.9rem"><thead><tr><th style="text-align:left">Mois</th><th>DJU chaud</th><th>DJU froid</th><th>DJU Unique</th></tr></thead><tbody>'+h+'</tbody></table></div>':'<p class="note">Aucun DJU saisi pour '+Y+'.</p>';
-  $('djuUNote').textContent='Les 12 mois, de janvier à décembre. La couleur suit le DJU Unique : bleu quand il fait froid (positif), rouge quand il fait chaud (négatif), de plus en plus soutenu avec la valeur. Au-dessus de chaque mois : l’emoji, le niveau (très froid, froid, etc.) et le DJU Unique. Les niveaux et les couleurs se calculent par cinquièmes du record de chaque côté : le plus grand DJU Unique positif et le plus grand négatif de toutes les années saisies, arrondis à la dizaine supérieure.'}
+  $('djuUNote').textContent='Les 12 mois, de janvier à décembre. La couleur suit le DJU Unique : bleu quand il fait froid (positif), rouge quand il fait chaud (négatif), de plus en plus soutenu avec la valeur (échelle des records de toutes les années). Au-dessus de chaque mois : l’emoji, le niveau et le DJU Unique ; les niveaux sont détaillés dans l’échelle tout en bas de la page.'}
 function renderDju(){
   buildDju();const act=document.activeElement;
   const fillG=(box,S)=>{const q=a=>document.querySelectorAll(box+' ['+a+']');
