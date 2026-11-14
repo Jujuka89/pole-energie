@@ -1620,10 +1620,15 @@ const dLong=d=>new Date(d+'T00:00').toLocaleDateString('fr-FR',{weekday:'long',d
 function renderActu(){
   const l=Object.entries(actu).filter(([,o])=>o&&o.t).sort((a,b)=>(b[1].c||0)-(a[1].c||0));
   $('sNa').textContent=l.length||'';$('actuArch').disabled=!l.length;
-  $('actuList').innerHTML=l.length?l.map(([id,o])=>`<div class="act"><p>${esc(o.t)}</p><div class="ab"><small style="color:var(--mute)">${o.d?dfr(o.d):''}</small><button type="button" data-ae="${id}">Modifier</button><button type="button" data-ad="${id}">Supprimer</button></div></div>`).join(''):'<p class="note" style="margin:0">Aucune actualité en cours.</p>'}
+  $('actuList').innerHTML=l.length?l.map(([id,o])=>`<div class="act"><p>${esc(o.t)}</p><div class="ab"><button type="button" data-ae="${id}">Modifier</button><button type="button" data-ad="${id}">Supprimer</button></div></div>`).join(''):'<p class="note" style="margin:0">Aucune actualité en cours.</p>'}
 function renderArc(){
   const l=Object.entries(archs).filter(([,o])=>o&&o.d).sort((a,b)=>b[1].d.localeCompare(a[1].d)||(b[1].c||0)-(a[1].c||0));
-  $('arcList').innerHTML=l.length?l.map(([id,o])=>`<section><h2 style="margin:0 0 8px">${esc(dLong(o.d).replace(/^./,c=>c.toUpperCase()))}</h2><p class="note" style="margin:0 0 6px">Point économie d’énergie · ${(o.items||[]).length} actualité${(o.items||[]).length>1?'s':''}</p>${(o.items||[]).map(i=>`<div class="act"><p>${esc(i.t)}</p><small style="color:var(--mute)">${i.d?'Saisie le '+dfr(i.d):''}</small></div>`).join('')}</section>`).join(''):'<section><p class="note" style="margin:0">Aucune archive pour le moment. Utilisez le bouton « Archivage » de la case Actualité du tableau de bord.</p></section>'}
+  $('arcList').innerHTML=l.length?l.map(([id,o])=>`<section><h2 style="margin:0 0 8px">${esc(dLong(o.d).replace(/^./,c=>c.toUpperCase()))}</h2><p class="note" style="margin:0 0 6px">Point économie d’énergie · ${(o.items||[]).length} actualité${(o.items||[]).length>1?'s':''}</p>${(o.items||[]).map((i,k)=>`<div class="act"><p>${esc(i.t)}</p><div class="ab"><small style="color:var(--mute)">${i.d?'Saisie le '+dfr(i.d):''}</small><button type="button" data-ai="${id}|${k}">Supprimer</button></div></div>`).join('')}</section>`).join(''):'<section><p class="note" style="margin:0">Aucune archive pour le moment. Utilisez le bouton « Archivage » de la case Actualité du tableau de bord.</p></section>'}
+$('arcList').onclick=ev=>{const b=ev.target.closest('button[data-ai]');if(!b)return;
+  const[id,k]=b.dataset.ai.split('|'),o=archs[id];if(!o||!Array.isArray(o.items))return;
+  if(!confirm('Supprimer cette actualité de l’archive ?'))return;
+  const items=o.items.filter((_,j)=>j!==+k);
+  setDoc(doc(db,'releves','_archives'),{l:{[id]:items.length?{...o,items}:deleteField()}},{merge:true}).catch(refus)};
 function actuReset(){actuEdit=null;$('actuT').value='';$('actuSave').textContent='Ajouter';$('actuCancel').hidden=true}
 $('actuForm').onsubmit=ev=>{ev.preventDefault();const t=$('actuT').value.trim();if(!t)return;const id=actuEdit||uid(),old=actu[id]||{};
   setDoc(doc(db,'releves','_actu'),{l:{[id]:{t,d:old.d||today(),c:old.c||Date.now()}}},{merge:true}).then(actuReset).catch(refus)};
