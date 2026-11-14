@@ -9,7 +9,7 @@
 <style>
 :root{--bg:#f3f4f1;--card:#fff;--ink:#1d2528;--mute:#667075;--line:#dde0dc;--elec:#2b7de9;--gaz:#e6b800;--accent:#2b6cb0;--prev:#b9bfc2;--ok:#0f9d3a;--bad:#e11d2e;--m1:#2b7de9;--m2:#8b5cf6;--m3:#0d9488;--s-cours:#e67700;--s-a:#64748b;--s-ctrl:#7c3aed}
 @media (prefers-color-scheme:dark){:root{--bg:#14191b;--card:#1d2427;--ink:#e8ecec;--mute:#92a0a4;--line:#2c3639;--elec:#5aa2ff;--gaz:#f5d03b;--accent:#5b9be0;--prev:#4a575b;--ok:#3fe07f;--bad:#ff5a4d;--m1:#5aa2ff;--m2:#a78bfa;--m3:#2dd4bf;--s-cours:#ffa94d;--s-a:#94a3b8;--s-ctrl:#b197fc}}
-*{box-sizing:border-box}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
+*{box-sizing:border-box}.bdg{position:absolute;top:-9px;right:-9px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:.8rem;font-weight:800;line-height:22px;text-align:center;box-shadow:0 0 0 2px var(--card);font-variant-numeric:tabular-nums}a.btn{display:inline-block;text-decoration:none;font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}a.btn.main{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}[hidden]{display:none!important}body.out [data-edit],body.out [data-del]{display:none}
 #authBar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:0 0 16px}#authBar form{flex:1;max-width:560px}#status{width:100%;margin:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
 main{max-width:1560px;margin:0 auto;padding:24px 16px 48px}
@@ -168,7 +168,7 @@ body.out .edit-only{display:none!important}
     <h1>Dashboard Pôle Energie</h1>
     <p class="sub" id="todayStr" style="font-weight:600"></p>
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Chronologie</a><a class="btn main" href="#releves">Relevés</a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Chronologie</a><a class="btn main" href="#releves" id="btnRel" style="position:relative">Relevés<span id="badgeRel" class="bdg" hidden></span></a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="dash">
@@ -1242,12 +1242,18 @@ function sideCtl(){
     cl=v=>v>0?'var(--ok)':v<0?'var(--bad)':'var(--mute)',sg=v=>v>0?'-':v<0?'+':'';
   $('sideCtl').innerHTML=`<div style="border-top:4px solid var(--ok);background:linear-gradient(160deg,color-mix(in srgb,var(--ok) 22%,var(--card)),color-mix(in srgb,var(--ok) 5%,var(--card)));border-radius:8px;padding:12px"><span style="color:var(--mute);font-size:.9rem;font-weight:600">Total économisé</span><b style="display:block;font-size:2rem;line-height:1.15;color:${cl(E)};font-variant-numeric:tabular-nums">${ne.length?sg(E)+fmt(Math.abs(E))+' €':'– €'}</b><b style="display:block;font-size:1.3rem;line-height:1.3;color:${cl(S)};font-variant-numeric:tabular-nums">${sg(S)}${fmt(Math.abs(S),decs(Math.abs(S)))} MWh</b><small style="color:var(--mute)">${gs.length} projet${gs.length>1?'s':''} sur ${l.length} calculable${gs.length>1?'s':''}</small></div>`;
 }
-function sideCpt(){
+function lateList(){
   const n=new Date(),pm=new Date(n.getFullYear(),n.getMonth()-1,1),need=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');
-  const late=compteurs.map(c=>{const ks=Object.keys(c.valeurs||{}).filter(k=>c.valeurs[k]!=null).sort();return{c,last:ks.length?ks[ks.length-1]:null}}).filter(o=>!o.last||o.last<need);
+  const lastOf=k=>{let l=null;data.forEach(d=>{if(d[k]!=null&&(l==null||d.m>l))l=d.m});return l};
+  const main=[['Électricité (compteur principal)','e'],['Gaz (compteur principal)','g']].map(([nom,k])=>({c:{nom},last:lastOf(k)}));
+  const sec=compteurs.map(c=>{const ks=Object.keys(c.valeurs||{}).filter(k=>c.valeurs[k]!=null).sort();return{c,last:ks.length?ks[ks.length-1]:null}});
+  return{need,late:[...main,...sec].filter(o=>!o.last||o.last<need)}}
+function sideCpt(){
+  const {need,late}=lateList();
   $('sNk').textContent=late.length;
+  const bd=$('badgeRel');bd.textContent=late.length;bd.hidden=!late.length;bd.title=late.length+' compteur'+(late.length>1?'s':'')+' à mettre à jour';
   const lab=k=>MOISL[+k.slice(5,7)-1].toLowerCase()+' '+k.slice(0,4);
-  $('sideCpt').innerHTML=!compteurs.length?'<p class="note" style="margin:0">Aucun compteur.</p>':late.length?late.map(o=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(o.c.nom||'')}</div><small style="color:var(--bad)">${o.last?'Dernière valeur : '+lab(o.last):'Aucune valeur saisie'} · attendu : ${lab(need)}</small></div>`).join(''):'<p class="note" style="margin:0">Tous les compteurs sont à jour ('+lab(need)+').</p>';
+  $('sideCpt').innerHTML=late.length?late.map(o=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere">${esc(o.c.nom||'')}</div><small style="color:var(--bad)">${o.last?'Dernière valeur : '+lab(o.last):'Aucune valeur saisie'} · attendu : ${lab(need)}</small></div>`).join(''):'<p class="note" style="margin:0">Tous les compteurs sont à jour ('+lab(need)+').</p>';
 }
 function ecoBoxes(ref,tag,fn){
   const noms={g:['Gaz','--gaz'],e:['Électricité','--elec'],t:['Total gaz + électricité','--ink']},res={},T={sav:0,s0:0,eur:0,ng:0,n:0};
