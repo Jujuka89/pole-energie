@@ -175,7 +175,7 @@ body.out .edit-only{display:none!important}
 <aside class="side"><section style="margin-top:0"><h2 id="sEcoT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sEco"></div></section><section id="sRefSec" style="margin-top:14px"><h2 id="sRefT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sRef"></div></section></aside>
 <div class="centre">
 <div class="dcenter">
-<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Au dernier mois relevé : écart cumulé par rapport à la même période de l’année précédente (rouge = plus consommé, vert = moins consommé).</p></section>
+<section><h2>Cumul de l’énergie depuis janvier (MWh)</h2><div class="box"><canvas id="cC"></canvas></div><p class="note">Sous chaque point : écart en % du cumul par rapport à la même période de l’année précédente (rouge avec « + » = plus consommé, vert avec « - » = moins consommé), pour le total, le gaz et l’électricité.</p></section>
 <section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé. Leur somme sur les années complètes donne le cumul affiché ci-dessus ; l’année en cours (marquée *) n’y est pas comptée.</p></section>
 <div class="kpis" id="kpisTop" style="margin-top:16px"></div>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
@@ -497,17 +497,18 @@ function cumul(y){const e=val(y,'e'),g=val(y,'g');let le=-1,lg=-1,lt=-1;
   return Array.from({length:12},(_,i)=>{a+=e[i]||0;b+=g[i]||0;return{e:i<=le?a/1000:null,g:i<=lg?b/1000:null,t:i<=lt?(a+b)/1000:null}})}
 const cumulPlugin={id:'ecart',afterDatasetsDraw(ch){
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),ctx=ch.ctx,ds=ch.data.datasets;
-  const items=[];
-  [['Total',5,0],['Gaz',4,2],['Élec.',3,1]].forEach(([nom,ci,pi])=>{
-    const cur=ds[ci].data;let l=-1;cur.forEach((v,i)=>{if(v!=null)l=i});if(l<0)return;
-    const pv=ds[pi].data[l];if(pv==null)return;
-    const d=cur[l]-pv,q=pv?d/pv*100:null,sg=Math.round(d)>0?'+':'';
-    const pt=ch.getDatasetMeta(ci).data[l];
-    items.push({x:pt.x,y:pt.y,c:col(Math.round(d)>0?'--bad':Math.round(d)<0?'--ok':'--mute'),t:`${nom} ${sg}${fmt(d)} MWh${q==null?'':` (${sg}${fmt(q,1)} %)`}`});
-  });
-  items.sort((a,b)=>a.y-b.y);for(let i=1;i<items.length;i++)if(items[i].y-items[i-1].y<14)items[i].y=items[i-1].y+14;
-  ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
-  items.forEach(o=>{ctx.fillStyle=o.c;ctx.fillText(o.t,o.x+9,o.y)});
+  ctx.save();ctx.font='700 10.5px "Segoe UI",system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+  for(let i=0;i<12;i++){
+    const items=[];
+    [[5,0],[4,2],[3,1]].forEach(([ci,pi])=>{
+      const cv=ds[ci].data[i],pv=ds[pi].data[i];if(cv==null||pv==null||!pv)return;
+      const q=Math.round((cv-pv)/pv*1000)/10,pt=ch.getDatasetMeta(ci).data[i];if(!pt)return;
+      items.push({x:pt.x,y:pt.y-7,c:col(q>0?'--bad':q<0?'--ok':'--mute'),t:(q>0?'+':q<0?'-':'')+fmt(Math.abs(q),1)+' %'});
+    });
+    items.sort((a,b)=>a.y-b.y);
+    for(let k=items.length-2;k>=0;k--)if(items[k+1].y-items[k].y<13)items[k].y=items[k+1].y-13;
+    items.forEach(o=>{ctx.lineWidth=3;ctx.strokeStyle=col('--card');ctx.strokeText(o.t,o.x,o.y);ctx.fillStyle=o.c;ctx.fillText(o.t,o.x,o.y)});
+  }
   ctx.restore();
 }};
 function cumulCfg(){
@@ -520,7 +521,7 @@ function cumulCfg(){
     {label:'Électricité '+year,data:c.map(o=>o&&o.e),borderColor:col('--elec'),backgroundColor:col('--elec'),borderWidth:2,pointRadius:2},
     {label:'Gaz '+year,data:c.map(o=>o&&o.g),borderColor:col('--gaz'),backgroundColor:col('--gaz'),borderWidth:2,pointRadius:2},
     {label:'Total '+year,data:c.map(o=>o&&o.t),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:3,pointRadius:3}];
-  return{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin],options:{maintainAspectRatio:false,layout:{padding:{right:150}},interaction:{mode:'index',intersect:false},
+  return{type:'line',data:{labels:MOIS,datasets:ds},plugins:[cumulPlugin],options:{maintainAspectRatio:false,layout:{padding:{right:24,top:16}},interaction:{mode:'index',intersect:false},
     plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.parsed.y)} MWh`}}},
     scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'MWh',color:txt},ticks:{color:txt},grid:{color:grid}}}}};
 }
