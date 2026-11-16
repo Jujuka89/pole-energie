@@ -191,7 +191,7 @@ body.out .edit-only{display:none!important}
 </div>
 <aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Actualité <span class="badge cnt" id="sNa"></span></h2><div id="actuList"></div>
 <form id="actuForm" style="margin-top:8px"><textarea id="actuT" rows="2" maxlength="600" placeholder="Écrire une actualité…" style="width:100%"></textarea>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="main" id="actuSave" type="submit">Ajouter</button><button type="button" id="actuCancel" hidden>Annuler</button><button type="button" id="actuArch" style="margin-left:auto">Archivage</button></div></form>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="main" id="actuSave" type="submit">Ajouter</button><button type="button" id="actuCancel" hidden>Annuler</button></div></form>
 <p class="note" style="margin:8px 0 0"><a href="#archives">Voir les archives</a> · à archiver après le point du jeudi</p></section></aside>
 </div>
 </div>
@@ -289,7 +289,7 @@ body.out .edit-only{display:none!important}
 <header>
   <div>
     <h1>Archives</h1>
-    <p class="sub">Actualités archivées après chaque point économie d’énergie du jeudi</p>
+    <p class="sub">Actualités validées (coche ✓ de la page 1)</p>
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
@@ -1334,8 +1334,8 @@ function renderTodo(){
     late.map(o=>`<div style="padding:10px 12px;margin-bottom:8px;border-radius:8px;border:1px solid var(--line);border-left:5px solid var(--bad);background:var(--card)"><div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;margin-bottom:8px"><b style="overflow-wrap:anywhere">${esc(o.c.nom||'')}</b><small style="color:var(--mute)">${o.last?'Dernière valeur : '+lab(o.last):'Aucune valeur saisie'}</small></div><div style="display:flex;flex-wrap:wrap;gap:10px 16px">${o.miss.map(m=>`<label style="display:flex;flex-direction:column;gap:3px;font-size:.9rem"><span style="font-weight:600">${lab(m)}</span><span style="display:flex;align-items:center;gap:6px"><input type="number" step="any" inputmode="decimal" style="width:130px" ${o.k?`data-tm="${o.k}|${m}"`:`data-tc="${o.id}|${m}"`}><small style="color:var(--mute)">${esc(o.c.unite||'')}</small></span></label>`).join('')}</div></div>`).join('')
 }
 $('relTodo').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;if(v==null||isNaN(v))return;
-  if(t.dataset.tm){const[k,m]=t.dataset.tm.split('|');setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();todoPending=true;renderTodo()})}
-  if(t.dataset.tc){const[id,m]=t.dataset.tc.split('|');setDoc(doc(db,'compteurs',id),{valeurs:{[m]:v}},{merge:true}).catch(()=>{refus();todoPending=true;renderTodo()})}};
+  if(t.dataset.tm){const[k,m]=t.dataset.tm.split('|');addActu(k+'_'+m,(k==='g'?'Relevé gaz ':'Relevé électricité ')+ymL(m)+' : '+nMWh(v));setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();todoPending=true;renderTodo()})}
+  if(t.dataset.tc){const[id,m]=t.dataset.tc.split('|');{const c=compteurs.find(x=>x.id===id);addActu('c_'+id+'_'+m,'Relevé '+(c?c.nom:'compteur')+' '+ymL(m)+' : '+fmt(v,v%1?1:0)+(c&&c.unite?' '+c.unite:''))}setDoc(doc(db,'compteurs',id),{valeurs:{[m]:v}},{merge:true}).catch(()=>{refus();todoPending=true;renderTodo()})}};
 $('relTodo').addEventListener('focusout',()=>setTimeout(()=>{if(todoPending&&!$('relTodo').contains(document.activeElement))renderTodo()},0));
 $('relTodo').onkeydown=ev=>{if(ev.key!=='Enter'||ev.target.tagName!=='INPUT')return;ev.preventDefault();const i=[...$('relTodo').querySelectorAll('input')],n=i[i.indexOf(ev.target)+1];if(n)n.focus();else ev.target.blur()};
 function ecoBoxes(ref,tag,fn){
@@ -1431,10 +1431,11 @@ $('vProj').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-
 $('vProj').ondragend=()=>{drag=null;clr()};
 $('vProj').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
 $('grids').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
-  if(t.dataset.t){const[y,k]=t.dataset.t.split('|');setDoc(doc(db,'releves','_totaux'),{[y]:{[k]:v}},{merge:true}).catch(()=>{refus();grids()})}
+  if(t.dataset.t){const[y,k]=t.dataset.t.split('|');if(v!=null)addActu('t_'+y+'_'+k,'Total '+(k==='g'?'gaz':'électricité')+' '+y+' : '+nMWh(v));setDoc(doc(db,'releves','_totaux'),{[y]:{[k]:v}},{merge:true}).catch(()=>{refus();grids()})}
   if(t.dataset.c){const[m,k]=t.dataset.c.split('|'),ex=data.find(x=>x.m===m);if(v==null&&!(ex&&ex[k]!=null))return;
+    if(v!=null)addActu(k+'_'+m,(k==='g'?'Relevé gaz ':'Relevé électricité ')+ymL(m)+' : '+nMWh(v));
     setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();grids()})}
-  if(t.dataset.px){const[y,k]=t.dataset.px.split('|');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
+  if(t.dataset.px){const[y,k]=t.dataset.px.split('|');if(v!=null)addActu('px_'+y+'_'+k,'Prix '+(k==='g'?'gaz':'électricité')+' '+y+' : '+fmt(v,2)+' €/MWh');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
 $('grids').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
   const k=ev.target.dataset.c.split('|')[1],tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
 let compteurs=[],unsubC=null,cptCharts={},cptKey='';
@@ -1498,6 +1499,7 @@ function renderCpt(){buildCpt();fillCpt()}
 $('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
 $('vCpt').onchange=ev=>{const t=ev.target,d=t.dataset;
   if(d.cv){const[id,ym]=d.cv.split('|'),v=t.value===''?null:+t.value,c=compteurs.find(x=>x.id===id);if(v==null&&!(c&&c.valeurs&&c.valeurs[ym]!=null))return;
+    if(v!=null)addActu('c_'+id+'_'+ym,'Relevé '+(c?c.nom:'compteur')+' '+ymL(ym)+' : '+fmt(v,v%1?1:0)+(c&&c.unite?' '+c.unite:''));
     setDoc(doc(db,'compteurs',id),{valeurs:{[ym]:v}},{merge:true}).catch(()=>{refus();fillCpt()})}
   if(d.cnom){const nm=t.value.trim();if(!nm){fillCpt();return}updateDoc(doc(db,'compteurs',d.cnom),{nom:nm}).catch(refus)}
   if(d.cunit)updateDoc(doc(db,'compteurs',d.cunit),{unite:t.value.trim()}).catch(refus);
@@ -1641,13 +1643,16 @@ $('chrInfo').onclick=ev=>{const b=ev.target.closest('[data-pv]');if(b)goProj([b.
 
 let actu={},archs={},actuEdit=null;
 const dLong=d=>new Date(d+'T00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const nMWh=v=>fmt(v,v%1?1:0)+' MWh';
+function addActu(key,t){setDoc(doc(db,'releves','_actu'),{l:{['auto_'+key]:{t,d:today(),c:Date.now(),auto:true}}},{merge:true}).catch(()=>{})}
+function ymL(m){const[y,mo]=m.split('-');return MOISL[+mo-1].toLowerCase()+' '+y}
 function renderActu(){
   const l=Object.entries(actu).filter(([,o])=>o&&o.t).sort((a,b)=>(b[1].c||0)-(a[1].c||0));
-  $('sNa').textContent=l.length||'';$('actuArch').disabled=!l.length;
-  $('actuList').innerHTML=l.length?l.map(([id,o])=>`<div class="act"><p>${esc(o.t)}</p><div class="ab"><button type="button" data-ae="${id}">Modifier</button><button type="button" data-ad="${id}">Supprimer</button></div></div>`).join(''):'<p class="note" style="margin:0">Aucune actualité en cours.</p>'}
+  $('sNa').textContent=l.length||'';
+  $('actuList').innerHTML=l.length?l.map(([id,o])=>`<div class="act"><p>${esc(o.t)}</p><div class="ab"><button type="button" data-av="${id}" title="Valider (déplacer vers Archives)" aria-label="Valider" style="font-weight:700;color:#15803d">✓</button><button type="button" data-ae="${id}">Modifier</button><button type="button" data-ad="${id}">Supprimer</button></div></div>`).join(''):'<p class="note" style="margin:0">Aucune actualité en cours.</p>'}
 function renderArc(){
   const l=Object.entries(archs).filter(([,o])=>o&&o.d).sort((a,b)=>b[1].d.localeCompare(a[1].d)||(b[1].c||0)-(a[1].c||0));
-  $('arcList').innerHTML=l.length?l.map(([id,o])=>`<section><h2 style="margin:0 0 8px">${esc(dLong(o.d).replace(/^./,c=>c.toUpperCase()))}</h2><p class="note" style="margin:0 0 6px">Point économie d’énergie · ${(o.items||[]).length} actualité${(o.items||[]).length>1?'s':''}</p>${(o.items||[]).map((i,k)=>`<div class="act"><p>${esc(i.t)}</p><div class="ab"><small style="color:var(--mute)">${i.d?'Saisie le '+dfr(i.d):''}</small><button type="button" data-ai="${id}|${k}">Supprimer</button></div></div>`).join('')}</section>`).join(''):'<section><p class="note" style="margin:0">Aucune archive pour le moment. Utilisez le bouton « Archivage » de la case Actualité du tableau de bord.</p></section>'}
+  $('arcList').innerHTML=l.length?l.map(([id,o])=>`<section><h2 style="margin:0 0 8px">${esc(dLong(o.d).replace(/^./,c=>c.toUpperCase()))}</h2><p class="note" style="margin:0 0 6px">Actualités validées · ${(o.items||[]).length} actualité${(o.items||[]).length>1?'s':''}</p>${(o.items||[]).map((i,k)=>`<div class="act"><p>${esc(i.t)}</p><div class="ab"><small style="color:var(--mute)">${i.d?'Saisie le '+dfr(i.d):''}</small><button type="button" data-ai="${id}|${k}">Supprimer</button></div></div>`).join('')}</section>`).join(''):'<section><p class="note" style="margin:0">Aucune archive pour le moment. Validez une actualité avec la coche ✓ dans la case Actualité du tableau de bord.</p></section>'}
 $('arcList').onclick=ev=>{const b=ev.target.closest('button[data-ai]');if(!b)return;
   const[id,k]=b.dataset.ai.split('|'),o=archs[id];if(!o||!Array.isArray(o.items))return;
   if(!confirm('Supprimer cette actualité de l’archive ?'))return;
@@ -1660,14 +1665,10 @@ $('actuT').onkeydown=ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey))$('actuF
 $('actuCancel').onclick=actuReset;
 $('actuList').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
   if(b.dataset.ae){const o=actu[b.dataset.ae];if(!o)return;actuEdit=b.dataset.ae;$('actuT').value=o.t;$('actuSave').textContent='Enregistrer';$('actuCancel').hidden=false;$('actuT').focus()}
+  if(b.dataset.av){const o=actu[b.dataset.av];if(!o)return;const bid='v'+today(),ex=(archs[bid]&&archs[bid].items)||[],wb=writeBatch(db);
+    wb.set(doc(db,'releves','_archives'),{l:{[bid]:{d:today(),c:Date.now(),items:[...ex,{t:o.t,d:o.d||''}]}}},{merge:true});
+    wb.set(doc(db,'releves','_actu'),{l:{[b.dataset.av]:deleteField()}},{merge:true});wb.commit().catch(refus)}
   if(b.dataset.ad&&confirm('Supprimer cette actualité ?'))setDoc(doc(db,'releves','_actu'),{l:{[b.dataset.ad]:deleteField()}},{merge:true}).catch(refus)};
-$('actuArch').onclick=()=>{
-  const items=Object.values(actu).filter(o=>o&&o.t).sort((a,b)=>(a.c||0)-(b.c||0));if(!items.length)return;
-  if(!confirm('Archiver les '+items.length+' actualité'+(items.length>1?'s':'')+' du point du '+dLong(today())+' ? Elles seront déplacées dans la page Archives.'))return;
-  const wb=writeBatch(db);
-  wb.set(doc(db,'releves','_archives'),{l:{[uid()]:{d:today(),c:Date.now(),items:items.map(o=>({t:o.t,d:o.d||''}))}}},{merge:true});
-  wb.set(doc(db,'releves','_actu'),{l:{}});
-  wb.commit().catch(refus)};
 function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives';$('vDash').hidden=r||pj||dj||ch||ar;$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
