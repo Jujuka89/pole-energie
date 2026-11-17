@@ -116,6 +116,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 :root{--evt:#c2255c}@media (prefers-color-scheme:dark){:root{--evt:#ff7aa8}}
 #vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip,#cumTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 #vDer{max-width:1100px;margin:0 auto}.dmap{position:relative;display:grid;grid-template-columns:1fr 1.3fr 1fr;grid-template-rows:repeat(3,auto);gap:22px;padding:10px 0}.dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}.dmap>*{position:relative;z-index:1}.dc{align-self:center;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:92px;justify-content:center}.dc svg{width:54px;height:40px}.dc b{font-size:.95rem}.dc small{color:var(--mute)}.dmain{grid-column:2;grid-row:2;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px solid var(--line);border-radius:16px;background:var(--card);padding:16px}.dmain{flex-direction:row!important;gap:18px!important;flex-wrap:wrap}.dsrc{flex:1;min-width:110px;display:flex;flex-direction:column;align-items:center;gap:4px}.dsrc svg{width:100%;max-width:110px;height:auto}.dsrc b{font-size:1.05rem}.dsrc small{color:var(--mute)}@media (max-width:760px){.dmap{grid-template-columns:1fr 1fr}.dmain{grid-column:1/3;grid-row:1}.dmap svg.dl{display:none}}
+.mode{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--line);vertical-align:middle}.mode.man{background:#eef2f7;color:#334155}.mode.aut{background:#dcfce7;color:#166534;border-color:#86efac}
 #vTst{max-width:1000px;margin:0 auto}#vTst td input.cell{width:100%;min-width:120px}#vTst .neg{color:#b91c1c}#vTst .tf{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 #vArc{max-width:1000px;margin:0 auto}.act{padding:8px 0;border-bottom:1px solid var(--line)}.act p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem}.act .ab{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.act button{padding:2px 8px;font-size:.8rem}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
@@ -210,35 +211,10 @@ body.out .edit-only{display:none!important}
 
 <section id="relTodo" hidden></section>
 
-<section id="autoSec">
-  <details class="djs" id="autoDet">
-  <summary><h2>Relevés automatiques <span id="autoBdg" class="note" style="font-weight:400"></span></h2></summary>
-  <p class="note" style="margin:8px 0 6px">Import quotidien du fichier CSV reçu par mail (script Google). Une ligne par compteur : <code>nom du compteur,index</code>, par exemple <code>Chaufferie,1520</code> ; la date est celle du mail (ou <code>Chaufferie,1520,2026-10-31</code> pour un index passé). Pour le gaz et l’électricité principaux, utilisez <code>g,…</code> et <code>e,…</code> : l’index (kWh) alimente aussi la consommation mensuelle (dernier index du mois − dernier index du mois précédent). Le format <code>2026-11;g;1234,5</code> (consommation du mois en MWh) reste accepté.</p>
-  <div id="autoLast" style="margin:0 0 12px"></div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 6px"><h3 style="margin:0;font-size:1rem">Compteurs relevés</h3><span id="autoCnt" class="note"></span><input type="search" id="autoQ" placeholder="Filtrer un compteur" style="margin-left:auto"></div>
-  <div id="autoMeters" style="margin:0 0 14px"></div>
-  <h3 style="margin:0 0 6px;font-size:1rem">Tester un fichier</h3>
-  <textarea id="autoTxt" rows="5" style="width:100%;font-family:monospace" placeholder="Collez ici le contenu du CSV"></textarea>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><input type="file" id="autoFile" accept=".csv,text/csv,text/plain"><button type="button" id="autoEx">Insérer un exemple</button><button type="button" id="autoChk">Analyser</button><button type="button" class="main" id="autoApply" disabled>Enregistrer les lignes valides</button></div>
-  <div id="autoRes"></div>
-  </details>
-</section>
-
-<section id="manSec">
-<details class="djs" id="manDet">
-<summary><h2>Relevés manuels</h2></summary>
-<p class="note" style="margin:8px 0 0">Compteurs principaux (gaz et électricité) et compteurs secondaires, saisis à la main.</p>
-<div id="gridsSec" style="margin-top:12px">
-  <details class="djs">
-  <summary><h3 style="display:inline;margin:0;font-size:1.05rem">Compteurs principaux : gaz et électricité</h3></summary>
-  <p class="note" style="margin:8px 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
-  <div id="grids"></div>
-  </details>
-</div>
-<div id="vCpt" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
-<section style="border:0;box-shadow:none;background:none;padding:0;margin:0">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0;font-size:1.05rem">Compteurs secondaires <span id="nC" class="badge"></span></h3><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div>
-  <div id="cForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
+<section id="cptSec">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div></div>
+  <p class="note" style="margin:8px 0 10px">Tous les compteurs. Le badge indique comment le relevé est fait : <span class="mode man">Manuel</span> (saisi à la main) ou <span class="mode aut">Automatique</span> (reçu par le fichier CSV). Cliquez sur un compteur pour voir ou saisir ses valeurs.</p>
+  <div id="cForm" hidden style="margin:0 0 12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <form id="cfForm">
       <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
       <label>Unité <input id="cfu" maxlength="20" placeholder="kWh ou MWh (pour calculer les gains)"></label>
@@ -246,11 +222,21 @@ body.out .edit-only{display:none!important}
       <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
     </form>
   </div>
-  <p class="note">Saisissez la consommation de chaque mois. Dans un projet terminé, choisissez ensuite le compteur à suivre : plusieurs projets peuvent utiliser le même compteur.</p>
-  <div id="cList" style="margin-top:10px"></div>
-</section>
-</div>
-</details>
+  <div id="cptRows">
+    <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><div id="autoE"></div><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div id="gridsE"></div></div></details>
+    <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span> <span class="mode" id="modeG"></span> <span class="note" id="infoG"></span></summary><div class="cpb"><div id="autoG"></div><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div id="gridsG"></div></div></details>
+    <div id="vCpt"><div id="cList"></div></div>
+    <div id="autoMeters"></div>
+  </div>
+  <details class="djs" id="autoDet" style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
+  <summary><h3 style="display:inline;margin:0;font-size:1.05rem">Import automatique (fichier CSV)</h3> <span id="autoBdg" class="note" style="font-weight:400"></span></summary>
+  <p class="note" style="margin:8px 0 6px">Import quotidien du fichier CSV reçu par mail (script Google). Une ligne par compteur : <code>nom du compteur,index</code>, par exemple <code>Chaufferie,1520</code> ; la date est celle du mail (ou <code>Chaufferie,1520,2026-10-31</code> pour un index passé). Pour le gaz et l’électricité principaux, utilisez <code>g,…</code> et <code>e,…</code> : l’index (kWh) alimente aussi la consommation mensuelle (dernier index du mois − dernier index du mois précédent). Le format <code>2026-11;g;1234,5</code> (consommation du mois en MWh) reste accepté.</p>
+  <div id="autoLast" style="margin:0 0 12px"></div>
+  <h3 style="margin:0 0 6px;font-size:1rem">Tester un fichier</h3>
+  <textarea id="autoTxt" rows="5" style="width:100%;font-family:monospace" placeholder="Collez ici le contenu du CSV"></textarea>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><input type="file" id="autoFile" accept=".csv,text/csv,text/plain"><button type="button" id="autoEx">Insérer un exemple</button><button type="button" id="autoChk">Analyser</button><button type="button" class="main" id="autoApply" disabled>Enregistrer les lignes valides</button></div>
+  <div id="autoRes"></div>
+  </details>
 </section>
 <section>
   <h2>Données</h2>
@@ -1089,25 +1075,26 @@ const MOISL=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août',
 let gridKey='';
 function buildGrids(){
   const ys=[...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number)],cur=new Date().getFullYear(),top=Math.max(cur,...ys),bot=Math.min(2018,...ys),key=top+'-'+bot;
-  if(key===gridKey)return;gridKey=key;let h='';
-  for(let y=top;y>=bot;y--){
-    h+=`<details class="yr"><summary><b>${y}</b> <span class="badge" data-n="${y}"></span></summary>
-    <div class="prixy"><label>Prix électricité (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|e"></label><label>Prix gaz (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|g"></label></div>
-    <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Électricité (kWh)</th><th>Gaz (kWh)</th><th>Coût élec. (€)</th><th>Coût gaz (€)</th></tr></thead><tbody>
-    ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell ce" placeholder="–" data-c="${m}|e"></td><td><input type="number" min="0" step="any" class="cell cg" placeholder="–" data-c="${m}|g"></td><td data-cost="${m}|e"></td><td data-cost="${m}|g"></td></tr>`}).join('')}
-    </tbody><tfoot><tr><td>Total</td><td><span data-tot="${y}|e"></span><input type="number" min="0" step="any" class="cell ce" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|e"></td><td><span data-tot="${y}|g"></span><input type="number" min="0" step="any" class="cell cg" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|g"></td><td data-totc="${y}|e"></td><td data-totc="${y}|g"></td></tr></tfoot></table></div></details>`;
-  }
-  $('grids').innerHTML=h;
+  if(key===gridKey)return;gridKey=key;
+  const one=k=>{let h='';const nm=k==='e'?'Électricité':'Gaz',cl=k==='e'?'ce':'cg';
+    for(let y=top;y>=bot;y--){
+      h+=`<details class="yr"><summary><b>${y}</b> <span class="badge" data-n="${y}|${k}"></span></summary>
+      <div class="prixy"><label>Prix ${k==='e'?'électricité':'gaz'} (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|${k}"></label></div>
+      <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>${nm} (kWh)</th><th>Coût (€)</th></tr></thead><tbody>
+      ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell ${cl}" placeholder="–" data-c="${m}|${k}"></td><td data-cost="${m}|${k}"></td></tr>`}).join('')}
+      </tbody><tfoot><tr><td>Total</td><td><span data-tot="${y}|${k}"></span><input type="number" min="0" step="any" class="cell ${cl}" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|${k}"></td><td data-totc="${y}|${k}"></td></tr></tfoot></table></div></details>`}
+    return h};
+  $('gridsE').innerHTML=one('e');$('gridsG').innerHTML=one('g');
 }
 function grids(){
-  buildGrids();const act=document.activeElement,q=(a)=>document.querySelectorAll('#grids ['+a+']');
+  buildGrids();const act=document.activeElement,q=(a)=>document.querySelectorAll('#gridsE ['+a+'],#gridsG ['+a+']');
   q('data-c').forEach(el=>{if(el===act)return;const[m,k]=el.dataset.c.split('|'),d=data.find(x=>x.m===m);el.value=d&&d[k]!=null?d[k]:''});
   q('data-px').forEach(el=>{if(el===act)return;const[y,k]=el.dataset.px.split('|'),v=prices.a&&prices.a[y]&&prices.a[y][k];el.value=v!=null?v:''});
   q('data-cost').forEach(el=>{const[m,k]=el.dataset.cost.split('|'),d=data.find(x=>x.m===m),r=d&&costOf(d,k);el.textContent=r?fmt(r.v,0):'–'});
   q('data-tot').forEach(el=>{const[y,k]=el.dataset.tot.split('|'),n=count(val(+y,k));el.textContent=fmt(sum(val(+y,k)));el.hidden=n===0});
   q('data-t').forEach(el=>{const[y,k]=el.dataset.t.split('|');el.hidden=count(val(+y,k))>0;if(el===act)return;const v=totaux[y]&&totaux[y][k];el.value=v!=null?v:''});
   q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);let t='–';if(count(a))t=fmt(sum(a));else if(annualOnly(+y,k)){const pr=priceOf(+y,k,null);if(pr!=null)t=fmt(totaux[y][k]/1000*pr)}el.textContent=t});
-  q('data-n').forEach(el=>{const y=+el.dataset.n,n=count(val(y,'e'))+count(val(y,'g'));el.textContent=n+'/24 relevés'+(annualOnly(y,'e')||annualOnly(y,'g')?' · total annuel':'')});
+  q('data-n').forEach(el=>{const[y,k]=el.dataset.n.split('|'),n=count(val(+y,k));el.textContent=n+'/12 relevés'+(annualOnly(+y,k)?' · total annuel':'')});
 }
 const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)window.__showErr(l+' : '+(e&&e.message||e))}};
 function render(){
@@ -1498,14 +1485,16 @@ $('vProj').ondrop=ev=>{const r=ev.target.closest&&ev.target.closest('.task[data-
   upd(pid,t=>{const c=t.slice(),f=c.findIndex(x=>x.id===tid);if(f<0)return t;const[it]=c.splice(f,1);let to=c.findIndex(x=>x.id===tid2);if(to<0)return t;if(after)to++;c.splice(to,0,it);return c})};
 $('vProj').ondragend=()=>{drag=null;clr()};
 $('vProj').onkeydown=ev=>{if(ev.key==='Enter'&&ev.target.dataset.nt)document.querySelector(`[data-addt="${ev.target.dataset.nt}"]`).click()};
-$('grids').onchange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
+const gridsChange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
   if(t.dataset.t){const[y,k]=t.dataset.t.split('|');if(v!=null)addActu('t_'+y+'_'+k,'Total '+(k==='g'?'gaz':'électricité')+' '+y+' : '+nMWh(v));setDoc(doc(db,'releves','_totaux'),{[y]:{[k]:v}},{merge:true}).catch(()=>{refus();grids()})}
   if(t.dataset.c){const[m,k]=t.dataset.c.split('|'),ex=data.find(x=>x.m===m);if(v==null&&!(ex&&ex[k]!=null))return;
     if(v!=null)addActu(k+'_'+m,(k==='g'?'Relevé gaz ':'Relevé électricité ')+ymL(m)+' : '+nMWh(v));
     setDoc(doc(db,'releves',m),{[k]:v},{merge:true}).catch(()=>{refus();grids()})}
   if(t.dataset.px){const[y,k]=t.dataset.px.split('|');if(v!=null)addActu('px_'+y+'_'+k,'Prix '+(k==='g'?'gaz':'électricité')+' '+y+' : '+fmt(v,2)+' €/MWh');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
-$('grids').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
+$('gridsE').onchange=$('gridsG').onchange=gridsChange;
+const gridsKey=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
   const k=ev.target.dataset.c.split('|')[1],tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
+$('gridsE').onkeydown=$('gridsG').onkeydown=gridsKey;
 let compteurs=[],unsubC=null,cptCharts={},cptKey='';
 const openC=new Set(),initY=new Set();
 const ymKey=(y,m)=>y+'-'+String(m).padStart(2,'0');
@@ -1521,11 +1510,11 @@ function buildCpt(){
   $('cList').innerHTML=compteurs.length?compteurs.map(c=>{
     let yh='';for(let y=top;y>=bot;y--){const k=c.id+'|'+y;if(y===cur&&!initY.has(k)){initY.add(k);openC.add(k)}
       yh+=`<details class="yr" data-oc="${k}" ${openC.has(k)?'open':''}><summary><b>${y}</b> <span class="badge" data-cy="${k}"></span></summary><div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Consommation</th></tr></thead><tbody>${MOISL.map((mn,i)=>`<tr><td>${mn}</td><td><input type="number" step="any" class="cell cv" placeholder="–" data-cv="${c.id}|${ymKey(y,i+1)}"></td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td data-ct="${k}"></td></tr></tfoot></table></div></details>`}
-    return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span> <span class="badge" data-cn="${c.id}"></span></summary><div class="cpb">
+    return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span> <span class="mode" data-cmode="${c.id}"></span> <span class="badge" data-cn="${c.id}"></span></summary><div class="cpb">
       <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><label>Énergie <select data-cene="${c.id}"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
       <p class="note" data-cproj="${c.id}"></p>
       <div class="box" style="height:240px"><canvas id="cc-${c.id}"></canvas></div>
-      <h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3>${yh}</div></details>`}).join(''):'<p class="empty">Aucun compteur. Cliquez sur « Ajouter un compteur » pour en créer un.</p>';
+      <h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3>${yh}</div></details>`}).join(''):'';
 }
 const cptMark={id:'cptmark',afterDatasetsDraw(ch){
   const ms=((ch.options.plugins||{}).cptmark||{}).marks||[];if(!ms.length)return;
@@ -1561,7 +1550,7 @@ function fillCpt(){
       el.textContent=k?fmt(t,1):'–';const bd=document.querySelector('#cList [data-cy="'+el.dataset.ct+'"]');if(bd)bd.textContent=k+'/12'});
     drawCptChart(c,lp);
   });
-  $('nC').textContent=compteurs.length;
+  renderAutoMeters();
 }
 function renderCpt(){buildCpt();fillCpt()}
 $('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
@@ -1772,16 +1761,33 @@ function idxConso(map,id,mois){
   if(!cur)return null;if(!prev)return{err:'pas d’index du mois précédent'};
   const v=(m[cur]-m[prev])/AUTO_DIV;return v<0?{err:'index en baisse'}:{v:Math.round(v*1000)/1000}}
 const fIdx=v=>fmt(v,v%1?2:0);
+const autoOpen=new Set();
+function autoDates(id){return Object.keys(autoMap[id]||{}).sort()}
+function autoAge(d){return Math.round((new Date(today())-new Date(d))/864e5)}
+function autoHist(id){
+  const m=autoMap[id]||{},ds=Object.keys(m).sort();if(!ds.length)return '';
+  return '<div style="overflow-x:auto"><table class="gt"><thead><tr><th>Date</th><th>Index</th><th>Écart</th></tr></thead><tbody>'+ds.slice(-14).reverse().map(d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd]):'—'}</td></tr>`}).join('')+'</tbody></table></div>'}
+function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
+  return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
+function setMode(el,auto){if(!el)return;el.textContent=auto?'Automatique':'Manuel';el.className='mode '+(auto?'aut':'man')}
+function lastManual(k){const m=data.filter(d=>d[k]!=null).map(d=>d.m).sort().pop();return m?'dernière valeur : '+MOISL[+m.slice(5)-1].toLowerCase()+' '+m.slice(0,4):'aucune valeur'}
+function cptModes(){
+  const ids=new Set(Object.keys(autoMap));
+  ['e','g'].forEach(k=>{const au=ids.has(k);setMode($('mode'+k.toUpperCase()),au);$('info'+k.toUpperCase()).innerHTML=au?autoStat(k):esc(lastManual(k));$('auto'+k.toUpperCase()).innerHTML=au?'<p class="note" style="margin:0 0 6px"><b>Relevés automatiques</b> (index reçus par CSV)</p>'+autoHist(k):''});
+  const sec=new Set(['e','g']);
+  compteurs.forEach(c=>{const id=slug(c.nom||'');sec.add(id);setMode(document.querySelector('[data-cmode="'+c.id+'"]'),ids.has(id))});
+  $('nC').textContent=2+compteurs.length+[...ids].filter(id=>!sec.has(id)).length;
+  cptFilter()}
+function cptFilter(){const q=slug($('autoQ').value||'');document.querySelectorAll('#cptRows details.cp').forEach(d=>{d.hidden=!!q&&!slug(d.querySelector('summary').textContent).includes(q)})}
 function renderAutoMeters(){
-  const el=$('autoMeters');if(!el)return;const q=slug($('autoQ').value||''),T=today();
-  const all=Object.keys(autoMap),late=all.filter(id=>{const ds=Object.keys(autoMap[id]).sort();return (new Date(T)-new Date(ds[ds.length-1]))/864e5>1}).length;
-  $('autoCnt').textContent=all.length?all.length+' compteur'+(all.length>1?'s':'')+' · '+(all.length-late)+' à jour'+(late?' · '+late+' en retard':''):'';
-  const ids=all.filter(id=>!q||id.includes(q)||slug(autoNames[id]||'').includes(q)).sort((a,b)=>(autoNames[a]||a).localeCompare(autoNames[b]||b,'fr'));
-  if(!ids.length){el.innerHTML='<p class="note" style="margin:0">'+(all.length?'Aucun compteur ne correspond.':'Aucun compteur reçu pour le moment.')+'</p>';return}
-  el.innerHTML='<div style="overflow-x:auto"><table><thead><tr><th>Compteur</th><th>Dernier relevé</th><th>Index</th><th>Relevé précédent</th><th>Écart</th><th>Statut</th></tr></thead><tbody>'+ids.map(id=>{
-    const m=autoMap[id],ds=Object.keys(m).sort(),d=ds[ds.length-1],pd=ds[ds.length-2],age=Math.round((new Date(T)-new Date(d))/864e5);
-    const hist=ds.slice(-14).reverse().map(x=>`<div class="note" style="margin:0">${esc(dfr(x))} : ${fIdx(m[x])}</div>`).join('');
-    return `<tr><td><details><summary><b>${esc(autoNames[id]||id)}</b></summary>${hist}</details></td><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?esc(dfr(pd))+' : '+fIdx(m[pd]):'—'}</td><td>${pd?'<b>'+(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd])+'</b>':'—'}</td><td style="color:${age<=1?'#15803d':'#b45309'}">${age<=1?'● à jour':'● '+age+' j de retard'}</td></tr>`}).join('')+'</tbody></table></div>'}
+  const el=$('autoMeters');if(!el)return;
+  const sec=new Set(['e','g']);compteurs.forEach(c=>sec.add(slug(c.nom||'')));
+  const all=Object.keys(autoMap),late=all.filter(id=>autoAge(autoDates(id).pop())>1).length;
+  $('autoCnt').textContent=late?'· '+late+' relevé'+(late>1?'s':'')+' automatique'+(late>1?'s':'')+' en retard':'';
+  const ids=all.filter(id=>!sec.has(id)).sort((a,b)=>(autoNames[a]||a).localeCompare(autoNames[b]||b,'fr'));
+  el.innerHTML=ids.map(id=>`<details class="cp cprow" data-ao="${esc(id)}" ${autoOpen.has(id)?'open':''}><summary><b>${esc(autoNames[id]||id)}</b> <span class="mode aut">Automatique</span> <span class="note">${autoStat(id)}</span></summary><div class="cpb">${autoHist(id)}</div></details>`).join('');
+  cptModes()}
+$('autoMeters').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.ao){d.open?autoOpen.add(d.dataset.ao):autoOpen.delete(d.dataset.ao)}},true);
 function renderAuto(){
   const a=autoLast,el=$('autoLast');if(!el)return;
   el.innerHTML=a&&a.c?`<p style="margin:0"><b>Dernier import :</b> ${esc(new Date(a.c).toLocaleString('fr-FR'))} · ${esc(a.src==='test'?'test manuel':'automatique')}${a.f?' · '+esc(a.f):''}</p><p class="note" style="margin:2px 0 0">${+a.n||0} ligne${a.n>1?'s':''} enregistrée${a.n>1?'s':''}${a.nerr?' · <span style="color:var(--bad)">'+a.nerr+' erreur'+(a.nerr>1?'s':'')+'</span>':''}${a.msg?' · '+esc(a.msg):''}</p>`:'<p class="note" style="margin:0">Aucun import reçu pour le moment.</p>';
@@ -1792,7 +1798,7 @@ function autoCheck(){
   const lastM={};ok.filter(r=>r.t==='i'&&(r.id==='e'||r.id==='g')).forEach(r=>{if(!lastM[r.id]||r.m>lastM[r.id])lastM[r.id]=r.m});Object.entries(lastM).forEach(([id,m])=>{const c=idxConso(sim,id,m);autoDer.push({id,m,...c})});
   $('autoApply').disabled=!ok.length;
   $('autoRes').innerHTML=autoRows.length?`<table><thead><tr><th>Ligne</th><th>Type</th><th>Compteur</th><th>Mois / date</th><th>Valeur</th><th>Résultat</th></tr></thead><tbody>${autoRows.map(r=>`<tr><td>${r.n}</td><td>${r.t==='i'?'Index compteur':r.t==='m'?'Consommation du mois':'?'}</td><td>${esc(r.nom||'?')}</td><td>${esc(r.t==='i'?r.d:r.m)}</td><td>${isNaN(r.v)?'':r.t==='i'?fIdx(r.v):fmt(r.v,r.v%1?1:0)+' MWh'}</td><td style="color:${r.err?'#b91c1c':'#15803d'}">${r.err?esc(r.err):'OK'}</td></tr>`).join('')}</tbody></table>${autoDer.length?'<p style="margin:8px 0 2px"><b>Consommation du mois calculée à partir des index :</b></p>'+autoDer.map(d=>`<p class="note" style="margin:0">${d.id==='g'?'Gaz':'Électricité'} ${esc(d.m)} : ${d.err?'<span style="color:#b91c1c">'+esc(d.err)+(d.err.includes('précédent')?' — ajoutez une ligne avec l’index de fin de mois précédent, ex. '+d.id+',60000000,AAAA-MM-JJ':'')+'</span>':'<b>'+fmt(d.v,d.v%1?1:0)+' MWh</b> (index en kWh ÷ '+AUTO_DIV+')'}</p>`).join(''):''}<p class="note">${ok.length} ligne${ok.length>1?'s':''} valide${ok.length>1?'s':''}, ${autoRows.length-ok.length} erreur${autoRows.length-ok.length>1?'s':''}.</p>`:'<p class="note">Aucune ligne reconnue.</p>'}
-$('autoChk').onclick=autoCheck;$('autoQ').oninput=renderAutoMeters;
+$('autoChk').onclick=autoCheck;$('autoQ').oninput=cptFilter;
 $('autoEx').onclick=()=>{const d=new Date();d.setDate(0);const f=d.toISOString().slice(0,10);$('autoTxt').value='e,60500000,'+f+'\ne,60798388\nChaufferie,1520\nAtelier,880,5\nBâtiment B,4210'.replace(',5\n',',\n');autoCheck()};
 $('autoFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('autoTxt').value=await f.text();autoCheck();ev.target.dataset.n=f.name};
 $('autoApply').onclick=async()=>{const ok=autoRows.filter(r=>!r.err);if(!ok.length)return;
@@ -1821,7 +1827,7 @@ $('tstList').onchange=ev=>{const d=ev.target.dataset.td;if(!d)return;const v=ev.
   setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:v},{merge:true}).catch(()=>{refus();renderTst()})};
 $('tstList').onclick=ev=>{const b=ev.target.closest('button[data-tx]');if(!b)return;const d=b.dataset.tx;if(!confirm('Supprimer le relevé du '+dfr(d)+' ?'))return;
   setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:deleteField()},{merge:true}).catch(refus)};
-function route(){const h=location.hash;if(h==='#compteurs'&&$('manDet'))$('manDet').open=true;const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives',te=h==='#test';$('vDash').hidden=r||pj||dj||ch||ar||dv||te;$('vTst').hidden=!te;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+function route(){const h=location.hash;const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives',te=h==='#test';$('vDash').hidden=r||pj||dj||ch||ar||dv||te;$('vTst').hidden=!te;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
