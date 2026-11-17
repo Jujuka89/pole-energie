@@ -1705,7 +1705,7 @@ $('actuList').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
     wb.set(doc(db,'releves','_archives'),{l:{[bid]:{d:today(),c:Date.now(),items:[...ex,{t:o.t,d:o.d||''}]}}},{merge:true});
     wb.set(doc(db,'releves','_actu'),{l:{[b.dataset.av]:deleteField()}},{merge:true});wb.commit().catch(refus)}
   if(b.dataset.ad&&confirm('Supprimer cette actualité ?'))setDoc(doc(db,'releves','_actu'),{l:{[b.dataset.ad]:deleteField()}},{merge:true}).catch(refus)};
-const BATS=['PME','Bâtiment administratif','Atelier','Entrepôt','Bâtiment technique','Restaurant','Logements','Parking'];
+const BATS=['PME','Bâtiment administratif','Blanchisserie','Entrepôt','EHPAD','Bâtiment principal','Logements','Urgences/Réa'];
 const BICO='<svg viewBox="0 0 54 40"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 36H48M10 36V14H44V36M10 14L27 5L44 14"/><path d="M22 36V26H32V36"/></g></svg>';
 const BPOS=[[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,2],[3,3]];
 (function(){const m=$('derMap');BATS.forEach((n,i)=>{const d=document.createElement('div');d.className='dc';d.style.gridRow=BPOS[i][0];d.style.gridColumn=BPOS[i][1]===2?2:BPOS[i][1];d.dataset.b=n;d.innerHTML=BICO+'<b>'+esc(n)+'</b><small>—</small>';m.appendChild(d)})})();
