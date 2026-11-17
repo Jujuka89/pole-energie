@@ -129,7 +129,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .dgrip{cursor:grab;touch-action:none;color:var(--mute);font-size:1.1rem;line-height:1;padding:2px 4px;user-select:none}
 .dbody{display:none;padding:4px 14px 14px;border-top:1px solid var(--line)}.dc.open .dbody{display:block}
 .dep{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}.dep .dn{flex:1}.dep small{color:var(--mute)}
-.dadd{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.dadd input{flex:1;min-width:160px}
+.dadd{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.dadd select{flex:1;min-width:180px}
 .dc.dragging{position:relative;z-index:5;opacity:.85;box-shadow:0 8px 24px rgba(0,0,0,.2)}.dc.dover{outline:2px dashed var(--elec);outline-offset:2px}
 @media (max-width:760px){.dmap{grid-template-columns:1fr}.dsrcs{grid-column:1;flex-direction:row;margin-bottom:14px}.dsrcs .dsrc{flex:1}.dlist{grid-column:1}.dmap svg.dl{display:none}}
 .mode{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--line);vertical-align:middle}.mode.man{background:#eef2f7;color:#334155}.mode.aut{background:#dcfce7;color:#166534;border-color:#86efac}
@@ -1546,7 +1546,7 @@ function fillCpt(){
       el.textContent=k?fmt(t,1):'–';const bd=document.querySelector('#cList [data-cy="'+el.dataset.ct+'"]');if(bd)bd.textContent=k+'/12'});
     drawCptChart(c,lp);
   });
-  renderAutoMeters();
+  renderAutoMeters();safe(renderDer,'dérives');
 }
 function renderCpt(){buildCpt();fillCpt()}
 $('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
@@ -1727,12 +1727,24 @@ const BATS=['PME','Bâtiment administratif','Blanchisserie','Entrepôt','EHPAD',
 const BICO='<svg viewBox="0 0 54 40"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 36H48M10 36V14H44V36M10 14L27 5L44 14"/><path d="M22 36V26H32V36"/></g></svg>';
 let derOrder=[...BATS],derDeps={},derDrag=null,derKey='';const derOpen=new Set();
 const derNorm=(o,d)=>JSON.stringify([o,Object.keys(d).sort().map(k=>[k,d[k]])]);
+function derCounters(){
+  const L=[{key:'e',nom:'Électricité (compteur principal)',g:'Compteurs principaux',aid:'e',unit:'kWh',ic:'⚡'},{key:'g',nom:'Gaz (compteur principal)',g:'Compteurs principaux',aid:'g',unit:'kWh',ic:'🔥'}];
+  compteurs.forEach(c=>{const a=slug(c.nom||'');L.push({key:'s:'+c.id,nom:c.nom||'Compteur',g:'Compteurs secondaires',aid:autoMap[a]?a:null,unit:c.unite||'',ic:c.energie==='e'?'⚡':c.energie==='g'?'🔥':'📟'})});
+  const sec=new Set(['e','g',...compteurs.map(c=>slug(c.nom||''))]);
+  Object.keys(autoMap).filter(id=>!sec.has(id)).forEach(id=>L.push({key:'a:'+id,nom:autoNames[id]||id,g:'Compteurs automatiques',aid:id,unit:'',ic:'📟'}));
+  return L}
 function derBuild(){
   derKey=derNorm(derOrder,derDeps);
+  const cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c])),used=new Set(Object.values(derDeps).flat().map(d=>d&&d.c).filter(Boolean));
+  const free=cs.filter(c=>!used.has(c.key)),groups=[...new Set(free.map(c=>c.g))];
+  const opts=free.length?'<option value="">Choisir un compteur…</option>'+groups.map(g=>`<optgroup label="${esc(g)}">${free.filter(c=>c.g===g).map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''):'';
   $('derList').innerHTML=derOrder.map((n,i)=>{const dp=derDeps[slug(n)]||[];
+    const rows=dp.map(d=>{const c=d.c?by[d.c]:null,r=c&&c.aid?derCalc(c.aid,derP):null,ic=c?c.ic:d.k==='g'?'🔥':'⚡',nm=c?c.nom:d.nom;
+      const val=r?`<b${r.kwh<0?' style="color:#b91c1c"':''}>${fIdx(r.kwh)}${c.unit?' '+esc(c.unit):''}</b>`:'<small title="Pas de relevé automatique pour cette période">—</small>';
+      return `<div class="dep"><span>${ic}</span><span class="dn">${esc(nm)}${d.c&&!c?' <small>(compteur supprimé)</small>':''}</span>${val}<button type="button" class="link edit-only" data-dd="${esc(n)}|${esc(d.id)}" title="Retirer ce départ">✕</button></div>`}).join('');
     return `<div class="dc${derOpen.has(n)?' open':''}" data-b="${esc(n)}" data-i="${i}"><div class="dhead"><span class="dgrip" title="Glisser pour déplacer" aria-label="Déplacer">⠿</span>${BICO}<b>${esc(n)}</b><span class="dcnt">${dp.length?dp.length+' départ'+(dp.length>1?'s':''):'aucun départ'}</span><span class="dchev">▸</span></div>
-    <div class="dbody">${dp.length?dp.map(d=>`<div class="dep"><span>${d.k==='g'?'🔥':'⚡'}</span><span class="dn">${esc(d.nom)}</span><small>—</small><button type="button" class="link edit-only" data-dd="${esc(n)}|${esc(d.id)}" title="Supprimer ce départ">✕</button></div>`).join(''):'<p class="note" style="margin:8px 0 0">Aucun départ pour ce bâtiment.</p>'}
-    <form class="dadd edit-only" data-b="${esc(n)}"><input required maxlength="60" placeholder="Nom du départ (ex. Chauffage, Éclairage…)"><select><option value="e">Électricité</option><option value="g">Gaz</option></select><button class="main" type="submit">Ajouter un départ</button></form></div></div>`}).join('');
+    <div class="dbody">${rows||'<p class="note" style="margin:8px 0 0">Aucun départ pour ce bâtiment.</p>'}
+    ${opts?`<form class="dadd edit-only" data-b="${esc(n)}"><select required>${opts}</select><button class="main" type="submit">Ajouter le départ</button></form>`:'<p class="note edit-only" style="margin:10px 0 0">Aucun compteur disponible : ajoutez-en dans la page Relevés.</p>'}</div></div>`}).join('');
   derDraw()}
 function derSync(ordre,deps){
   const ok=Array.isArray(ordre)&&ordre.length&&ordre.every(x=>BATS.includes(x)),o=ok?[...new Set([...ordre,...BATS])].slice(0,BATS.length):[...BATS],d=deps&&typeof deps==='object'?deps:{};
@@ -1745,7 +1757,7 @@ function derSave(o){setDoc(doc(db,'releves','_derives'),o,{merge:true}).catch(re
     if(ev.target.closest('.dgrip'))return;
     const h=ev.target.closest('.dhead');if(h){const c=h.parentElement,n=c.dataset.b;c.classList.toggle('open');c.classList.contains('open')?derOpen.add(n):derOpen.delete(n);derDraw()}});
   l.addEventListener('submit',ev=>{const f=ev.target.closest('.dadd');if(!f)return;ev.preventDefault();
-    const n=f.dataset.b,k=slug(n),arr=[...(derDeps[k]||[]),{id:uid(),nom:f.querySelector('input').value.trim(),k:f.querySelector('select').value}];
+    const n=f.dataset.b,k=slug(n),key=f.querySelector('select').value,c=derCounters().find(x=>x.key===key);if(!c)return;const arr=[...(derDeps[k]||[]),{id:uid(),c:key,nom:c.nom}];
     derDeps={...derDeps,[k]:arr};derOpen.add(n);derBuild();derSave({deps:{[k]:arr}})});
   l.addEventListener('pointerdown',ev=>{const g=ev.target.closest('.dgrip');if(!g)return;const c=g.closest('.dc');ev.preventDefault();
     derDrag={c,x:ev.clientX,y:ev.clientY,t:null};c.classList.add('dragging');g.setPointerCapture(ev.pointerId)});
@@ -1755,7 +1767,7 @@ function derSave(o){setDoc(doc(db,'releves','_derives'),o,{merge:true}).catch(re
   const end=ev=>{if(!derDrag)return;const d=derDrag;derDrag=null;d.c.classList.remove('dragging');d.c.style.transform='';if(d.t)d.t.classList.remove('dover');
     if(ev.type==='pointerup'&&d.t){const i=+d.c.dataset.i,j=+d.t.dataset.i,o=[...derOrder],[it]=o.splice(i,1);o.splice(j,0,it);derOrder=o;derBuild();derSave({ordre:o})}else derDraw()};
   l.addEventListener('pointerup',end);l.addEventListener('pointercancel',end);
-  derBuild();
+  try{derBuild()}catch(e){derKey=''}
   if(window.ResizeObserver)new ResizeObserver(()=>derDraw()).observe($('derMap'))})();
 function derDraw(){const m=$('derMap'),L=$('derLines');if(!m||!L)return;
   if(m.offsetWidth<10||window.matchMedia('(max-width:760px)').matches){L.innerHTML='';return}
@@ -1851,7 +1863,7 @@ function derCalc(id,per){
   const days=Math.round((new Date(L)-new Date(ref))/864e5);if(days<1)return null;
   return{L,ref,days,kwh:m[L]-m[ref],partial,age:autoAge(L)}}
 function renderDer(){
-  const sel=$('derP');if(!sel)return;sel.value=derP;
+  const sel=$('derP');if(!sel)return;sel.value=derP;if(!derDrag&&!$('derList').contains(document.activeElement))derBuild();
   [['e','derEdfV'],['g','derGazV']].forEach(([id,el])=>{const o=$(el),has=Object.keys(autoMap[id]||{}).length>0,r=has?derCalc(id,derP):null;
     if(!has){o.innerHTML='<span class="det">Pas de compteur relevé</span>';return}
     if(!r){o.innerHTML='<span class="big">—</span><span class="det">Pas assez de relevés pour cette période</span>';return}
