@@ -209,6 +209,18 @@ body.out .edit-only{display:none!important}
 
 <section id="relTodo" hidden></section>
 
+<section id="autoSec">
+  <details class="djs" id="autoDet">
+  <summary><h2>Relevés automatiques <span id="autoBdg" class="note" style="font-weight:400"></span></h2></summary>
+  <p class="note" style="margin:8px 0 6px">Import quotidien du fichier CSV reçu par mail (script Google). Format : <code>mois;energie;valeur</code>, par exemple <code>2026-11;g;1234,5</code> (g = gaz, e = électricité, en MWh).</p>
+  <div id="autoLast" style="margin:0 0 12px"></div>
+  <h3 style="margin:0 0 6px;font-size:1rem">Tester un fichier</h3>
+  <textarea id="autoTxt" rows="5" style="width:100%;font-family:monospace" placeholder="Collez ici le contenu du CSV"></textarea>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><input type="file" id="autoFile" accept=".csv,text/csv,text/plain"><button type="button" id="autoEx">Insérer un exemple</button><button type="button" id="autoChk">Analyser</button><button type="button" class="main" id="autoApply" disabled>Enregistrer les lignes valides</button></div>
+  <div id="autoRes"></div>
+  </details>
+</section>
+
 <section id="gridsSec">
   <details class="djs">
   <summary><h2>Compteurs principaux : gaz et électricité</h2></summary>
@@ -450,7 +462,7 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(renderAuto,'relevés automatiques');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
@@ -1693,6 +1705,32 @@ const BPOS=[[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,2],[3,3]];
 function derDraw(){const m=$('derMap'),c=$('derMain'),L=$('derLines');if(!m||m.offsetWidth<10)return;const mr=m.getBoundingClientRect(),cr=c.getBoundingClientRect(),cx=cr.left+cr.width/2-mr.left,cy=cr.top+cr.height/2-mr.top;
   L.setAttribute('viewBox','0 0 '+mr.width+' '+mr.height);L.innerHTML=[...m.querySelectorAll('.dc')].map(e=>{const r=e.getBoundingClientRect();return `<line x1="${cx}" y1="${cy}" x2="${r.left+r.width/2-mr.left}" y2="${r.top+r.height/2-mr.top}" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5" stroke-dasharray="5 5"/>`}).join('')}
 window.addEventListener('resize',derDraw);
+
+let autoLast=null,autoRows=[];
+function parseAutoCsv(t){
+  const L=t.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim()),sep=(L[0]||'').includes(';')?';':',';
+  return L.map((ln,i)=>{const c=ln.split(sep).map(x=>x.trim().replace(/^"|"$/g,'')),m=c[0]||'';
+    if(i===0&&!/^\d{4}-\d{2}$/.test(m))return null;
+    const e=(c[1]||'').toLowerCase(),k=/^(g|gaz)$/.test(e)?'g':/^(e|elec|élec|electricite|électricité)$/.test(e)?'e':null,
+      raw=(c[2]||'').replace(/\s/g,'').replace(',','.'),v=raw===''?NaN:+raw;let err='';
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(m))err='mois invalide (AAAA-MM)';else if(!k)err='énergie inconnue (g ou e)';else if(isNaN(v)||v<0)err='valeur invalide';
+    return{n:i+1,m,k,v,err}}).filter(Boolean)}
+function renderAuto(){
+  const a=autoLast,el=$('autoLast');if(!el)return;
+  el.innerHTML=a&&a.c?`<p style="margin:0"><b>Dernier import :</b> ${esc(new Date(a.c).toLocaleString('fr-FR'))} · ${esc(a.src==='test'?'test manuel':'automatique')}${a.f?' · '+esc(a.f):''}</p><p class="note" style="margin:2px 0 0">${+a.n||0} ligne${a.n>1?'s':''} enregistrée${a.n>1?'s':''}${a.nerr?' · <span style="color:var(--bad)">'+a.nerr+' erreur'+(a.nerr>1?'s':'')+'</span>':''}${a.msg?' · '+esc(a.msg):''}</p>`:'<p class="note" style="margin:0">Aucun import reçu pour le moment.</p>';
+  $('autoBdg').textContent=a&&a.c?'· dernier : '+dfr(new Date(a.c).toISOString().slice(0,10)):''}
+function autoCheck(){
+  autoRows=parseAutoCsv($('autoTxt').value);const ok=autoRows.filter(r=>!r.err);
+  $('autoApply').disabled=!ok.length;
+  $('autoRes').innerHTML=autoRows.length?`<table><thead><tr><th>Ligne</th><th>Mois</th><th>Énergie</th><th>Valeur (MWh)</th><th>Résultat</th></tr></thead><tbody>${autoRows.map(r=>`<tr><td>${r.n}</td><td>${esc(r.m)}</td><td>${r.k==='g'?'Gaz':r.k==='e'?'Électricité':'?'}</td><td>${isNaN(r.v)?'':fmt(r.v,r.v%1?1:0)}</td><td style="color:var(--${r.err?'bad':'good'},${r.err?'#b91c1c':'#15803d'})">${r.err?esc(r.err):'OK'}</td></tr>`).join('')}</tbody></table><p class="note">${ok.length} ligne${ok.length>1?'s':''} valide${ok.length>1?'s':''}, ${autoRows.length-ok.length} erreur${autoRows.length-ok.length>1?'s':''}.</p>`:'<p class="note">Aucune ligne reconnue.</p>'}
+$('autoChk').onclick=autoCheck;
+$('autoEx').onclick=()=>{const d=new Date(),m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');$('autoTxt').value='mois;energie;valeur\n'+m+';g;1234,5\n'+m+';e;310';autoCheck()};
+$('autoFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('autoTxt').value=await f.text();autoCheck();ev.target.dataset.n=f.name};
+$('autoApply').onclick=async()=>{const ok=autoRows.filter(r=>!r.err);if(!ok.length)return;
+  if(!confirm('Enregistrer '+ok.length+' valeur'+(ok.length>1?'s':'')+' dans les relevés ? Les valeurs existantes des mêmes mois seront remplacées.'))return;
+  try{const wb=writeBatch(db);ok.forEach(r=>wb.set(doc(db,'releves',r.m),{[r.k]:r.v},{merge:true}));
+    wb.set(doc(db,'releves','_auto'),{last:{c:Date.now(),src:'test',f:$('autoFile').dataset.n||'',n:ok.length,nerr:autoRows.length-ok.length}},{merge:true});
+    await wb.commit();$('autoApply').disabled=true;$('autoRes').insertAdjacentHTML('afterbegin','<p style="color:#15803d;margin:0 0 6px"><b>Enregistré.</b></p>')}catch(e){refus()}};
 function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives';$('vDash').hidden=r||pj||dj||ch||ar||dv;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
