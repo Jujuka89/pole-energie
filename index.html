@@ -1739,8 +1739,8 @@ function derBuild(){
   const free=cs.filter(c=>!used.has(c.key)),groups=[...new Set(free.map(c=>c.g))];
   const opts=free.length?'<option value="">Choisir un compteur…</option>'+groups.map(g=>`<optgroup label="${esc(g)}">${free.filter(c=>c.g===g).map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''):'';
   $('derList').innerHTML=derOrder.map((n,i)=>{const dp=derDeps[slug(n)]||[];
-    const rows=dp.map(d=>{const c=d.c?by[d.c]:null,r=c&&c.aid?derCalc(c.aid,derP):null,ic=c?c.ic:d.k==='g'?'🔥':'⚡',nm=c?c.nom:d.nom;
-      const val=r?`<b${r.kwh<0?' style="color:#b91c1c"':''}>${fIdx(r.kwh)}${c.unit?' '+esc(c.unit):''}</b>`:'<small title="Pas de relevé automatique pour cette période">—</small>';
+    const rows=dp.map(d=>{const c=d.c?by[d.c]:null,ic=c?c.ic:d.k==='g'?'🔥':'⚡',nm=c?c.nom:d.nom;
+      const val=c?derDisp(c.key,c.aid,c.unit,false):'<small>—</small>';
       return `<div class="dep"><span>${ic}</span><span class="dn">${esc(nm)}${d.c&&!c?' <small>(compteur supprimé)</small>':''}</span>${val}<button type="button" class="link edit-only" data-dd="${esc(n)}|${esc(d.id)}" title="Retirer ce départ">✕</button></div>`}).join('');
     return `<div class="dc${derOpen.has(n)?' open':''}" data-b="${esc(n)}" data-i="${i}"><div class="dhead"><span class="dgrip" title="Glisser pour déplacer" aria-label="Déplacer">⠿</span>${BICO}<b>${esc(n)}</b><span class="dcnt">${dp.length?dp.length+' départ'+(dp.length>1?'s':''):'aucun départ'}</span><span class="dchev">▸</span></div>
     <div class="dbody">${rows||'<p class="note" style="margin:8px 0 0">Aucun départ pour ce bâtiment.</p>'}
@@ -1862,12 +1862,46 @@ function derCalc(id,per){
     const c=ds.filter(d=>d<=t&&d<L);ref=c.length?c[c.length-1]:ds[0];partial=!c.length}
   const days=Math.round((new Date(L)-new Date(ref))/864e5);if(days<1)return null;
   return{L,ref,days,kwh:m[L]-m[ref],partial,age:autoAge(L)}}
+function derSeries(key,aid){
+  const mon={},ann={};
+  if(key==='e'||key==='g'){data.forEach(d=>{if(d[key]!=null)mon[d.m]=+d[key]});Object.keys(totaux||{}).forEach(y=>{const v=totaux[y]&&totaux[y][key];if(v!=null)ann[+y]=+v})}
+  else if(key.startsWith('s:')){const c=compteurs.find(x=>x.id===key.slice(2));Object.entries((c&&c.valeurs)||{}).forEach(([k,v])=>{if(v!=null)mon[k]=+v})}
+  if(!Object.keys(mon).length&&aid){const m=autoMap[aid]||{},ds=Object.keys(m).sort();[...new Set(ds.map(d=>d.slice(0,7)))].forEach(mo=>{const cur=ds.filter(d=>d.slice(0,7)===mo).pop(),pv=ds.filter(d=>d.slice(0,7)<mo).pop();if(pv)mon[mo]=m[cur]-m[pv]})}
+  return{mon,ann}}
+function derYears(){const ys=new Set([new Date().getFullYear()]);data.forEach(d=>ys.add(+d.m.slice(0,4)));Object.keys(totaux||{}).forEach(y=>ys.add(+y));compteurs.forEach(c=>Object.keys(c.valeurs||{}).forEach(k=>ys.add(+k.slice(0,4))));return [...ys].sort((a,b)=>b-a)}
+function derYearCmp(S,Y){
+  const sum=a=>a.reduce((t,x)=>t+x,0),A=Object.keys(S.mon).filter(x=>x.startsWith(Y+'-')).sort(),B=Object.keys(S.mon).filter(x=>x.startsWith((Y-1)+'-'));
+  let cur,n,annual=false;
+  if(A.length){cur=sum(A.map(x=>S.mon[x]));n=A.length}else if(S.ann[Y]!=null){cur=S.ann[Y];n=12;annual=true}else return null;
+  let prev=null,base=null,same=false;
+  const common=A.filter(x=>S.mon[(Y-1)+x.slice(4)]!=null);
+  if(common.length){base=sum(common.map(x=>S.mon[x]));prev=sum(common.map(x=>S.mon[(Y-1)+x.slice(4)]));same=common.length<12}
+  else if(n===12&&(B.length===12||S.ann[Y-1]!=null)){base=cur;prev=B.length===12?sum(B.map(x=>S.mon[x])):S.ann[Y-1]}
+  const diff=prev!=null?base-prev:null,pct=prev?diff/prev*100:null;
+  return{cur,n,annual,prev,base,same,diff,pct,first:A[0],last:A[A.length-1]}}
+function derDelta(r,fmtV,unit){ /* vert avec "−" = économie, rouge avec "+" = hausse */
+  if(r.prev==null)return '';if(r.pct!=null&&Math.abs(r.pct)<0.05)return '<span style="font-weight:700">0 %</span> <small>(identique)</small>';const good=r.diff<=0,col=good?'#15803d':'#b91c1c',sg=r.diff>0?'+':'−';
+  return `<span style="color:${col};font-weight:700">${r.pct==null?'':sg+fmt(Math.abs(r.pct),1)+' %'}</span> <small>(${sg}${fmtV(Math.abs(r.diff))}${unit?' '+unit:''})</small>`}
+/* affichage d'un compteur pour la période choisie : card=true pour les arrivées EDF / Gaz */
+function derDisp(key,aid,unit,card){
+  const kwhMode=key==='e'||key==='g',fv=kwhMode?(v=>fmt(v/AUTO_DIV,1)):fIdx,un=kwhMode?'MWh':unit;
+  if(derP[0]==='y'){const Y=+derP.slice(1),r=derYearCmp(derSeries(key,aid),Y);
+    if(!r)return card?`<span class="big">—</span><span class="det">Aucun relevé en ${Y}</span>`:'<small>—</small>';
+    if(!card)return `<b>${fv(r.cur)}${un?' '+esc(un):''}</b>${r.prev!=null?' '+derDelta(r,fv,un):''}`;
+    const mois=r.annual?'total annuel':r.n+' mois ('+MOIS[+r.first.slice(5)-1].toLowerCase()+(r.n>1?' → '+MOIS[+r.last.slice(5)-1].toLowerCase():'')+')';
+    return `<span class="big">${fv(r.cur)} ${un}</span><span class="det">Année ${Y} · ${mois}</span>`+(r.prev!=null?`<span class="det">${Y-1}${r.same?' sur les mêmes mois':''} : ${fv(r.prev)} ${un}</span><span class="det">${derDelta(r,fv,un)}</span>`:`<span class="det">Pas de relevé comparable en ${Y-1}</span>`)}
+  const has=Object.keys(autoMap[aid]||{}).length>0,r=has?derCalc(aid,derP):null;
+  if(!has)return card?'<span class="det">Pas de compteur relevé</span>':'<small title="Pas de relevé automatique pour cette période">—</small>';
+  if(!r)return card?'<span class="big">—</span><span class="det">Pas assez de relevés pour cette période</span>':'<small>—</small>';
+  if(!card)return `<b${r.kwh<0?' style="color:#b91c1c"':''}>${fIdx(r.kwh)}${unit?' '+esc(unit):''}</b>`;
+  return `<span class="big"${r.kwh<0?' style="color:#b91c1c"':''}>${fmt(r.kwh/AUTO_DIV,1)} MWh</span><span class="det">${esc(DERL[derP])}</span><span class="det">du ${esc(dfr(r.ref))} au ${esc(dfr(r.L))} · ${r.days} j</span><span class="det">${fIdx(r.kwh)} kWh · moy. ${fIdx(Math.round(r.kwh/r.days))} kWh/j</span>${r.partial?'<span class="det" style="color:#b45309">Données partielles : historique plus court que la période</span>':''}${r.age>1?`<span class="det" style="color:#b45309">Dernier relevé il y a ${r.age} j</span>`:''}`}
 function renderDer(){
-  const sel=$('derP');if(!sel)return;sel.value=derP;if(!derDrag&&!$('derList').contains(document.activeElement))derBuild();
-  [['e','derEdfV'],['g','derGazV']].forEach(([id,el])=>{const o=$(el),has=Object.keys(autoMap[id]||{}).length>0,r=has?derCalc(id,derP):null;
-    if(!has){o.innerHTML='<span class="det">Pas de compteur relevé</span>';return}
-    if(!r){o.innerHTML='<span class="big">—</span><span class="det">Pas assez de relevés pour cette période</span>';return}
-    o.innerHTML=`<span class="big"${r.kwh<0?' style="color:#b91c1c"':''}>${fmt(r.kwh/AUTO_DIV,1)} MWh</span><span class="det">${esc(DERL[derP])}</span><span class="det">du ${esc(dfr(r.ref))} au ${esc(dfr(r.L))} · ${r.days} j</span><span class="det">${fIdx(r.kwh)} kWh · moy. ${fIdx(Math.round(r.kwh/r.days))} kWh/j</span>${r.partial?'<span class="det" style="color:#b45309">Données partielles : historique plus court que la période</span>':''}${r.age>1?`<span class="det" style="color:#b45309">Dernier relevé il y a ${r.age} j</span>`:''}`});
+  const sel=$('derP');if(!sel)return;
+  if(derP==='a')derP='y'+new Date().getFullYear();
+  sel.innerHTML='<option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option>'+derYears().map(y=>`<option value="y${y}">Année ${y}</option>`).join('');
+  if(![...sel.options].some(o=>o.value===derP))derP='h';sel.value=derP;
+  if(!derDrag&&!$('derList').contains(document.activeElement))derBuild();
+  $('derEdfV').innerHTML=derDisp('e','e','kWh',true);$('derGazV').innerHTML=derDisp('g','g','kWh',true);
   derDraw()}
 $('derP').onchange=ev=>{derP=ev.target.value;try{localStorage.setItem('derP',derP)}catch(e){}renderDer()};
 function route(){const h=location.hash;const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives';$('vDash').hidden=r||pj||dj||ch||ar||dv;$('vDer').hidden=!dv;if(dv)renderDer();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
