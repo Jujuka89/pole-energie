@@ -107,7 +107,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 .g2 .gt{position:absolute;left:0;top:0;width:120px;line-height:20px;text-align:center;font-size:.74rem;font-weight:700;color:var(--ink);white-space:nowrap}
 .g2 .gf{position:absolute;left:0;top:0;bottom:0;overflow:hidden;background:var(--ok)}.g2 .gf .gt{color:#fff}.g2.cours .gf{background:var(--s-cours)}
 @media (prefers-color-scheme:dark){.g2 .gf .gt{color:#14191b}}
-:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;text-align:center}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header>.btn{grid-column:1;grid-row:1;justify-self:start}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header>div{grid-column:2;grid-row:1}@media (max-width:760px){:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header{grid-template-columns:1fr}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header>.btn,:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header>div{grid-column:1}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header>.btn{grid-row:1}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer)>header>div{grid-row:2}}#vDju .dhead{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}#vDju .dyear{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:600;font-size:1.05rem;color:var(--ink)}#vDju .dyear select{font-size:1.05rem;margin-left:6px}
+:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;text-align:center}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header>.btn{grid-column:1;grid-row:1;justify-self:start}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header>div{grid-column:2;grid-row:1}@media (max-width:760px){:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header{grid-template-columns:1fr}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header>.btn,:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header>div{grid-column:1}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header>.btn{grid-row:1}:is(#vDju,#vRel,#vProj,#vArc,#vChr,#vDer,#vTst)>header>div{grid-row:2}}#vDju .dhead{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}#vDju .dyear{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:600;font-size:1.05rem;color:var(--ink)}#vDju .dyear select{font-size:1.05rem;margin-left:6px}
 #vDash>header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}#vDash>header>.tools{justify-content:center;align-items:end}
 #popBox{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:150;display:flex;flex-direction:column;gap:10px;width:min(440px,calc(100vw - 24px))}
 .pop{background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;animation:popin .25s ease-out}
@@ -116,6 +116,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 :root{--evt:#c2255c}@media (prefers-color-scheme:dark){:root{--evt:#ff7aa8}}
 #vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip,#cumTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 #vDer{max-width:1100px;margin:0 auto}.dmap{position:relative;display:grid;grid-template-columns:1fr 1.3fr 1fr;grid-template-rows:repeat(3,auto);gap:22px;padding:10px 0}.dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}.dmap>*{position:relative;z-index:1}.dc{align-self:center;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:92px;justify-content:center}.dc svg{width:54px;height:40px}.dc b{font-size:.95rem}.dc small{color:var(--mute)}.dmain{grid-column:2;grid-row:2;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px solid var(--line);border-radius:16px;background:var(--card);padding:16px}.dmain svg{width:100%;max-width:340px;height:auto}.dmain b{font-size:1.1rem}@media (max-width:760px){.dmap{grid-template-columns:1fr 1fr}.dmain{grid-column:1/3;grid-row:1}.dmap svg.dl{display:none}}
+#vTst{max-width:1000px;margin:0 auto}#vTst td input.cell{width:100%;min-width:120px}#vTst .neg{color:#b91c1c}#vTst .tf{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 #vArc{max-width:1000px;margin:0 auto}.act{padding:8px 0;border-bottom:1px solid var(--line)}.act p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.92rem}.act .ab{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.act button{padding:2px 8px;font-size:.8rem}
 main.wide{max-width:none;padding-left:20px;padding-right:20px}
 .dcenter{min-width:0}
@@ -169,7 +170,7 @@ body.out .edit-only{display:none!important}
     <h1>Dashboard Pôle Energie</h1>
     <p class="sub" id="todayStr" style="font-weight:600"></p>
   </div>
-  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Objectif 2030</a><a class="btn main" href="#derives">Dérives</a><a class="btn main" href="#releves" id="btnRel" style="position:relative">Relevés<span id="badgeRel" class="bdg" hidden></span></a></div>
+  <div class="tools" style="align-items:end"><label>Année affichée <select id="year"></select></label><a class="btn main" href="#projets">Projets</a><a class="btn main" href="#dju">DJU</a><a class="btn main" href="#chronologie">Objectif 2030</a><a class="btn main" href="#derives">Dérives</a><a class="btn main" href="#test">Test</a><a class="btn main" href="#releves" id="btnRel" style="position:relative">Relevés<span id="badgeRel" class="bdg" hidden></span></a></div>
 </header>
 <p id="status2" class="note" role="status"></p>
 <div class="dash">
@@ -315,6 +316,29 @@ body.out .edit-only{display:none!important}
 <b>Bâtiment principal</b>
 </div>
 </div>
+</div>
+<div id="vTst" hidden>
+<header>
+  <div>
+    <h1>Test</h1>
+    <p class="sub">Relevés du compteur : saisie de l’index, calculs automatiques</p>
+  </div>
+  <a class="btn" href="#">← Tableau de bord</a>
+</header>
+<section>
+  <h2>⚡ Compteur électrique</h2>
+  <p class="note" style="margin:0 0 10px">Saisissez la valeur exacte du compteur (index en kWh) : la consommation est calculée à partir de l’écart entre deux relevés (÷ 1000 pour passer en MWh). Les index reçus automatiquement par mail (<code>e,…</code>) apparaissent ici aussi.</p>
+  <form id="tstF" class="tf"><label>Date du relevé<input type="date" id="tstD" required></label><label>Index du compteur (kWh)<input type="number" id="tstV" min="0" step="any" required placeholder="ex. 60798388"></label><button class="main" type="submit">Ajouter le relevé</button></form>
+</section>
+<section>
+  <h2>Consommation par mois</h2>
+  <p class="note" style="margin:0 0 8px">Consommation du mois = dernier index du mois − dernier index du mois précédent.</p>
+  <div id="tstMois" style="overflow-x:auto"></div>
+</section>
+<section>
+  <h2>Historique des relevés</h2>
+  <div id="tstList" style="overflow-x:auto"></div>
+</section>
 </div>
 <div id="vArc" hidden>
 <header>
@@ -464,7 +488,7 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};autoMap={};autoNames={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(renderAuto,'relevés automatiques');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};autoMap={};autoNames={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(renderAuto,'relevés automatiques');safe(renderTst,'test');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
@@ -1763,7 +1787,26 @@ $('autoApply').onclick=async()=>{const ok=autoRows.filter(r=>!r.err);if(!ok.leng
     autoDer.filter(d=>d.v!=null).forEach(d=>wb.set(doc(db,'releves',d.m),{[d.id]:d.v},{merge:true}));
     wb.set(doc(db,'releves','_auto'),{last:{c:Date.now(),src:'test',f:$('autoFile').dataset.n||'',n,nerr:autoRows.length-ok.length}},{merge:true});
     await wb.commit();$('autoApply').disabled=true;$('autoRes').insertAdjacentHTML('afterbegin','<p style="color:#15803d;margin:0 0 6px"><b>Enregistré.</b></p>')}catch(e){refus()}};
-function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives';$('vDash').hidden=r||pj||dj||ch||ar||dv;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+
+function renderTst(){
+  const L=$('tstList'),M=$('tstMois');if(!L)return;
+  const m=autoMap.e||{},ds=Object.keys(m).sort(),dd=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
+  if(!ds.length){L.innerHTML='<p class="note" style="margin:0">Aucun relevé pour le moment. Ajoutez le premier index ci-dessus.</p>';M.innerHTML='<p class="note" style="margin:0">Il faut au moins deux mois de relevés pour calculer une consommation.</p>';return}
+  L.innerHTML='<table><thead><tr><th>Date</th><th>Index (kWh)</th><th>Écart (kWh)</th><th>Jours</th><th>kWh / jour</th><th></th></tr></thead><tbody>'+ds.map((d,i)=>{const pv=ds[i-1],df=pv?m[d]-m[pv]:null,j=pv?dd(pv,d):null;
+    return `<tr><td>${esc(dfr(d))}</td><td><input type="number" step="any" class="cell" value="${m[d]}" data-td="${d}"></td><td class="${df<0?'neg':''}">${df==null?'—':(df>0?'+':'')+fIdx(df)}</td><td>${j==null?'—':j}</td><td>${df==null||!j?'—':fIdx(Math.round(df/j))}</td><td><button type="button" data-tx="${d}">Supprimer</button></td></tr>`}).reverse().join('')+'</tbody></table>';
+  const ms=[...new Set(ds.map(d=>d.slice(0,7)))].sort(),rows=[];
+  ms.forEach(mo=>{const cur=ds.filter(d=>d.slice(0,7)===mo).pop(),pv=ds.filter(d=>d.slice(0,7)<mo).pop();if(!pv)return;
+    const v=(m[cur]-m[pv])/AUTO_DIV,ex=data.find(x=>x.m===mo),ev=ex&&ex.e!=null?ex.e:null;
+    rows.push(`<tr><td>${esc(MOISL[+mo.slice(5)-1]+' '+mo.slice(0,4))}</td><td>${esc(dfr(cur))} : ${fIdx(m[cur])}</td><td>${esc(dfr(pv))} : ${fIdx(m[pv])}</td><td class="${v<0?'neg':''}"><b>${fmt(v,3)} MWh</b></td><td>${ev==null?'—':fmt(ev,ev%1?2:0)+' MWh'}</td></tr>`)});
+  M.innerHTML=rows.length?'<table><thead><tr><th>Mois</th><th>Dernier index du mois</th><th>Index de référence</th><th>Consommation calculée</th><th>Relevé mensuel actuel</th></tr></thead><tbody>'+rows.reverse().join('')+'</tbody></table>':'<p class="note" style="margin:0">Il faut un index du mois précédent pour calculer : ajoutez par exemple l’index du dernier jour du mois dernier.</p>'}
+$('tstD').value=today();
+$('tstF').onsubmit=ev=>{ev.preventDefault();const d=$('tstD').value,v=+$('tstV').value;if(!d||isNaN(v)||v<0||$('tstV').value==='')return;
+  setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:v,N_e:'Électricité'},{merge:true}).then(()=>{$('tstV').value=''}).catch(refus)};
+$('tstList').onchange=ev=>{const d=ev.target.dataset.td;if(!d)return;const v=ev.target.value===''?null:+ev.target.value;if(v==null||isNaN(v)||v<0){renderTst();return}
+  setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:v},{merge:true}).catch(()=>{refus();renderTst()})};
+$('tstList').onclick=ev=>{const b=ev.target.closest('button[data-tx]');if(!b)return;const d=b.dataset.tx;if(!confirm('Supprimer le relevé du '+dfr(d)+' ?'))return;
+  setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:deleteField()},{merge:true}).catch(refus)};
+function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives',te=h==='#test';$('vDash').hidden=r||pj||dj||ch||ar||dv||te;$('vTst').hidden=!te;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
