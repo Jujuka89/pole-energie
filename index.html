@@ -1468,7 +1468,7 @@ $('vProj').onclick=ev=>{const d=ev.target.dataset;
     $('pcout').value=p.cout??'';$('pgain').value=p.gain==null?'':String(p.gain);$('pconf').value=p.confort==null?'':String(p.confort);
     $('projForm').hidden=false;$('newP').textContent='Annuler';$('pSubmit').textContent='Enregistrer les modifications';$('pTitle').textContent='Modifier le projet';
     $('projForm').scrollIntoView({behavior:'smooth',block:'center'});$('pn').focus()}
-  if(d.start)updateDoc(doc(db,'projets',d.start),{statut:'en_cours',debut:today()}).catch(refus);
+  if(d.start){const pp=projets.find(z=>z.id===d.start);if(pp)addActu('pstart_'+d.start,'Projet démarré : '+pp.nom);updateDoc(doc(db,'projets',d.start),{statut:'en_cours',debut:today()}).catch(refus)}
   if(d.delp&&confirm('Supprimer ce projet et toutes ses tâches ?'))deleteDoc(doc(db,'projets',d.delp)).catch(refus);
   if(d.delt){const[pid,tid]=d.delt.split('|'),pr=projets.find(x=>x.id===pid),tk=pr&&(pr.taches||[]).find(x=>x.id===tid);if(confirm('Supprimer la tâche « '+(tk?tk.t:'')+' » ?'))upd(pid,t=>t.filter(x=>x.id!==tid))}
   if(d.addt){const pid=d.addt,txt=document.querySelector(`[data-nt="${pid}"]`).value.trim(),ech=document.querySelector(`[data-ntd="${pid}"]`).value||null,m=document.querySelector(`[data-ntm="${pid}"]`).value||null;
