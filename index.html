@@ -224,16 +224,20 @@ body.out .edit-only{display:none!important}
   </details>
 </section>
 
-<section id="gridsSec">
+<section id="manSec">
+<details class="djs" id="manDet">
+<summary><h2>Relevés manuels</h2></summary>
+<p class="note" style="margin:8px 0 0">Compteurs principaux (gaz et électricité) et compteurs secondaires, saisis à la main.</p>
+<div id="gridsSec" style="margin-top:12px">
   <details class="djs">
-  <summary><h2>Compteurs principaux : gaz et électricité</h2></summary>
+  <summary><h3 style="display:inline;margin:0;font-size:1.05rem">Compteurs principaux : gaz et électricité</h3></summary>
   <p class="note" style="margin:8px 0 4px">Saisissez directement les valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé ; videz une case pour effacer une valeur. Le prix au MWh se règle pour chaque année.</p>
   <div id="grids"></div>
   </details>
-</section>
-<div id="vCpt">
-<section>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs secondaires <span id="nC" class="badge"></span></h2><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div>
+</div>
+<div id="vCpt" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+<section style="border:0;box-shadow:none;background:none;padding:0;margin:0">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0;font-size:1.05rem">Compteurs secondaires <span id="nC" class="badge"></span></h3><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div>
   <div id="cForm" hidden style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <form id="cfForm">
       <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
@@ -246,6 +250,8 @@ body.out .edit-only{display:none!important}
   <div id="cList" style="margin-top:10px"></div>
 </section>
 </div>
+</details>
+</section>
 <section>
   <h2>Données</h2>
   <div class="tools">
@@ -1806,7 +1812,7 @@ $('tstList').onchange=ev=>{const d=ev.target.dataset.td;if(!d)return;const v=ev.
   setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:v},{merge:true}).catch(()=>{refus();renderTst()})};
 $('tstList').onclick=ev=>{const b=ev.target.closest('button[data-tx]');if(!b)return;const d=b.dataset.tx;if(!confirm('Supprimer le relevé du '+dfr(d)+' ?'))return;
   setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{['e_'+d.slice(8,10)]:deleteField()},{merge:true}).catch(refus)};
-function route(){const h=location.hash,r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives',te=h==='#test';$('vDash').hidden=r||pj||dj||ch||ar||dv||te;$('vTst').hidden=!te;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+function route(){const h=location.hash;if(h==='#compteurs'&&$('manDet'))$('manDet').open=true;const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives',te=h==='#test';$('vDash').hidden=r||pj||dj||ch||ar||dv||te;$('vTst').hidden=!te;$('vDer').hidden=!dv;if(dv)derDraw();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
