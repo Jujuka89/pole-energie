@@ -129,7 +129,7 @@ body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.syn
 .sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
 .sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
 .sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
-.synode.ch.dragging{position:relative;z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syin:empty{min-height:6px}
+.synode.ch.dragging{position:relative;z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.syin:empty{min-height:6px}
 #syDepBox,#syEtgBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden],#syEtgBox[hidden],#syVueL[hidden]{display:none!important}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
@@ -1992,7 +1992,7 @@ function renderSyno(){
     const rows=ct?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
       return `<div class="sydep" data-did="${did}"><span class="sdn" title="${esc(d.nom||'')}">${esc(d.nom||(dc?dc.nom:'Départ'))}</span><span class="sdv">${dv}</span><button type="button" class="edit-only sp${synLink===id&&synLinkP===did?' on':''}" data-sp="${did}" title="Relier ce départ à un autre élément">⇢</button><button type="button" class="edit-only" data-xd="${did}" title="Supprimer ce départ">✕</button></div>`}).join('')||'<small>Aucun départ : sélectionnez ce bloc puis « + Ajouter un départ ».</small>'}</div>`:'';
     const fr=n.t==='bat',kh=kidsOf(id).map(k=>html1(k,true)).join('');
-    return `<div class="synode${ct?' ct':''}${fr?' bf':''}${child?' ch':''}${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="${child?'':'left:'+(n.x||0)+'px;top:'+(n.y||0)+'px;'}border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}${rows}${fr?`<div class="syin">${kh}</div><select class="syq edit-only" title="Ajouter un bloc dans ce bâtiment">${qa}</select>`:''}</div>`};
+    return `<div class="synode${ct?' ct':''}${fr?' bf':''}${child?' ch':''}${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="${child?'':'left:'+(n.x||0)+'px;top:'+(n.y||0)+'px;'}${fr&&n.w?'width:'+n.w+'px;max-width:none;':''}${fr&&n.h?'min-height:'+n.h+'px;':''}border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}${rows}${fr?`<div class="syin">${kh}</div><select class="syq edit-only" title="Ajouter un bloc dans ce bâtiment">${qa}</select><div class="syrz edit-only" title="Tirer pour agrandir ou réduire le bâtiment"></div>`:''}</div>`};
   $('syNodes').innerHTML=ids.map(id=>html1(id,false)).join('');
   if(synSel&&!vis.has(synSel))synSel=null;
 
@@ -2054,6 +2054,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
   nodes.addEventListener('pointerdown',ev=>{const e=ev.target.closest('.synode');if(!e)return;const id=e.dataset.id,v=derTab;
     if(synLink){if(id!==synLink&&!synRO()){const dup=Object.values(synoD[v].links).some(l=>l.a===synLink&&l.b===id&&(l.p||null)===(synLinkP||null));if(!dup){const lid=uid(),L={a:synLink,b:id};if(synLinkP)L.p=synLinkP;synoD[v].links[lid]=L;synSave({[v]:{links:{[lid]:L}}})}}synLink=null;synLinkP=null;synKey='';renderSyno();return}
     if(ev.target.closest('select'))return;
+    if(ev.target.closest('.syrz')){if(synRO())return;ev.preventDefault();synDrag={id,e,resize:true,x:ev.clientX,y:ev.clientY,w:e.offsetWidth,h:e.offsetHeight,moved:false};e.setPointerCapture(ev.pointerId);return}
     const btn=ev.target.closest('button');
     if(btn&&!synRO()){ev.preventDefault();
       if(btn.dataset.sp){synLink=id;synLinkP=btn.dataset.sp;synSel=id;synKey='';renderSyno()}
@@ -2081,10 +2082,12 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
   nodes.addEventListener('change',ev=>{const q=ev.target.closest('.syq');if(!q||synRO())return;const t=q.value,b=q.closest('.synode');if(!t||!b)return;
     const v=derTab,id=synAddChild(t,'',b.dataset.id);synSel=id;synKey='';renderSyno();synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]}}})});
   nodes.addEventListener('pointermove',ev=>{const d=synDrag;if(!d)return;const dx=ev.clientX-d.x,dy=ev.clientY-d.y;if(!d.moved&&Math.abs(dx)+Math.abs(dy)<5)return;d.moved=true;
+    if(d.resize){d.e.style.maxWidth='none';d.e.style.width=Math.max(176,d.w+dx)+'px';d.e.style.minHeight=Math.max(60,d.h+dy)+'px';synDraw();return}
     if(d.child){d.e.classList.add('dragging');d.e.style.transform=`translate(${dx}px,${dy}px)`;markDrop(dropTarget(ev,d));synDraw();return}
     d.e.style.left=Math.max(0,d.ox+dx)+'px';d.e.style.top=Math.max(0,d.oy+dy)+'px';synDraw2()});
   const synDraw2=()=>{const v=derTab,D=synoD[v];if(synDrag){const n=D.nodes[synDrag.id];if(n){n.x=parseInt(synDrag.e.style.left);n.y=parseInt(synDrag.e.style.top)}}synDraw()};
   const end=(ev,cancel)=>{const d=synDrag;if(!d)return;synDrag=null;if(d.child){endChild(d,ev,cancel);return}const v=derTab,n=synoD[v].nodes[d.id];
+    if(d.resize){if(d.moved&&n&&!cancel){n.w=d.e.offsetWidth;n.h=d.e.offsetHeight;synKey='';synSave({[v]:{nodes:{[d.id]:{w:n.w,h:n.h}}}})}synKey='';renderSyno();return}
     if(d.moved&&n){synKey='';synSave({[v]:{nodes:{[d.id]:{x:n.x,y:n.y}}}});renderSyno()}else{synSel=d.id;renderSyno()}};
   nodes.addEventListener('pointerup',end);nodes.addEventListener('pointercancel',ev=>end(ev,true));
   window.addEventListener('resize',()=>{if(derTab!=='b')synDraw()})})();
