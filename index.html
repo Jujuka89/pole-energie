@@ -2000,6 +2000,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
   $('syLink').onclick=()=>{if(synSel){synLink=synSel;renderSyno()}};
   $('syDel').onclick=()=>{const v=derTab,id=synSel;if(!id||!confirm('Supprimer cet élément et ses liaisons ?'))return;
     const o={nodes:{[id]:deleteField()},links:{}};delete synoD[v].nodes[id];Object.entries(synoD[v].links).forEach(([k,l])=>{if(l.a===id||l.b===id){o.links[k]=deleteField();delete synoD[v].links[k]}});
+    if(!Object.keys(o.links).length)delete o.links; /* une map vide fusionnée écraserait toutes les liaisons */
     synSel=null;synKey='';renderSyno();synSave({[v]:o})};
   document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&synLink){synLink=null;renderSyno()}});
   $('syLines').addEventListener('click',()=>{});
