@@ -129,7 +129,7 @@ body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.syn
 .sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
 .sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
 .sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
-.synode.ch.dragging{position:relative;z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.syin:empty{min-height:6px}
+.synode.ch.dragging{z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.synode.bf{display:flex;flex-direction:column}.synode.bf>.syin{position:relative;flex:1 1 auto;margin-top:6px;border-radius:8px;min-height:110px;background:rgba(127,127,127,.07)}.synode.ch.fl{position:absolute;width:176px;margin:0}.synode.ch.fl.ct{width:250px}
 #syDepBox,#syEtgBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden],#syEtgBox[hidden],#syVueL[hidden]{display:none!important}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
@@ -1983,7 +1983,7 @@ function renderSyno(){
   $('syVue').value=synV;  $('syType').innerHTML=SYT[v].filter(t=>synV!=='s'||SYSIMPLE.includes(t[0])).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
   $('syBats').innerHTML=BATS.map(b=>`<option value="${esc(b)}">`).join('');
   $('syTpl').hidden=!!allIds.length||synV==='s';
-  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer ; dans un bâtiment, glissez les blocs pour les réordonner ou les passer dans un autre bâtiment. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
+  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer ; dans un bâtiment, glissez les blocs où vous voulez, ou vers un autre bâtiment. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
   const qa='<option value="">＋ Ajouter un bloc…</option>'+SYT[v].filter(t=>SYCHILD.includes(t[0])&&(synV!=='s'||SYSIMPLE.includes(t[0]))).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');
   const vis=new Set(),kidsOf=pid=>allIds.filter(k=>D.nodes[k].parent===pid&&(synV!=='s'||SYSIMPLE.includes(D.nodes[k].t))).sort((x,y)=>(D.nodes[x].o||0)-(D.nodes[y].o||0));
   const html1=(id,child)=>{vis.add(id);const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
@@ -1992,7 +1992,7 @@ function renderSyno(){
     const rows=ct?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
       return `<div class="sydep" data-did="${did}"><span class="sdn" title="${esc(d.nom||'')}">${esc(d.nom||(dc?dc.nom:'Départ'))}</span><span class="sdv">${dv}</span><button type="button" class="edit-only sp${synLink===id&&synLinkP===did?' on':''}" data-sp="${did}" title="Relier ce départ à un autre élément">⇢</button><button type="button" class="edit-only" data-xd="${did}" title="Supprimer ce départ">✕</button></div>`}).join('')||'<small>Aucun départ : sélectionnez ce bloc puis « + Ajouter un départ ».</small>'}</div>`:'';
     const fr=n.t==='bat',kh=kidsOf(id).map(k=>html1(k,true)).join('');
-    return `<div class="synode${ct?' ct':''}${fr?' bf':''}${child?' ch':''}${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="${child?'':'left:'+(n.x||0)+'px;top:'+(n.y||0)+'px;'}${fr&&n.w?'width:'+n.w+'px;max-width:none;':''}${fr&&n.h?'min-height:'+n.h+'px;':''}border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}${rows}${fr?`<div class="syin">${kh}</div><select class="syq edit-only" title="Ajouter un bloc dans ce bâtiment">${qa}</select><div class="syrz edit-only" title="Tirer pour agrandir ou réduire le bâtiment"></div>`:''}</div>`};
+    return `<div class="synode${ct?' ct':''}${fr?' bf':''}${child?' ch':''}${child&&n.cx!=null?' fl':''}${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="${child?(n.cx!=null?'left:'+n.cx+'px;top:'+(n.cy||0)+'px;':''):'left:'+(n.x||0)+'px;top:'+(n.y||0)+'px;'}${fr&&n.w?'width:'+n.w+'px;max-width:none;':''}${fr&&n.h?'min-height:'+n.h+'px;':''}border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}${rows}${fr?`<div class="syin">${kh}</div><select class="syq edit-only" title="Ajouter un bloc dans ce bâtiment">${qa}</select><div class="syrz edit-only" title="Tirer pour agrandir ou réduire le bâtiment"></div>`:''}</div>`};
   $('syNodes').innerHTML=ids.map(id=>html1(id,false)).join('');
   if(synSel&&!vis.has(synSel))synSel=null;
 
@@ -2003,7 +2003,16 @@ function renderSyno(){
   if(!dbx.hidden){const tc=$('syDepCpt').value;$('syDepCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(tc)$('syDepCpt').value=tc}
   if(!ins.hidden){const n=D.nodes[synSel];if(document.activeElement!==$('syNom'))$('syNom').value=n.nom||'';
     $('syCpt').innerHTML='<option value="">Aucun compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');$('syCpt').value=n.c||''}
-  synFit();synDraw()}
+  synFloat();synFit();synDraw()}
+function synFloat(){const v=derTab,D=synoD[v],ch={};
+  $('syNodes').querySelectorAll(':scope>.synode.bf').forEach(b=>{const sy=b.querySelector(':scope>.syin');if(!sy)return;
+    const kids=[...sy.querySelectorAll(':scope>.synode.ch')],fl=kids.filter(k=>k.classList.contains('fl')),nf=kids.filter(k=>!k.classList.contains('fl'));
+    let base=0;fl.forEach(k=>{base=Math.max(base,k.offsetTop+k.offsetHeight+8)});
+    const pos=nf.map(k=>({k,x:k.offsetLeft,y:k.offsetTop+base}));
+    pos.forEach(q=>{q.k.classList.add('fl');q.k.style.left=q.x+'px';q.k.style.top=q.y+'px';const n=D.nodes[q.k.dataset.id];if(n){n.cx=q.x;n.cy=q.y;ch[q.k.dataset.id]={cx:q.x,cy:q.y}}});
+    let mw=0,mh=0;sy.querySelectorAll(':scope>.synode.ch').forEach(k=>{mw=Math.max(mw,k.offsetLeft+k.offsetWidth);mh=Math.max(mh,k.offsetTop+k.offsetHeight)});
+    sy.style.minWidth=mw?mw+'px':'';sy.style.minHeight=Math.max(110,mh+48)+'px';if(mw)b.style.maxWidth='none'});
+  if(Object.keys(ch).length&&!synRO()){synKey='';synSave({[v]:{nodes:ch}})}}
 function synDraw(){
   const v=derTab,D=synoD[v],cv=$('syCanvas'),svg=$('syLines');if(v==='b'||!svg)return;
   const els={};const nr=$('syNodes').getBoundingClientRect();$('syNodes').querySelectorAll('.synode').forEach(e=>{const r=e.getBoundingClientRect(),ports={};e.querySelectorAll(':scope>.sydeps>.sydep').forEach(q=>{const qr=q.getBoundingClientRect();ports[q.dataset.did]=qr.top-r.top+qr.height/2});els[e.dataset.id]={x:r.left-nr.left,y:r.top-nr.top,w:r.width,h:r.height,ports}});
@@ -2054,7 +2063,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
   nodes.addEventListener('pointerdown',ev=>{const e=ev.target.closest('.synode');if(!e)return;const id=e.dataset.id,v=derTab;
     if(synLink){if(id!==synLink&&!synRO()){const dup=Object.values(synoD[v].links).some(l=>l.a===synLink&&l.b===id&&(l.p||null)===(synLinkP||null));if(!dup){const lid=uid(),L={a:synLink,b:id};if(synLinkP)L.p=synLinkP;synoD[v].links[lid]=L;synSave({[v]:{links:{[lid]:L}}})}}synLink=null;synLinkP=null;synKey='';renderSyno();return}
     if(ev.target.closest('select'))return;
-    if(ev.target.closest('.syrz')){if(synRO())return;ev.preventDefault();synDrag={id,e,resize:true,x:ev.clientX,y:ev.clientY,w:e.offsetWidth,h:e.offsetHeight,moved:false};e.setPointerCapture(ev.pointerId);return}
+    if(ev.target.closest('.syrz')){if(synRO())return;ev.preventDefault();synDrag={id,e,resize:true,x:ev.clientX,y:ev.clientY,w:e.offsetWidth,h:e.offsetHeight,mw:(()=>{const sy=e.querySelector(':scope>.syin');return Math.max(176,e.offsetWidth-(sy?sy.clientWidth-(parseInt(sy.style.minWidth)||0):0))})(),moved:false};e.setPointerCapture(ev.pointerId);return}
     const btn=ev.target.closest('button');
     if(btn&&!synRO()){ev.preventDefault();
       if(btn.dataset.sp){synLink=id;synLinkP=btn.dataset.sp;synSel=id;synKey='';renderSyno()}
@@ -2065,24 +2074,19 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
     if(e.classList.contains('ch')){synDrag={id,e,child:true,x:ev.clientX,y:ev.clientY,moved:false};e.setPointerCapture(ev.pointerId);return}
     synDrag={id,e,x:ev.clientX,y:ev.clientY,ox:e.offsetLeft,oy:e.offsetTop,moved:false};e.setPointerCapture(ev.pointerId)});
   /* Glisser-déposer des blocs d'un bâtiment : réordonner, ou passer dans un autre bâtiment */
-  const dropTarget=(ev,d)=>{const tb=[...nodes.querySelectorAll(':scope>.synode.bf')].find(b=>{const r=b.getBoundingClientRect();return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom});
-    if(!tb)return null;const kids=[...tb.querySelectorAll(':scope>.syin>.synode.ch')].filter(k=>k!==d.e);
-    const before=kids.find(k=>{const r=k.getBoundingClientRect();return ev.clientY<r.top+r.height/2})||null;return{b:tb,before,last:kids[kids.length-1]||null}};
-  const markDrop=t=>{nodes.querySelectorAll('.dropin,.dbf,.dbe').forEach(x=>x.classList.remove('dropin','dbf','dbe'));
-    if(!t)return;t.b.classList.add('dropin');if(t.before)t.before.classList.add('dbf');else if(t.last)t.last.classList.add('dbe')};
-  const endChild=(d,ev,cancel)=>{const v=derTab,D=synoD[v];markDrop(null);d.e.classList.remove('dragging');d.e.style.transform='';
-    if(cancel){synKey='';renderSyno();return}
-    if(!d.moved){synSel=d.id;synKey='';renderSyno();return}
-    const tg=dropTarget(ev,d);if(!tg){synKey='';renderSyno();return}
-    const pid=tg.b.dataset.id,bef=tg.before?tg.before.dataset.id:null,
-      sib=Object.keys(D.nodes).filter(k=>k!==d.id&&D.nodes[k].parent===pid).sort((x,y)=>(D.nodes[x].o||0)-(D.nodes[y].o||0));
-    let i=bef?sib.indexOf(bef):-1;if(i<0)i=sib.length;sib.splice(i,0,d.id);
-    const ch={};sib.forEach((k,j)=>{const n=D.nodes[k],c={};if(n.o!==j+1){n.o=j+1;c.o=j+1}if(k===d.id&&n.parent!==pid){n.parent=pid;c.parent=pid}if(Object.keys(c).length)ch[k]=c});
-    synSel=d.id;synKey='';renderSyno();if(Object.keys(ch).length)synSave({[v]:{nodes:ch}})};
+  const dropTarget=ev=>{const l=[...nodes.querySelectorAll(':scope>.synode.bf')].filter(b=>{const r=b.getBoundingClientRect();return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom});return l[l.length-1]||null};
+  const markDrop=tb=>{nodes.querySelectorAll('.dropin').forEach(x=>x.classList.remove('dropin'));if(tb)tb.classList.add('dropin')};
+  const endChild=(d,ev,cancel)=>{const v=derTab,D=synoD[v];markDrop(null);d.e.classList.remove('dragging');const er=d.e.getBoundingClientRect();d.e.style.transform='';
+    if(cancel||!d.moved){if(!cancel)synSel=d.id;synKey='';renderSyno();return}
+    const tb=dropTarget(ev),n=D.nodes[d.id];if(!tb||!n){synKey='';renderSyno();return}
+    const sy=tb.querySelector(':scope>.syin'),r=sy.getBoundingClientRect(),pid=tb.dataset.id,
+      cx=Math.round(Math.min(Math.max(0,er.left-r.left-sy.clientLeft),Math.max(0,sy.clientWidth-er.width))),cy=Math.round(Math.max(0,er.top-r.top-sy.clientTop)),c={cx,cy};
+    n.cx=cx;n.cy=cy;if(n.parent!==pid){n.parent=pid;c.parent=pid}
+    synSel=d.id;synKey='';renderSyno();synSave({[v]:{nodes:{[d.id]:c}}})};
   nodes.addEventListener('change',ev=>{const q=ev.target.closest('.syq');if(!q||synRO())return;const t=q.value,b=q.closest('.synode');if(!t||!b)return;
     const v=derTab,id=synAddChild(t,'',b.dataset.id);synSel=id;synKey='';renderSyno();synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]}}})});
   nodes.addEventListener('pointermove',ev=>{const d=synDrag;if(!d)return;const dx=ev.clientX-d.x,dy=ev.clientY-d.y;if(!d.moved&&Math.abs(dx)+Math.abs(dy)<5)return;d.moved=true;
-    if(d.resize){d.e.style.maxWidth='none';d.e.style.width=Math.max(176,d.w+dx)+'px';d.e.style.minHeight=Math.max(60,d.h+dy)+'px';synDraw();return}
+    if(d.resize){d.e.style.maxWidth='none';d.e.style.width=Math.max(d.mw,d.w+dx)+'px';d.e.style.minHeight=Math.max(60,d.h+dy)+'px';synDraw();return}
     if(d.child){d.e.classList.add('dragging');d.e.style.transform=`translate(${dx}px,${dy}px)`;markDrop(dropTarget(ev,d));synDraw();return}
     d.e.style.left=Math.max(0,d.ox+dx)+'px';d.e.style.top=Math.max(0,d.oy+dy)+'px';synDraw2()});
   const synDraw2=()=>{const v=derTab,D=synoD[v];if(synDrag){const n=D.nodes[synDrag.id];if(n){n.x=parseInt(synDrag.e.style.left);n.y=parseInt(synDrag.e.style.top)}}synDraw()};
