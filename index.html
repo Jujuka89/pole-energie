@@ -129,7 +129,7 @@ body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.syn
 .sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
 .sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
 .sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
-#syDepBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden]{display:none}
+#syDepBox,#syEtgBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden],#syEtgBox[hidden],#syVueL[hidden]{display:none!important}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .dsrcs{grid-column:1;display:flex;flex-direction:column;gap:20px;position:relative;z-index:1}
@@ -338,7 +338,7 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <div style="display:flex;justify-content:flex-end;margin:0 0 8px"><label>Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label></div>
-<div class="dtabs" id="derTabs"><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button></div>
+<div class="dtabs" id="derTabs"><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" hidden style="margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
 <div id="derVb">
 <div class="dmap" id="derMap">
 <svg class="dl" id="derLines"></svg>
@@ -371,6 +371,11 @@ body.out .edit-only{display:none!important}
       <input id="syDepNom" maxlength="40" placeholder="Nom du départ (ex. Départ EHPAD)">
       <select id="syDepCpt"></select>
       <button type="button" class="main" id="syDepAdd">+ Ajouter un départ</button>
+    </span>
+    <span id="syEtgBox" hidden><b>Étages :</b>
+      <input id="syEtgNom" maxlength="40" placeholder="Nom de l’étage (ex. Rez-de-chaussée)">
+      <select id="syEtgCpt"></select>
+      <button type="button" class="main" id="syEtgAdd">+ Ajouter un étage</button>
     </span>
     <datalist id="syBats"></datalist>
   </div>
@@ -1962,20 +1967,21 @@ $('derP').onchange=ev=>{derP=ev.target.value;try{localStorage.setItem('derP',der
 
 /* ---------- Synoptiques (électricité / chauffage) ---------- */
 const SYT={
-  e:[['edf','⚡','Arrivée EDF','#2563eb'],['tr','🔌','Transformateur','#64748b'],['tgbt','🗄️','TGBT / tableau général','#64748b'],['gen','🛢️','Groupe électrogène','#b45309'],['ond','🔋','Onduleur','#64748b'],['tab','🔲','Tableau / départ','#64748b'],['bat','🏢','Bâtiment','#0f766e'],['cpt','📟','Compteur','#7c3aed']],
-  c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['bat','🏢','Bâtiment','#0f766e'],['cpt','📟','Compteur','#7c3aed']]};
-let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'];
+  e:[['edf','⚡','Arrivée EDF','#2563eb'],['tr','🔌','Transformateur','#64748b'],['tgbt','🗄️','TGBT / tableau général','#64748b'],['gen','🛢️','Groupe électrogène','#b45309'],['ond','🔋','Onduleur','#64748b'],['tab','🔲','Tableau / départ','#64748b'],['bat','🏢','Bâtiment','#0f766e'],['etg','🔼','Étage','#0d9488'],['cpt','📟','Compteur','#7c3aed']],
+  c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['bat','🏢','Bâtiment','#0f766e'],['etg','🔼','Étage','#0d9488'],['cpt','📟','Compteur','#7c3aed']]};
+let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'],SYSIMPLE=['bat','etg'];let synV='t';try{synV=localStorage.getItem('synV')||'t'}catch(e){}
 const synRO=()=>document.body.classList.contains('out');
 const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
 function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{}}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
 function synTypeOf(v,t){return SYT[v].find(x=>x[0]===t)||SYT[v][SYT[v].length-1]}
 function renderSyno(){
-  const v=derTab;if(v==='b'||!$('syNodes'))return;const D=synoD[v],ids=Object.keys(D.nodes),cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c]));
+  const v=derTab;if(v==='b'||!$('syNodes'))return;const D=synoD[v],allIds=Object.keys(D.nodes),ids=synV==='s'?allIds.filter(i=>SYSIMPLE.includes(D.nodes[i].t)):allIds,cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c]));
   const tv0=$('syType').value;
-  $('syType').innerHTML=SYT[v].map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
+  $('syVue').value=synV;if(synSel&&D.nodes[synSel]&&!ids.includes(synSel))synSel=null;
+  $('syType').innerHTML=SYT[v].filter(t=>synV!=='s'||SYSIMPLE.includes(t[0])).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
   $('syBats').innerHTML=BATS.map(b=>`<option value="${esc(b)}">`).join('');
-  $('syTpl').hidden=!!ids.length;
-  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?'':'Glissez les éléments pour les placer. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
+  $('syTpl').hidden=!!allIds.length||synV==='s';
+  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
   $('syNodes').innerHTML=ids.map(id=>{const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
     let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
     const ct=SYCT.includes(n.t),deps=n.deps||{};
@@ -1983,6 +1989,8 @@ function renderSyno(){
       return `<div class="sydep" data-did="${did}"><span class="sdn" title="${esc(d.nom||'')}">${esc(d.nom||(dc?dc.nom:'Départ'))}</span><span class="sdv">${dv}</span><button type="button" class="edit-only sp${synLink===id&&synLinkP===did?' on':''}" data-sp="${did}" title="Relier ce départ à un autre élément">⇢</button><button type="button" class="edit-only" data-xd="${did}" title="Supprimer ce départ">✕</button></div>`}).join('')||'<small>Aucun départ : sélectionnez ce bloc puis « + Ajouter un départ ».</small>'}</div>`:'';
     return `<div class="synode${ct?' ct':''}${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="left:${n.x||0}px;top:${n.y||0}px;border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}${rows}</div>`}).join('');
   const ins=$('syIns');ins.hidden=!(synSel&&D.nodes[synSel]);
+  const ebx=$('syEtgBox'),sn0=synSel&&D.nodes[synSel];ebx.hidden=!(sn0&&sn0.t==='bat');
+  if(!ebx.hidden){const te=$('syEtgCpt').value;$('syEtgCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(te)$('syEtgCpt').value=te}
   const dbx=$('syDepBox'),sn=synSel&&D.nodes[synSel];dbx.hidden=!(sn&&SYCT.includes(sn.t));
   if(!dbx.hidden){const tc=$('syDepCpt').value;$('syDepCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(tc)$('syDepCpt').value=tc}
   if(!ins.hidden){const n=D.nodes[synSel];if(document.activeElement!==$('syNom'))$('syNom').value=n.nom||'';
@@ -2004,7 +2012,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
 (function(){
   const nodes=$('syNodes');
   document.querySelectorAll('#derTabs button').forEach(b=>b.onclick=()=>{derTab=b.dataset.vt;synSel=null;synLink=null;synLinkP=null;
-    document.querySelectorAll('#derTabs button').forEach(x=>x.classList.toggle('on',x===b));$('derVb').hidden=derTab!=='b';$('derVs').hidden=derTab==='b';
+    document.querySelectorAll('#derTabs button').forEach(x=>x.classList.toggle('on',x===b));$('derVb').hidden=derTab!=='b';$('derVs').hidden=derTab==='b';$('syVueL').hidden=derTab==='b';
     if(derTab==='b')derDraw();else{synKey='';renderSyno()}});
   $('syAdd').onclick=()=>{const v=derTab,t=$('syType').value,cv=$('syCanvas'),n=Object.keys(synoD[v].nodes).length,id=synAdd(t,'',cv.scrollLeft+30+(n%5)*20,cv.scrollTop+30+(n%5)*20);synSel=id;synKey='';renderSyno();synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]}}})};
   $('syTpl').onclick=()=>{const v=derTab,ids=[],ln={},nd=(t,nom,x,y,c)=>{const id=synAdd(t,nom,x,y,c);ids.push(id);return id},lk=(a,b)=>{const id=uid();synoD[v].links[id]={a,b};ln[id]={a,b}};
@@ -2014,6 +2022,11 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
     const nn={};ids.forEach(i=>nn[i]=synoD[v].nodes[i]);synKey='';renderSyno();synSave({[v]:{nodes:nn,links:ln}})};
   $('syNom').onchange=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;n.nom=$('syNom').value.trim();synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{nom:n.nom}}}})};
   $('syCpt').onchange=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;const c=$('syCpt').value;if(c)n.c=c;else delete n.c;synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{c:c||deleteField()}}}})};
+  $('syVue').onchange=ev=>{synV=ev.target.value;try{localStorage.setItem('synV',synV)}catch(e){}synKey='';renderSyno()};
+  $('syEtgAdd').onclick=()=>{const v=derTab,b=synoD[v].nodes[synSel];if(!b||b.t!=='bat')return;const key=$('syEtgCpt').value,c=derCounters().find(x=>x.key===key),nom=$('syEtgNom').value.trim()||(c?c.nom:'');if(!nom)return;
+    const k=Object.values(synoD[v].links).filter(l=>l.a===synSel&&synoD[v].nodes[l.b]&&synoD[v].nodes[l.b].t==='etg').length,
+      id=synAdd('etg',nom,(b.x||0)+230,(b.y||0)+k*95,key),lid=uid(),L={a:synSel,b:id};synoD[v].links[lid]=L;$('syEtgNom').value='';synKey='';renderSyno();
+    synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]},links:{[lid]:L}}})};
   $('syDepAdd').onclick=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;const key=$('syDepCpt').value,c=derCounters().find(x=>x.key===key),nom=$('syDepNom').value.trim()||(c?c.nom:'');
     if(!nom)return;const did=uid(),dep={nom};if(key)dep.c=key;(n.deps=n.deps||{})[did]=dep;$('syDepNom').value='';synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{deps:{[did]:dep}}}}})};
   $('syLink').onclick=()=>{if(synSel){synLink=synSel;renderSyno()}};
