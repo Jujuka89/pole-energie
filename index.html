@@ -124,6 +124,12 @@ main.wide{max-width:none;padding-left:6px;padding-right:6px}
 .synode{position:absolute;width:176px;padding:8px 10px;border:1px solid var(--line);border-left:5px solid var(--mute);border-radius:10px;background:var(--bg);user-select:none;touch-action:none;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.synode.lf{outline:2px dashed var(--elec)}
 .synode .sit{display:flex;gap:6px;align-items:center}.synode b{font-size:.9rem;line-height:1.2;word-break:break-word}.synode small{display:block;color:var(--mute);font-size:.72rem}.synode .syv{margin-top:3px;font-size:.92rem}
+.synode.ct{width:250px}.sydeps{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.sydep{position:relative;display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);font-size:.8rem}
+.sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
+.sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
+.sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
+#syDepBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden]{display:none}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .dsrcs{grid-column:1;display:flex;flex-direction:column;gap:20px;position:relative;z-index:1}
@@ -360,6 +366,11 @@ body.out .edit-only{display:none!important}
       <select id="syCpt"></select>
       <button type="button" id="syLink">Relier à…</button>
       <button type="button" id="syDel">Supprimer</button>
+    </span>
+    <span id="syDepBox" hidden><b>Départs :</b>
+      <input id="syDepNom" maxlength="40" placeholder="Nom du départ (ex. Départ EHPAD)">
+      <select id="syDepCpt"></select>
+      <button type="button" class="main" id="syDepAdd">+ Ajouter un départ</button>
     </span>
     <datalist id="syBats"></datalist>
   </div>
@@ -1953,7 +1964,7 @@ $('derP').onchange=ev=>{derP=ev.target.value;try{localStorage.setItem('derP',der
 const SYT={
   e:[['edf','⚡','Arrivée EDF','#2563eb'],['tr','🔌','Transformateur','#64748b'],['tgbt','🗄️','TGBT / tableau général','#64748b'],['gen','🛢️','Groupe électrogène','#b45309'],['ond','🔋','Onduleur','#64748b'],['tab','🔲','Tableau / départ','#64748b'],['bat','🏢','Bâtiment','#0f766e'],['cpt','📟','Compteur','#7c3aed']],
   c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['bat','🏢','Bâtiment','#0f766e'],['cpt','📟','Compteur','#7c3aed']]};
-let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synDrag=null,synKey='';
+let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'];
 const synRO=()=>document.body.classList.contains('out');
 const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
 function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{}}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
@@ -1967,47 +1978,61 @@ function renderSyno(){
   $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?'':'Glissez les éléments pour les placer. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
   $('syNodes').innerHTML=ids.map(id=>{const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
     let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
-    return `<div class="synode${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="left:${n.x||0}px;top:${n.y||0}px;border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}</div>`}).join('');
+    const ct=SYCT.includes(n.t),deps=n.deps||{};
+    const rows=ct?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
+      return `<div class="sydep" data-did="${did}"><span class="sdn" title="${esc(d.nom||'')}">${esc(d.nom||(dc?dc.nom:'Départ'))}</span><span class="sdv">${dv}</span><button type="button" class="edit-only sp${synLink===id&&synLinkP===did?' on':''}" data-sp="${did}" title="Relier ce départ à un autre élément">⇢</button><button type="button" class="edit-only" data-xd="${did}" title="Supprimer ce départ">✕</button></div>`}).join('')||'<small>Aucun départ : sélectionnez ce bloc puis « + Ajouter un départ ».</small>'}</div>`:'';
+    return `<div class="synode${ct?' ct':''}${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="left:${n.x||0}px;top:${n.y||0}px;border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}${rows}</div>`}).join('');
   const ins=$('syIns');ins.hidden=!(synSel&&D.nodes[synSel]);
+  const dbx=$('syDepBox'),sn=synSel&&D.nodes[synSel];dbx.hidden=!(sn&&SYCT.includes(sn.t));
+  if(!dbx.hidden){const tc=$('syDepCpt').value;$('syDepCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(tc)$('syDepCpt').value=tc}
   if(!ins.hidden){const n=D.nodes[synSel];if(document.activeElement!==$('syNom'))$('syNom').value=n.nom||'';
     $('syCpt').innerHTML='<option value="">Aucun compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');$('syCpt').value=n.c||''}
   synDraw()}
 function synDraw(){
   const v=derTab,D=synoD[v],cv=$('syCanvas'),svg=$('syLines');if(v==='b'||!svg)return;
-  const els={};$('syNodes').querySelectorAll('.synode').forEach(e=>els[e.dataset.id]={x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight});
+  const els={};$('syNodes').querySelectorAll('.synode').forEach(e=>{const ports={};e.querySelectorAll('.sydep').forEach(r=>ports[r.dataset.did]=r.offsetTop+r.offsetHeight/2);els[e.dataset.id]={x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight,ports}});
   let W=cv.clientWidth,H=cv.clientHeight;Object.values(els).forEach(r=>{W=Math.max(W,r.x+r.w+60);H=Math.max(H,r.y+r.h+60)});
   svg.setAttribute('width',W);svg.setAttribute('height',H);$('syNodes').style.width=W+'px';$('syNodes').style.height=H+'px';
   const col=v==='e'?'#2563eb':'#ea580c';
   svg.innerHTML=`<defs><marker id="syar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${col}"/></marker></defs>`+
-  Object.entries(D.links).map(([id,l])=>{const A=els[l.a],B=els[l.b];if(!A||!B)return '';let d;
-    if(B.x>=A.x+A.w-10){const x1=A.x+A.w,y1=A.y+A.h/2,x2=B.x,y2=B.y+B.h/2,dx=Math.max(40,(x2-x1)/2);d=`M${x1} ${y1}C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}`}
-    else if(B.x+B.w<=A.x+10){const x1=A.x,y1=A.y+A.h/2,x2=B.x+B.w,y2=B.y+B.h/2,dx=Math.max(40,(x1-x2)/2);d=`M${x1} ${y1}C${x1-dx} ${y1} ${x2+dx} ${y2} ${x2} ${y2}`}
+  Object.entries(D.links).map(([id,l])=>{const A=els[l.a],B=els[l.b];if(!A||!B)return '';let d;const py=l.p&&A.ports[l.p]!=null?A.y+A.ports[l.p]:A.y+A.h/2;
+    if(B.x>=A.x+A.w-10){const x1=A.x+A.w+(l.p?12:0),y1=py,x2=B.x,y2=B.y+B.h/2,dx=Math.max(40,(x2-x1)/2);d=`M${x1} ${y1}C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}`}
+    else if(B.x+B.w<=A.x+10){const x1=A.x,y1=py,x2=B.x+B.w,y2=B.y+B.h/2,dx=Math.max(40,(x1-x2)/2);d=`M${x1} ${y1}C${x1-dx} ${y1} ${x2+dx} ${y2} ${x2} ${y2}`}
     else{const dn=B.y>=A.y,x1=A.x+A.w/2,y1=dn?A.y+A.h:A.y,x2=B.x+B.w/2,y2=dn?B.y:B.y+B.h,dy=Math.max(30,Math.abs(y2-y1)/2)*(dn?1:-1);d=`M${x1} ${y1}C${x1} ${y1+dy} ${x2} ${y2-dy} ${x2} ${y2}`}
     return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" marker-end="url(#syar)"/><path class="lk" data-lk="${id}" d="${d}" fill="none" stroke="transparent" stroke-width="12"/>`}).join('')}
 function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:Math.round(y)};if(c)n.c=c;synoD[derTab].nodes[id]=n;return id}
 (function(){
   const nodes=$('syNodes');
-  document.querySelectorAll('#derTabs button').forEach(b=>b.onclick=()=>{derTab=b.dataset.vt;synSel=null;synLink=null;
+  document.querySelectorAll('#derTabs button').forEach(b=>b.onclick=()=>{derTab=b.dataset.vt;synSel=null;synLink=null;synLinkP=null;
     document.querySelectorAll('#derTabs button').forEach(x=>x.classList.toggle('on',x===b));$('derVb').hidden=derTab!=='b';$('derVs').hidden=derTab==='b';
     if(derTab==='b')derDraw();else{synKey='';renderSyno()}});
   $('syAdd').onclick=()=>{const v=derTab,t=$('syType').value,cv=$('syCanvas'),n=Object.keys(synoD[v].nodes).length,id=synAdd(t,'',cv.scrollLeft+30+(n%5)*20,cv.scrollTop+30+(n%5)*20);synSel=id;synKey='';renderSyno();synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]}}})};
   $('syTpl').onclick=()=>{const v=derTab,ids=[],ln={},nd=(t,nom,x,y,c)=>{const id=synAdd(t,nom,x,y,c);ids.push(id);return id},lk=(a,b)=>{const id=uid();synoD[v].links[id]={a,b};ln[id]={a,b}};
-    if(v==='e'){const a=nd('edf','Arrivée EDF',30,230,'e'),t=nd('tr','Transformateur',260,230),g=nd('tgbt','TGBT',490,230);lk(a,t);lk(t,g);BATS.forEach((b,i)=>{const x=nd('bat',b,760,20+i*80);lk(g,x)})}
+    if(v==='e'){const a=nd('edf','Arrivée EDF',30,230,'e'),t=nd('tr','Transformateur',260,230),g=nd('tgbt','TGBT',490,40);lk(a,t);lk(t,g);
+      const deps={};BATS.forEach((b,i)=>{const x=nd('bat',b,860,20+i*80),did=uid();deps[did]={nom:'Départ '+b};const lid=uid();synoD[v].links[lid]={a:g,b:x,p:did};ln[lid]={a:g,b:x,p:did}});synoD[v].nodes[g].deps=deps}
     else{const a=nd('gaz','Arrivée gaz',30,230,'g'),c=nd('chf','Chaufferie',260,230),r=nd('rdc','Réseau de chaleur',490,230);lk(a,c);lk(c,r);BATS.forEach((b,i)=>{const x=nd('bat',b,760,20+i*80);lk(r,x)})}
     const nn={};ids.forEach(i=>nn[i]=synoD[v].nodes[i]);synKey='';renderSyno();synSave({[v]:{nodes:nn,links:ln}})};
   $('syNom').onchange=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;n.nom=$('syNom').value.trim();synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{nom:n.nom}}}})};
   $('syCpt').onchange=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;const c=$('syCpt').value;if(c)n.c=c;else delete n.c;synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{c:c||deleteField()}}}})};
+  $('syDepAdd').onclick=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;const key=$('syDepCpt').value,c=derCounters().find(x=>x.key===key),nom=$('syDepNom').value.trim()||(c?c.nom:'');
+    if(!nom)return;const did=uid(),dep={nom};if(key)dep.c=key;(n.deps=n.deps||{})[did]=dep;$('syDepNom').value='';synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{deps:{[did]:dep}}}}})};
   $('syLink').onclick=()=>{if(synSel){synLink=synSel;renderSyno()}};
   $('syDel').onclick=()=>{const v=derTab,id=synSel;if(!id||!confirm('Supprimer cet élément et ses liaisons ?'))return;
     const o={nodes:{[id]:deleteField()},links:{}};delete synoD[v].nodes[id];Object.entries(synoD[v].links).forEach(([k,l])=>{if(l.a===id||l.b===id){o.links[k]=deleteField();delete synoD[v].links[k]}});
     if(!Object.keys(o.links).length)delete o.links; /* une map vide fusionnée écraserait toutes les liaisons */
     synSel=null;synKey='';renderSyno();synSave({[v]:o})};
-  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&synLink){synLink=null;renderSyno()}});
+  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&synLink){synLink=null;synLinkP=null;renderSyno()}});
   $('syLines').addEventListener('click',()=>{});
   $('syCanvas').addEventListener('click',ev=>{const lk=ev.target.closest('[data-lk]');if(lk&&!synRO()){if(confirm('Supprimer cette liaison ?')){const v=derTab,id=lk.dataset.lk;delete synoD[v].links[id];synKey='';renderSyno();synSave({[v]:{links:{[id]:deleteField()}}})}return}
-    if(!ev.target.closest('.synode')&&!synDrag&&(synSel||synLink)){synSel=null;synLink=null;renderSyno()}});
+    if(!ev.target.closest('.synode')&&!synDrag&&(synSel||synLink)){synSel=null;synLink=null;synLinkP=null;renderSyno()}});
   nodes.addEventListener('pointerdown',ev=>{const e=ev.target.closest('.synode');if(!e)return;const id=e.dataset.id,v=derTab;
-    if(synLink){if(id!==synLink&&!synRO()){const dup=Object.values(synoD[v].links).some(l=>l.a===synLink&&l.b===id);if(!dup){const lid=uid();synoD[v].links[lid]={a:synLink,b:id};synSave({[v]:{links:{[lid]:{a:synLink,b:id}}}})}}synLink=null;synKey='';renderSyno();return}
+    if(synLink){if(id!==synLink&&!synRO()){const dup=Object.values(synoD[v].links).some(l=>l.a===synLink&&l.b===id&&(l.p||null)===(synLinkP||null));if(!dup){const lid=uid(),L={a:synLink,b:id};if(synLinkP)L.p=synLinkP;synoD[v].links[lid]=L;synSave({[v]:{links:{[lid]:L}}})}}synLink=null;synLinkP=null;synKey='';renderSyno();return}
+    const btn=ev.target.closest('button');
+    if(btn&&!synRO()){ev.preventDefault();
+      if(btn.dataset.sp){synLink=id;synLinkP=btn.dataset.sp;synSel=id;synKey='';renderSyno()}
+      else if(btn.dataset.xd){const n=synoD[v].nodes[id],did=btn.dataset.xd;if(n&&n.deps&&confirm('Supprimer ce départ et son fil ?')){delete n.deps[did];const o={nodes:{[id]:{deps:{[did]:deleteField()}}}},lo={};
+        Object.entries(synoD[v].links).forEach(([k,l])=>{if(l.a===id&&l.p===did){lo[k]=deleteField();delete synoD[v].links[k]}});if(Object.keys(lo).length)o.links=lo;synKey='';renderSyno();synSave({[v]:o})}}
+      return}
     if(synRO())return;ev.preventDefault();
     synDrag={id,e,x:ev.clientX,y:ev.clientY,ox:e.offsetLeft,oy:e.offsetTop,moved:false};e.setPointerCapture(ev.pointerId)});
   nodes.addEventListener('pointermove',ev=>{const d=synDrag;if(!d)return;const dx=ev.clientX-d.x,dy=ev.clientY-d.y;if(!d.moved&&Math.abs(dx)+Math.abs(dy)<5)return;d.moved=true;
