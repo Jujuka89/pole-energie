@@ -117,6 +117,13 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 #vChr{max-width:1700px;margin:0 auto}.objg{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;align-items:center}@media (max-width:760px){.objg{grid-template-columns:1fr}}.chi{padding:8px 0;border-bottom:1px solid var(--line)}.chi p{overflow-wrap:anywhere}#chrTip,#cumTip{position:absolute;z-index:5;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:6px 9px;font-size:.85rem;max-width:280px;display:none}
 #vDer{max-width:none;margin:0}
 main.wide{max-width:none;padding-left:6px;padding-right:6px}
+.dtabs{display:flex;gap:6px;margin:0 0 10px}.dtabs button{border-radius:999px}.dtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.sytool{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.sytool input{min-width:180px}.sytool #syIns{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}.sytool #syIns[hidden]{display:none}
+.sycanvas{position:relative;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);height:min(70vh,720px);min-height:420px}
+.sycanvas>div#syNodes,.sycanvas>svg{position:absolute;left:0;top:0}.sycanvas svg{pointer-events:none}.sycanvas svg .lk{pointer-events:stroke;cursor:pointer}
+.synode{position:absolute;width:176px;padding:8px 10px;border:1px solid var(--line);border-left:5px solid var(--mute);border-radius:10px;background:var(--bg);user-select:none;touch-action:none;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.synode.lf{outline:2px dashed var(--elec)}
+.synode .sit{display:flex;gap:6px;align-items:center}.synode b{font-size:.9rem;line-height:1.2;word-break:break-word}.synode small{display:block;color:var(--mute);font-size:.72rem}.synode .syv{margin-top:3px;font-size:.92rem}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .dsrcs{grid-column:1;display:flex;flex-direction:column;gap:20px;position:relative;z-index:1}
@@ -325,6 +332,8 @@ body.out .edit-only{display:none!important}
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
 <div style="display:flex;justify-content:flex-end;margin:0 0 8px"><label>Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label></div>
+<div class="dtabs" id="derTabs"><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button></div>
+<div id="derVb">
 <div class="dmap" id="derMap">
 <svg class="dl" id="derLines"></svg>
 <div class="dsrcs">
@@ -340,6 +349,22 @@ body.out .edit-only{display:none!important}
 </div>
 </div>
 <div class="dlist" id="derList"></div>
+</div>
+</div>
+<div id="derVs" hidden>
+  <div class="sytool edit-only" id="syTool">
+    <select id="syType"></select><button type="button" class="main" id="syAdd">+ Ajouter l’élément</button>
+    <button type="button" id="syTpl" hidden>Insérer un modèle de départ</button>
+    <span id="syIns" hidden>
+      <input id="syNom" maxlength="40" placeholder="Nom de l’élément" list="syBats">
+      <select id="syCpt"></select>
+      <button type="button" id="syLink">Relier à…</button>
+      <button type="button" id="syDel">Supprimer</button>
+    </span>
+    <datalist id="syBats"></datalist>
+  </div>
+  <p class="note" id="syHint" style="margin:6px 0 8px"></p>
+  <div class="sycanvas" id="syCanvas"><svg id="syLines"></svg><div id="syNodes"></div></div>
 </div>
 </div>
 <div id="vArc" hidden>
@@ -490,7 +515,7 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps)}autoMap={};autoNames={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
@@ -1745,6 +1770,12 @@ function derFac(c){if(c.key==='e'||c.key==='g'||c.key[0]==='a')return 1;const u=
 function derMeasure(c){
   if(derP[0]==='y'){const r=derYearCmp(derSeries(c.key,c.aid),+derP.slice(1));return r?{cur:r.cur,base:r.base,prev:r.prev}:null}
   const r=c.aid&&Object.keys(autoMap[c.aid]||{}).length?derCalc(c.aid,derP):null;return r?{cur:r.kwh}:null}
+function derTot(n,by){const dp=derDeps[slug(n)]||[];if(!dp.length)return null;const mwh=v=>fmt(v/AUTO_DIV,1);
+  let cur=0,base=0,prev=0,hp=false,ok=0;
+  dp.forEach(d=>{const c=d.c?by[d.c]:null;if(!c)return;const f=derFac(c);if(f==null)return;const m=derMeasure(c);if(!m)return;cur+=m.cur*f;ok++;if(m.prev!=null){base+=m.base*f;prev+=m.prev*f;hp=true}});
+  if(!ok)return '<b>—</b><small>pas de valeur</small>';
+  const r=hp?{prev,base,diff:base-prev,pct:prev?(base-prev)/prev*100:null}:{prev:null};
+  return `<b>${mwh(cur)} MWh</b><small>${hp?derDelta(r,mwh,'MWh'):''}${ok<dp.length?(hp?' · ':'')+ok+'/'+dp.length+' départs':''}</small>`}
 function derBuild(){
   derKey=derNorm(derOrder,derDeps);
   const cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c])),used=new Set(Object.values(derDeps).flat().map(d=>d&&d.c).filter(Boolean));
@@ -1752,10 +1783,7 @@ function derBuild(){
   const opts=free.length?'<option value="">Choisir un compteur…</option>'+groups.map(g=>`<optgroup label="${esc(g)}">${free.filter(c=>c.g===g).map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''):'';
   const mwh=v=>fmt(v/AUTO_DIV,1);
   $('derList').innerHTML=derOrder.map((n,i)=>{const dp=derDeps[slug(n)]||[];
-    let cur=0,base=0,prev=0,hp=false,ok=0;
-    dp.forEach(d=>{const c=d.c?by[d.c]:null;if(!c)return;const f=derFac(c);if(f==null)return;const m=derMeasure(c);if(!m)return;cur+=m.cur*f;ok++;if(m.prev!=null){base+=m.base*f;prev+=m.prev*f;hp=true}});
-    let tot='';if(dp.length){if(ok){const r=hp?{prev,base,diff:base-prev,pct:prev?(base-prev)/prev*100:null}:{prev:null};
-        tot=`<b>${mwh(cur)} MWh</b><small>${hp?derDelta(r,mwh,'MWh'):''}${ok<dp.length?(hp?' · ':'')+ok+'/'+dp.length+' départs':''}</small>`}else tot='<b>—</b><small>pas de valeur</small>'}
+    const tot=derTot(n,by)||'';
     const cards=dp.map(d=>{const c=d.c?by[d.c]:null,ic=c?c.ic:d.k==='g'?'🔥':'⚡',nm=c?c.nom:d.nom,val=c?derDisp(c.key,c.aid,c.unit,false):'<small>—</small>';
       return `<div class="dep"><span class="dn">${ic} ${esc(nm)}${d.c&&!c?' <small>(compteur supprimé)</small>':''}</span><span class="dv">${val}</span><button type="button" class="link edit-only dx" data-dd="${esc(n)}|${esc(d.id)}" title="Retirer ce départ">✕</button></div>`}).join('');
     return `<div class="drow${derOpen.has(n)?' open':''}" data-b="${esc(n)}" data-i="${i}"><div class="dc"><div class="dhead"><span class="dgrip" title="Glisser pour déplacer" aria-label="Déplacer">⠿</span>${BICO}<span class="dnm"><b>${esc(n)}</b><small>${dp.length?dp.length+' départ'+(dp.length>1?'s':''):'aucun départ'}</small></span><span class="dtot">${tot}</span><span class="dchev">▸</span></div></div>
@@ -1916,9 +1944,78 @@ function renderDer(){
   sel.innerHTML='<option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option>'+derYears().map(y=>`<option value="y${y}">Année ${y}</option>`).join('');
   if(![...sel.options].some(o=>o.value===derP))derP='h';sel.value=derP;
   if(!derDrag&&!$('derList').contains(document.activeElement))derBuild();
+  if(derTab!=='b'&&!synDrag&&document.activeElement!==$('syNom')&&document.activeElement!==$('syCpt')&&document.activeElement!==$('syType')){synKey='';renderSyno()}
   $('derEdfV').innerHTML=derDisp('e','e','kWh',true);$('derGazV').innerHTML=derDisp('g','g','kWh',true);
   derDraw()}
 $('derP').onchange=ev=>{derP=ev.target.value;try{localStorage.setItem('derP',derP)}catch(e){}renderDer()};
+
+/* ---------- Synoptiques (électricité / chauffage) ---------- */
+const SYT={
+  e:[['edf','⚡','Arrivée EDF','#2563eb'],['tr','🔌','Transformateur','#64748b'],['tgbt','🗄️','TGBT / tableau général','#64748b'],['gen','🛢️','Groupe électrogène','#b45309'],['ond','🔋','Onduleur','#64748b'],['tab','🔲','Tableau / départ','#64748b'],['bat','🏢','Bâtiment','#0f766e'],['cpt','📟','Compteur','#7c3aed']],
+  c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['bat','🏢','Bâtiment','#0f766e'],['cpt','📟','Compteur','#7c3aed']]};
+let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synDrag=null,synKey='';
+const synRO=()=>document.body.classList.contains('out');
+const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
+function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{}}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
+function synTypeOf(v,t){return SYT[v].find(x=>x[0]===t)||SYT[v][SYT[v].length-1]}
+function renderSyno(){
+  const v=derTab;if(v==='b'||!$('syNodes'))return;const D=synoD[v],ids=Object.keys(D.nodes),cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c]));
+  const tv0=$('syType').value;
+  $('syType').innerHTML=SYT[v].map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
+  $('syBats').innerHTML=BATS.map(b=>`<option value="${esc(b)}">`).join('');
+  $('syTpl').hidden=!!ids.length;
+  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?'':'Glissez les éléments pour les placer. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
+  $('syNodes').innerHTML=ids.map(id=>{const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
+    let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
+    return `<div class="synode${synSel===id?' sel':''}${synLink===id?' lf':''}" data-id="${id}" style="left:${n.x||0}px;top:${n.y||0}px;border-left-color:${t[3]}"><div class="sit"><span>${t[1]}</span><b>${esc(n.nom||t[2])}</b></div><small>${esc(t[2])}${c?' · '+esc(c.nom):''}</small>${val?`<div class="syv">${val}</div>`:''}</div>`}).join('');
+  const ins=$('syIns');ins.hidden=!(synSel&&D.nodes[synSel]);
+  if(!ins.hidden){const n=D.nodes[synSel];if(document.activeElement!==$('syNom'))$('syNom').value=n.nom||'';
+    $('syCpt').innerHTML='<option value="">Aucun compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');$('syCpt').value=n.c||''}
+  synDraw()}
+function synDraw(){
+  const v=derTab,D=synoD[v],cv=$('syCanvas'),svg=$('syLines');if(v==='b'||!svg)return;
+  const els={};$('syNodes').querySelectorAll('.synode').forEach(e=>els[e.dataset.id]={x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight});
+  let W=cv.clientWidth,H=cv.clientHeight;Object.values(els).forEach(r=>{W=Math.max(W,r.x+r.w+60);H=Math.max(H,r.y+r.h+60)});
+  svg.setAttribute('width',W);svg.setAttribute('height',H);$('syNodes').style.width=W+'px';$('syNodes').style.height=H+'px';
+  const col=v==='e'?'#2563eb':'#ea580c';
+  svg.innerHTML=`<defs><marker id="syar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${col}"/></marker></defs>`+
+  Object.entries(D.links).map(([id,l])=>{const A=els[l.a],B=els[l.b];if(!A||!B)return '';let d;
+    if(B.x>=A.x+A.w-10){const x1=A.x+A.w,y1=A.y+A.h/2,x2=B.x,y2=B.y+B.h/2,dx=Math.max(40,(x2-x1)/2);d=`M${x1} ${y1}C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}`}
+    else if(B.x+B.w<=A.x+10){const x1=A.x,y1=A.y+A.h/2,x2=B.x+B.w,y2=B.y+B.h/2,dx=Math.max(40,(x1-x2)/2);d=`M${x1} ${y1}C${x1-dx} ${y1} ${x2+dx} ${y2} ${x2} ${y2}`}
+    else{const dn=B.y>=A.y,x1=A.x+A.w/2,y1=dn?A.y+A.h:A.y,x2=B.x+B.w/2,y2=dn?B.y:B.y+B.h,dy=Math.max(30,Math.abs(y2-y1)/2)*(dn?1:-1);d=`M${x1} ${y1}C${x1} ${y1+dy} ${x2} ${y2-dy} ${x2} ${y2}`}
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" marker-end="url(#syar)"/><path class="lk" data-lk="${id}" d="${d}" fill="none" stroke="transparent" stroke-width="12"/>`}).join('')}
+function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:Math.round(y)};if(c)n.c=c;synoD[derTab].nodes[id]=n;return id}
+(function(){
+  const nodes=$('syNodes');
+  document.querySelectorAll('#derTabs button').forEach(b=>b.onclick=()=>{derTab=b.dataset.vt;synSel=null;synLink=null;
+    document.querySelectorAll('#derTabs button').forEach(x=>x.classList.toggle('on',x===b));$('derVb').hidden=derTab!=='b';$('derVs').hidden=derTab==='b';
+    if(derTab==='b')derDraw();else{synKey='';renderSyno()}});
+  $('syAdd').onclick=()=>{const v=derTab,t=$('syType').value,cv=$('syCanvas'),n=Object.keys(synoD[v].nodes).length,id=synAdd(t,'',cv.scrollLeft+30+(n%5)*20,cv.scrollTop+30+(n%5)*20);synSel=id;synKey='';renderSyno();synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]}}})};
+  $('syTpl').onclick=()=>{const v=derTab,ids=[],ln={},nd=(t,nom,x,y,c)=>{const id=synAdd(t,nom,x,y,c);ids.push(id);return id},lk=(a,b)=>{const id=uid();synoD[v].links[id]={a,b};ln[id]={a,b}};
+    if(v==='e'){const a=nd('edf','Arrivée EDF',30,230,'e'),t=nd('tr','Transformateur',260,230),g=nd('tgbt','TGBT',490,230);lk(a,t);lk(t,g);BATS.forEach((b,i)=>{const x=nd('bat',b,760,20+i*80);lk(g,x)})}
+    else{const a=nd('gaz','Arrivée gaz',30,230,'g'),c=nd('chf','Chaufferie',260,230),r=nd('rdc','Réseau de chaleur',490,230);lk(a,c);lk(c,r);BATS.forEach((b,i)=>{const x=nd('bat',b,760,20+i*80);lk(r,x)})}
+    const nn={};ids.forEach(i=>nn[i]=synoD[v].nodes[i]);synKey='';renderSyno();synSave({[v]:{nodes:nn,links:ln}})};
+  $('syNom').onchange=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;n.nom=$('syNom').value.trim();synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{nom:n.nom}}}})};
+  $('syCpt').onchange=()=>{const v=derTab,n=synoD[v].nodes[synSel];if(!n)return;const c=$('syCpt').value;if(c)n.c=c;else delete n.c;synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{c:c||deleteField()}}}})};
+  $('syLink').onclick=()=>{if(synSel){synLink=synSel;renderSyno()}};
+  $('syDel').onclick=()=>{const v=derTab,id=synSel;if(!id||!confirm('Supprimer cet élément et ses liaisons ?'))return;
+    const o={nodes:{[id]:deleteField()},links:{}};delete synoD[v].nodes[id];Object.entries(synoD[v].links).forEach(([k,l])=>{if(l.a===id||l.b===id){o.links[k]=deleteField();delete synoD[v].links[k]}});
+    synSel=null;synKey='';renderSyno();synSave({[v]:o})};
+  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&synLink){synLink=null;renderSyno()}});
+  $('syLines').addEventListener('click',()=>{});
+  $('syCanvas').addEventListener('click',ev=>{const lk=ev.target.closest('[data-lk]');if(lk&&!synRO()){if(confirm('Supprimer cette liaison ?')){const v=derTab,id=lk.dataset.lk;delete synoD[v].links[id];synKey='';renderSyno();synSave({[v]:{links:{[id]:deleteField()}}})}return}
+    if(!ev.target.closest('.synode')&&!synDrag&&(synSel||synLink)){synSel=null;synLink=null;renderSyno()}});
+  nodes.addEventListener('pointerdown',ev=>{const e=ev.target.closest('.synode');if(!e)return;const id=e.dataset.id,v=derTab;
+    if(synLink){if(id!==synLink&&!synRO()){const dup=Object.values(synoD[v].links).some(l=>l.a===synLink&&l.b===id);if(!dup){const lid=uid();synoD[v].links[lid]={a:synLink,b:id};synSave({[v]:{links:{[lid]:{a:synLink,b:id}}}})}}synLink=null;synKey='';renderSyno();return}
+    if(synRO())return;ev.preventDefault();
+    synDrag={id,e,x:ev.clientX,y:ev.clientY,ox:e.offsetLeft,oy:e.offsetTop,moved:false};e.setPointerCapture(ev.pointerId)});
+  nodes.addEventListener('pointermove',ev=>{const d=synDrag;if(!d)return;const dx=ev.clientX-d.x,dy=ev.clientY-d.y;if(!d.moved&&Math.abs(dx)+Math.abs(dy)<5)return;d.moved=true;
+    d.e.style.left=Math.max(0,d.ox+dx)+'px';d.e.style.top=Math.max(0,d.oy+dy)+'px';synDraw2()});
+  const synDraw2=()=>{const v=derTab,D=synoD[v];if(synDrag){const n=D.nodes[synDrag.id];if(n){n.x=parseInt(synDrag.e.style.left);n.y=parseInt(synDrag.e.style.top)}}synDraw()};
+  const end=ev=>{const d=synDrag;if(!d)return;synDrag=null;const v=derTab,n=synoD[v].nodes[d.id];
+    if(d.moved&&n){synKey='';synSave({[v]:{nodes:{[d.id]:{x:n.x,y:n.y}}}});renderSyno()}else{synSel=d.id;renderSyno()}};
+  nodes.addEventListener('pointerup',end);nodes.addEventListener('pointercancel',end);
+  window.addEventListener('resize',()=>{if(derTab!=='b')synDraw()})})();
 function route(){const h=location.hash;document.querySelector('main').classList.toggle('wide',h==='#derives');const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives';$('vDash').hidden=r||pj||dj||ch||ar||dv;$('vDer').hidden=!dv;if(dv)renderDer();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
