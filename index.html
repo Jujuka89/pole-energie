@@ -119,7 +119,7 @@ details.tkd{margin-top:12px;border-top:1px solid var(--line)}details.tkd>summary
 main.wide{max-width:none;padding-left:6px;padding-right:6px}
 .dtabs{display:flex;gap:6px;margin:0 0 10px}.dtabs button{border-radius:999px}.dtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 .sytool{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.sytool input{min-width:180px}.sytool #syIns{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}.sytool #syIns[hidden]{display:none}
-.sycanvas{position:relative;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);height:min(70vh,720px);min-height:420px}
+.sycanvas{position:relative;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);height:calc(100vh - 230px);min-height:420px}#vDer>header{margin-bottom:6px;padding-top:0}#vDer>header .sub{display:none}#vDer>header h1{font-size:1.25rem;margin:0}.dtabs{align-items:center;flex-wrap:wrap}
 .sycanvas>div#syNodes,.sycanvas>svg{position:absolute;left:0;top:0}.sycanvas svg{pointer-events:none}.sycanvas svg .lk{pointer-events:stroke;cursor:pointer}
 .synode{position:absolute;width:176px;padding:8px 10px;border:1px solid var(--line);border-left:5px solid var(--mute);border-radius:10px;background:var(--bg);user-select:none;touch-action:none;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.synode.lf{outline:2px dashed var(--elec)}
@@ -337,8 +337,7 @@ body.out .edit-only{display:none!important}
   </div>
   <a class="btn" href="#">← Tableau de bord</a>
 </header>
-<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><label>Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label></div>
-<div class="dtabs" id="derTabs"><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" hidden style="margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
+<div class="dtabs" id="derTabs"><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" hidden style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
 <div id="derVb">
 <div class="dmap" id="derMap">
 <svg class="dl" id="derLines"></svg>
@@ -1974,6 +1973,10 @@ const synRO=()=>document.body.classList.contains('out');
 const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
 function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{}}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
 function synTypeOf(v,t){return SYT[v].find(x=>x[0]===t)||SYT[v][SYT[v].length-1]}
+function synFit(){const v=derTab,D=synoD[v],nd=$('syNodes'),G=16,L=[...nd.querySelectorAll(':scope>.synode')].map(e=>({id:e.dataset.id,e,x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight})).sort((a,b)=>a.y-b.y||a.x-b.x),done=[],ch={};
+  L.forEach(r=>{let m=true,k=0;while(m&&k++<60){m=false;for(const o of done){if(r.x<o.x+o.w+G&&o.x<r.x+r.w+G&&r.y<o.y+o.h+G&&o.y<r.y+r.h+G){r.y=o.y+o.h+G;m=true}}}
+    if(r.y!==D.nodes[r.id].y&&Math.abs(r.y-(D.nodes[r.id].y||0))>0){r.e.style.top=r.y+'px';D.nodes[r.id].y=r.y;ch[r.id]={y:r.y}}done.push(r)});
+  if(Object.keys(ch).length&&!synRO()){synKey='';synSave({[v]:{nodes:ch}})}}
 function renderSyno(){
   const v=derTab;if(v==='b'||!$('syNodes'))return;const D=synoD[v],allIds=Object.keys(D.nodes),top=allIds.filter(i=>!D.nodes[i].parent||!D.nodes[D.nodes[i].parent]),ids=synV==='s'?top.filter(i=>SYSIMPLE.includes(D.nodes[i].t)):top,cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c]));
   const tv0=$('syType').value;
@@ -1999,7 +2002,7 @@ function renderSyno(){
   if(!dbx.hidden){const tc=$('syDepCpt').value;$('syDepCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(tc)$('syDepCpt').value=tc}
   if(!ins.hidden){const n=D.nodes[synSel];if(document.activeElement!==$('syNom'))$('syNom').value=n.nom||'';
     $('syCpt').innerHTML='<option value="">Aucun compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');$('syCpt').value=n.c||''}
-  synDraw()}
+  synFit();synDraw()}
 function synDraw(){
   const v=derTab,D=synoD[v],cv=$('syCanvas'),svg=$('syLines');if(v==='b'||!svg)return;
   const els={};const nr=$('syNodes').getBoundingClientRect();$('syNodes').querySelectorAll('.synode').forEach(e=>{const r=e.getBoundingClientRect(),ports={};e.querySelectorAll(':scope>.sydeps>.sydep').forEach(q=>{const qr=q.getBoundingClientRect();ports[q.dataset.did]=qr.top-r.top+qr.height/2});els[e.dataset.id]={x:r.left-nr.left,y:r.top-nr.top,w:r.width,h:r.height,ports}});
