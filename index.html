@@ -129,7 +129,7 @@ body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.syn
 .sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
 .sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
 .sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
-.synode.ch.dragging{z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.synode.bf{display:flex;flex-direction:column}.synode.bf>.syin{position:relative;flex:1 1 auto;margin-top:6px;border-radius:8px;min-height:110px;background:rgba(127,127,127,.07)}.synode.ch.fl{position:absolute;width:176px;margin:0}.synode.ch.fl.ct{width:250px}details.cp:not([data-auto]) .cax{display:none}.cadet>td{background:rgba(127,127,127,.07)}.cadet table{margin:4px 0}
+.synode.ch.dragging{z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.synode.bf{display:flex;flex-direction:column}.synode.bf>.syin{position:relative;flex:1 1 auto;margin-top:6px;border-radius:8px;min-height:110px;background:rgba(127,127,127,.07)}.synode.ch.fl{position:absolute;width:176px;margin:0}.synode.ch.fl.ct{width:250px}#syTool.locked>*:not(#syLock){display:none!important}.sylocked .syrz,.sylocked .syq,.sylocked .sydep button{display:none!important}body:not(.out) .sylocked .synode{cursor:default}#syLock.on{background:var(--ink);color:var(--bg)}details.cp:not([data-auto]) .cax{display:none}.cadet>td{background:rgba(127,127,127,.07)}.cadet table{margin:4px 0}
 #syDepBox,#syEtgBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden],#syEtgBox[hidden],#syVueL[hidden]{display:none!important}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
@@ -358,6 +358,7 @@ body.out .edit-only{display:none!important}
 </div>
 <div id="derVs" hidden>
   <div class="sytool edit-only" id="syTool">
+    <button type="button" id="syLock" title="Verrouiller / déverrouiller le synoptique">🔓 Verrouiller</button>
     <select id="syType"></select><button type="button" class="main" id="syAdd">+ Ajouter l’élément</button>
     <button type="button" id="syTpl" hidden>Insérer un modèle de départ</button>
     <span id="syIns" hidden>
@@ -1998,9 +1999,9 @@ const SYT={
   e:[['edf','⚡','Arrivée EDF','#2563eb'],['tr','🔌','Transformateur','#64748b'],['tgbt','🗄️','TGBT / tableau général','#64748b'],['gen','🛢️','Groupe électrogène','#b45309'],['ond','🔋','Onduleur','#64748b'],['tab','🔲','Tableau / départ','#64748b'],['bat','🏢','Bâtiment','#0f766e'],['etg','🔼','Étage','#0d9488'],['cpt','📟','Compteur','#7c3aed']],
   c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['bat','🏢','Bâtiment','#0f766e'],['etg','🔼','Étage','#0d9488'],['cpt','📟','Compteur','#7c3aed']]};
 let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'],SYSIMPLE=['bat','etg'],SYCHILD=['tgbt','tab','chf','ss','etg','gen','ond'];let synV='t';try{synV=localStorage.getItem('synV')||'t'}catch(e){}
-const synRO=()=>document.body.classList.contains('out');
+const synRO=()=>document.body.classList.contains('out')||!!(synoD[derTab]&&synoD[derTab].lock);
 const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
-function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{}}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
+function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{},lock:!!(x&&x.lock)}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
 function synTypeOf(v,t){return SYT[v].find(x=>x[0]===t)||SYT[v][SYT[v].length-1]}
 function synFit(){const v=derTab,D=synoD[v],nd=$('syNodes'),G=16,L=[...nd.querySelectorAll(':scope>.synode')].map(e=>({id:e.dataset.id,e,x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight})).sort((a,b)=>a.y-b.y||a.x-b.x),done=[],ch={};
   L.forEach(r=>{let m=true,k=0;while(m&&k++<60){m=false;for(const o of done){if(r.x<o.x+o.w+G&&o.x<r.x+r.w+G&&r.y<o.y+o.h+G&&o.y<r.y+r.h+G){r.y=o.y+o.h+G;m=true}}}
@@ -2025,6 +2026,7 @@ function renderSyno(){
   $('syNodes').innerHTML=ids.map(id=>html1(id,false)).join('');
   if(synSel&&!vis.has(synSel))synSel=null;
 
+  {const lk=!!(D&&D.lock);$('syTool').classList.toggle('locked',lk);$('syCanvas').classList.toggle('sylocked',lk);const b=$('syLock');b.classList.toggle('on',lk);b.textContent=lk?'🔒 Verrouillé — déverrouiller':'🔓 Verrouiller'}
   const ins=$('syIns');ins.hidden=!(synSel&&D.nodes[synSel]);
   const ebx=$('syEtgBox'),sn0=synSel&&D.nodes[synSel];ebx.hidden=!(sn0&&sn0.t==='bat');
   if(!ebx.hidden){const te=$('syEtgCpt').value;$('syEtgCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(te)$('syEtgCpt').value=te}
@@ -2085,6 +2087,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
     const o={nodes:{},links:{}};del.forEach(k=>{o.nodes[k]=deleteField();delete D.nodes[k]});Object.entries(D.links).forEach(([k,l])=>{if(del.includes(l.a)||del.includes(l.b)){o.links[k]=deleteField();delete D.links[k]}});
     if(!Object.keys(o.links).length)delete o.links; /* une map vide fusionnée écraserait toutes les liaisons */
     synSel=null;synKey='';renderSyno();synSave({[v]:o})};
+  $('syLock').addEventListener('click',()=>{const v=derTab;if(v==='b'||!synoD[v])return;const lk=!synoD[v].lock;synoD[v].lock=lk;if(lk){synLink=null;synLinkP=null;synSel=null}synKey='';renderSyno();synSave({[v]:{lock:lk}})});
   document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&synLink){synLink=null;synLinkP=null;renderSyno()}});
   $('syLines').addEventListener('click',()=>{});
   $('syCanvas').addEventListener('click',ev=>{const lk=ev.target.closest('[data-lk]');if(lk&&!synRO()){if(confirm('Supprimer cette liaison ?')){const v=derTab,id=lk.dataset.lk;delete synoD[v].links[id];synKey='';renderSyno();synSave({[v]:{links:{[id]:deleteField()}}})}return}
