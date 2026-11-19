@@ -1879,7 +1879,9 @@ function autoMonth(id,ym){const m=autoMap[id]||{},ds=Object.keys(m).sort(),inM=d
   return{v,partial:!pv,n:inM.length,left:Math.max(0,lim-inM.length)}}
 function autoMonthVal(id,ym){const m=autoMap[id]||{},ds=Object.keys(m).sort(),cur=ds.filter(d=>d.slice(0,7)===ym).pop(),pv=ds.filter(d=>d.slice(0,7)<ym).pop();return cur&&pv?m[cur]-m[pv]:null}
 function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),m=autoMap[id]||{},ds=Object.keys(m).sort(),has=ds.length>0,box=document.querySelector('[data-oc="'+c.id+'"]');if(!box)return;
-  if(has)box.setAttribute('data-auto','1');else box.removeAttribute('data-auto');if(!has)return;
+  if(has)box.setAttribute('data-auto','1');else box.removeAttribute('data-auto');
+  box.querySelectorAll('[data-cv]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],lock=has&&ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.title=lock?'Verrouillé : des index ont été saisis pour ce mois, le total est calculé à partir des jours.':''});
+  if(!has)return;
   const tot={};
   box.querySelectorAll('[data-ca]').forEach(td=>{const ym=td.dataset.ca.split('|')[1],r=autoMonth(id,ym);td.innerHTML=r?`<b>${fIdx(r.v)}</b> <span class="note" style="margin:0">${r.left>0?'reste '+r.left+' jour'+(r.left>1?'s':'')+' à saisir':'complet'}${r.partial?' · sans index de référence':''}</span>`:'–';if(r)tot[ym.slice(0,4)]=(tot[ym.slice(0,4)]||0)+r.v});
   box.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1];sp.textContent=c.valeurs&&c.valeurs[ym]!=null?'total saisi':''});
