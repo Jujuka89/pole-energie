@@ -260,8 +260,8 @@ body.out .edit-only{display:none!important}
     </form>
   </div>
   <div id="cptRows">
-    <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><div id="autoE"></div><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div id="gridsE"></div></div></details>
-    <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span> <span class="mode" id="modeG"></span> <span class="note" id="infoG"></span></summary><div class="cpb"><div id="autoG"></div><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div id="gridsG"></div></div></details>
+    <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div id="gridsE"></div></div></details>
+    <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span> <span class="mode" id="modeG"></span> <span class="note" id="infoG"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div id="gridsG"></div></div></details>
     <div id="vCpt"><div id="cList"></div></div>
     <div id="autoMeters"></div>
   </div>
@@ -1913,7 +1913,7 @@ function setMode(el,auto){if(!el)return;el.textContent=auto?'Automatique':'Manue
 function lastManual(k){const m=data.filter(d=>d[k]!=null).map(d=>d.m).sort().pop();return m?'dernière valeur : '+MOISL[+m.slice(5)-1].toLowerCase()+' '+m.slice(0,4):'aucune valeur'}
 function cptModes(){
   const ids=new Set(Object.keys(autoMap));
-  ['e','g'].forEach(k=>{const au=ids.has(k);setMode($('mode'+k.toUpperCase()),au);$('info'+k.toUpperCase()).innerHTML=au?autoStat(k):esc(lastManual(k));$('auto'+k.toUpperCase()).innerHTML=au?'<p class="note" style="margin:0 0 6px"><b>Relevés automatiques</b> (index reçus par CSV)</p>'+autoHist(k):''});
+  ['e','g'].forEach(k=>{const au=ids.has(k);setMode($('mode'+k.toUpperCase()),au);$('info'+k.toUpperCase()).innerHTML=au?autoStat(k):esc(lastManual(k))});
   const sec=new Set(['e','g']);
   compteurs.forEach(c=>{const id=slug(c.nom||'');sec.add(id);setMode(document.querySelector('[data-cmode="'+c.id+'"]'),Object.keys(autoMap[id]||{}).some(d=>!autoMan[id+'|'+d]))});
   $('nC').textContent=2+compteurs.length+[...ids].filter(id=>!sec.has(id)).length;
