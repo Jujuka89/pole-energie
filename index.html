@@ -1866,8 +1866,8 @@ function autoAge(d){return Math.round((new Date(today())-new Date(d))/864e5)}
 const autoNextD={};
 function autoHist(id){
   const m=autoMap[id]||{},ds=Object.keys(m).sort();if(!ds.length)return '';
-  const row=d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd]):'—'}</td></tr>`};
-  const tb=l=>'<div style="overflow-x:auto"><table class="gt"><thead><tr><th>Date</th><th>Index</th><th>Écart</th></tr></thead><tbody>'+l.map(row).join('')+'</tbody></table></div>';
+  const row=d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd]):'—'}</td><td><button type="button" class="link edit-only" data-delidx="${esc(id)}|${d}" title="Supprimer cet index">✕</button></td></tr>`};
+  const tb=l=>'<div style="overflow-x:auto"><table class="gt"><thead><tr><th>Date</th><th>Index</th><th>Écart</th><th class="edit-only"></th></tr></thead><tbody>'+l.map(row).join('')+'</tbody></table></div>';
   const old=ds.slice(0,-14).reverse();
   return tb(ds.slice(-14).reverse())+(old.length?`<details style="margin-top:6px"><summary class="note" style="cursor:pointer">Voir les ${old.length} relevé${old.length>1?'s':''} plus ancien${old.length>1?'s':''}</summary>${tb(old)}</details>`:'')}
 function autoDayForm(id,ym){const e=esc(id);let mn='',mx=today();if(ym){mn=ym+'-01';const l=ym+'-'+String(new Date(+ym.slice(0,4),+ym.slice(5),0).getDate()).padStart(2,'0');if(l<mx)mx=l}
@@ -1882,7 +1882,7 @@ function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),m=autoMap[
   box.querySelectorAll('[data-cat]').forEach(td=>{const y=td.dataset.cat.split('|')[1];td.textContent=tot[y]!=null?fIdx(tot[y]):'–'});
   box.querySelectorAll('[data-cd]').forEach(td=>{const key=td.dataset.cd,ym=key.split('|')[1],open=cdOpen.has(key),bt=box.querySelector('[data-tgd="'+key+'"]');td.parentElement.hidden=!open;if(bt)bt.textContent=open?'▾':'▸';if(!open){td.innerHTML='';return}
     const days=ds.filter(d=>d.slice(0,7)===ym);
-    td.innerHTML=(days.length?'<table class="gt"><thead><tr><th>Date</th><th>Index</th><th>Écart</th></tr></thead><tbody>'+days.map(d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd]):'—'}</td></tr>`}).join('')+'</tbody></table>':'<p class="note" style="margin:4px 0">Aucun index ce mois-ci.</p>')+autoDayForm(id,ym)})})}
+    td.innerHTML=(days.length?'<table class="gt"><thead><tr><th>Date</th><th>Index</th><th>Écart</th><th class="edit-only"></th></tr></thead><tbody>'+days.map(d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd]):'—'}</td><td><button type="button" class="link edit-only" data-delidx="${esc(id)}|${d}" title="Supprimer cet index">✕</button></td></tr>`}).join('')+'</tbody></table>':'<p class="note" style="margin:4px 0">Aucun index ce mois-ci.</p>')+autoDayForm(id,ym)})})}
 function autoMonForm(id){const e=esc(id);return `<div class="edit-only" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px"><button type="button" class="main" data-mkcpt="${e}">Saisir les valeurs mensuelles (tableau par année)</button><span class="note" style="margin:0">Crée le compteur « ${esc(autoNames[id]||id)} » dans la liste des compteurs, lié aux index automatiques.</span></div>`}
 function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
   return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
@@ -1914,6 +1914,9 @@ function autoAddClick(ev){const b=ev.target.closest('button');if(!b)return;
     setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{[id+'_'+d.slice(8,10)]:v,['N_'+id]:autoNames[id]||id},{merge:true}).catch(refus)}
   else if(b.dataset.mkcpt){const id=b.dataset.mkcpt,nom=autoNames[id]||id,cid='a_'+id;openC.add(cid);
     setDoc(doc(db,'compteurs',cid),{nom,unite:'',energie:'',valeurs:{},cree:Date.now()},{merge:true}).then(()=>setTimeout(()=>{const el=document.querySelector('[data-oc="'+cid+'"]');if(el){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}},500)).catch(refus)}}
+$('vCpt').addEventListener('click',ev=>{const b=ev.target.closest('[data-delidx]');if(!b)return;const[id,d]=b.dataset.delidx.split('|'),x=(autoMap[id]||{})[d];
+  if(!confirm('Supprimer l’index du '+dfr(d)+(x!=null?' ('+fIdx(x)+')':'')+' ?'))return;
+  setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{[id+'_'+d.slice(8,10)]:deleteField()},{merge:true}).catch(refus)});
 $('autoMeters').addEventListener('click',autoAddClick);$('cList').addEventListener('click',autoAddClick);
 $('autoMeters').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.ao){d.open?autoOpen.add(d.dataset.ao):autoOpen.delete(d.dataset.ao)}},true);
 function renderAuto(){
