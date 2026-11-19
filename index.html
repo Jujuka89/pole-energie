@@ -129,7 +129,7 @@ body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.syn
 .sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
 .sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
 .sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
-.synode.ch.dragging{z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.synode.bf{display:flex;flex-direction:column}.synode.bf>.syin{position:relative;flex:1 1 auto;margin-top:6px;border-radius:8px;min-height:110px;background:rgba(127,127,127,.07)}.synode.ch.fl{position:absolute;width:176px;margin:0}.synode.ch.fl.ct{width:250px}.synode.rd{width:150px;height:150px;box-sizing:border-box;border-radius:50%;border-width:4px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}.synode.rd .sit{flex-direction:column;gap:0;font-size:1.3rem;line-height:1.1}.synode.rd small{font-size:.68rem}.synode.rd .syv{margin-top:2px;font-size:.85rem}#syTool.locked>*:not(#syLock){display:none!important}.sylocked .syrz,.sylocked .syq,.sylocked .sydep button{display:none!important}body:not(.out) .sylocked .synode{cursor:default}#syLock.on{background:var(--ink);color:var(--bg)}details.cp:not([data-auto]) .cax{display:none}.cadet>td{background:rgba(127,127,127,.07)}.cadet table{margin:4px 0}input.cv:disabled{background:repeating-linear-gradient(45deg,rgba(127,127,127,.30) 0 4px,transparent 4px 9px);cursor:not-allowed;opacity:1}
+.synode.ch.dragging{z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.synode.bf{display:flex;flex-direction:column}.synode.bf>.syin{position:relative;flex:1 1 auto;margin-top:6px;border-radius:8px;min-height:110px;background:rgba(127,127,127,.07)}.synode.ch.fl{position:absolute;width:176px;margin:0}.synode.ch.fl.ct{width:250px}.synode.rd{width:150px;height:150px;box-sizing:border-box;border-radius:50%;border-width:4px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}.synode.rd .sit{flex-direction:column;gap:0;font-size:1.3rem;line-height:1.1}.synode.rd small{font-size:.68rem}.synode.rd .syv{margin-top:2px;font-size:.85rem}#syTool.locked>*:not(#syLock){display:none!important}.sylocked .syrz,.sylocked .syq,.sylocked .sydep button{display:none!important}body:not(.out) .sylocked .synode{cursor:default}#syLock.on{background:var(--ink);color:var(--bg)}details.cp:not([data-auto]) .cax{display:none}.cadet>td{background:rgba(127,127,127,.07)}.cadet table{margin:4px 0}input.lk:disabled{background:repeating-linear-gradient(45deg,rgba(127,127,127,.30) 0 4px,transparent 4px 9px);cursor:not-allowed;opacity:1}
 #syDepBox,#syEtgBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden],#syEtgBox[hidden],#syVueL[hidden]{display:none!important}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
 .dmap svg.dl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
@@ -1125,9 +1125,9 @@ function buildGrids(){
     for(let y=top;y>=bot;y--){
       h+=`<details class="yr"><summary><b>${y}</b> <span class="badge" data-n="${y}|${k}"></span></summary>
       <div class="prixy"><label>Prix ${k==='e'?'électricité':'gaz'} (€/MWh) <input type="number" class="pxy" min="0" step="any" data-px="${y}|${k}"></label></div>
-      <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>${nm} (kWh)</th><th>Coût (€)</th></tr></thead><tbody>
-      ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td>${mn}</td><td><input type="number" min="0" step="any" class="cell ${cl}" placeholder="–" data-c="${m}|${k}"></td><td data-cost="${m}|${k}"></td></tr>`}).join('')}
-      </tbody><tfoot><tr><td>Total</td><td><span data-tot="${y}|${k}"></span><input type="number" min="0" step="any" class="cell ${cl}" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|${k}"></td><td data-totc="${y}|${k}"></td></tr></tfoot></table></div></details>`}
+      <div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Saisie manuelle (${nm.toLowerCase()})</th><th>Saisie automatique</th><th>Coût (€)</th></tr></thead><tbody>
+      ${MOISL.map((mn,i)=>{const m=`${y}-${String(i+1).padStart(2,'0')}`;return `<tr><td><button type="button" class="link" data-tgd="${k}|${m}" title="Voir les index jour par jour" style="padding:0 6px 0 0">▸</button>${mn}</td><td><input type="number" min="0" step="any" class="cell ${cl}" placeholder="–" data-c="${m}|${k}"><span class="note" data-cm="${k}|${m}" style="margin:0 0 0 6px"></span></td><td data-ca="${k}|${m}"></td><td data-cost="${m}|${k}"></td></tr><tr class="cadet" hidden><td colspan="4" data-cd="${k}|${m}"></td></tr>`}).join('')}
+      </tbody><tfoot><tr><td>Total</td><td><span data-tot="${y}|${k}"></span><input type="number" min="0" step="any" class="cell ${cl}" placeholder="Total année" title="Total de l’année : à saisir si vous n’avez pas les relevés mensuels" data-t="${y}|${k}"></td><td data-cat="${k}|${y}"></td><td data-totc="${y}|${k}"></td></tr></tfoot></table></div></details>`}
     return h};
   $('gridsE').innerHTML=one('e');$('gridsG').innerHTML=one('g');
 }
@@ -1140,6 +1140,7 @@ function grids(){
   q('data-t').forEach(el=>{const[y,k]=el.dataset.t.split('|');el.hidden=count(val(+y,k))>0;if(el===act)return;const v=totaux[y]&&totaux[y][k];el.value=v!=null?v:''});
   q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);let t='–';if(count(a))t=fmt(sum(a));else if(annualOnly(+y,k)){const pr=priceOf(+y,k,null);if(pr!=null)t=fmt(totaux[y][k]/1000*pr)}el.textContent=t});
   q('data-n').forEach(el=>{const[y,k]=el.dataset.n.split('|'),n=count(val(+y,k));el.textContent=n+'/12 relevés'+(annualOnly(+y,k)?' · total annuel':'')});
+  gridAutoFill();
 }
 const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)window.__showErr(l+' : '+(e&&e.message||e))}};
 function render(){
@@ -1538,7 +1539,7 @@ const gridsChange=ev=>{const t=ev.target,v=t.value===''?null:+t.value;
   if(t.dataset.px){const[y,k]=t.dataset.px.split('|');if(v!=null)addActu('px_'+y+'_'+k,'Prix '+(k==='g'?'gaz':'électricité')+' '+y+' : '+fmt(v,2)+' €/MWh');setDoc(doc(db,'releves','_prix'),{a:{[y]:{[k]:v}}},{merge:true}).catch(()=>{refus();grids()})}};
 $('gridsE').onchange=$('gridsG').onchange=gridsChange;
 const gridsKey=ev=>{if(ev.key!=='Enter'||!ev.target.dataset.c)return;ev.preventDefault();
-  const k=ev.target.dataset.c.split('|')[1],tr=ev.target.closest('tr').nextElementSibling,n=tr&&tr.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
+  const k=ev.target.dataset.c.split('|')[1],tr0=(()=>{let r=ev.target.closest('tr').nextElementSibling;while(r&&r.classList.contains('cadet'))r=r.nextElementSibling;return r})(),n=tr0&&tr0.querySelector('[data-c$="|'+k+'"]');if(n)n.focus()};
 $('gridsE').onkeydown=$('gridsG').onkeydown=gridsKey;
 let compteurs=[],unsubC=null,cptCharts={},cptKey='';
 const openC=new Set(),initY=new Set();
@@ -1874,26 +1875,37 @@ function autoDayForm(id,ym){const e=esc(id);let mn='',mx=today();if(ym){mn=ym+'-
   const nx=autoNextD[id],val=nx&&(!ym||nx.slice(0,7)===ym)?nx:'';
   return `<div class="edit-only" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 8px"><span class="note" style="margin:0">Ajouter un index${ym?'':' d’avant la remontée'} :</span><input type="date" ${mn?'min="'+mn+'" ':''}max="${mx}" data-f="d" value="${val}"><input type="number" step="any" min="0" placeholder="Index" data-f="i" style="width:130px"><button type="button" data-addidx="${e}">Ajouter l’index</button></div>`}
 const cdOpen=new Set();
-function autoMonth(id,ym){const m=autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym),pv=ds.filter(d=>d.slice(0,7)<ym).pop();
-  if(!inM.length)return null;const base=pv||inM[0],v=m[inM[inM.length-1]]-m[base],nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
+const LOCKT='Verrouillé : des index ont été saisis pour ce mois, le total est calculé à partir des jours.';
+function autoMonth(id,ym,mp){const m=mp||autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym),pv=ds.filter(d=>d.slice(0,7)<ym).pop();
+  if(!inM.length)return null;const dv=(id==='e'||id==='g')?AUTO_DIV:1,base=pv||inM[0],v=Math.round((m[inM[inM.length-1]]-m[base])/dv*1000)/1000,nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
   return{v,partial:!pv,n:inM.length,left:Math.max(0,nd-inM.length)}}
-function autoMonthVal(id,ym){const m=autoMap[id]||{},ds=Object.keys(m).sort(),cur=ds.filter(d=>d.slice(0,7)===ym).pop(),pv=ds.filter(d=>d.slice(0,7)<ym).pop();return cur&&pv?m[cur]-m[pv]:null}
-function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),m=autoMap[id]||{},ds=Object.keys(m).sort(),has=ds.length>0,box=document.querySelector('[data-oc="'+c.id+'"]');if(!box)return;
-  if(has)box.setAttribute('data-auto','1');else box.removeAttribute('data-auto');
-  box.querySelectorAll('[data-cv]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],lock=has&&ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.title=lock?'Verrouillé : des index ont été saisis pour ce mois, le total est calculé à partir des jours.':''});
-  if(!has)return;
-  const tot={};
-  box.querySelectorAll('[data-ca]').forEach(td=>{const ym=td.dataset.ca.split('|')[1],r=autoMonth(id,ym);td.innerHTML=r?`<b>${fIdx(r.v)}</b> <span class="note" style="margin:0">${r.left>0?'reste '+r.left+' jour'+(r.left>1?'s':'')+' à saisir':'complet'}${r.partial?' · sans index de référence':''}</span>`:'–';if(r)tot[ym.slice(0,4)]=(tot[ym.slice(0,4)]||0)+r.v});
-  box.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1];sp.textContent=c.valeurs&&c.valeurs[ym]!=null?'total saisi':''});
-  box.querySelectorAll('[data-cat]').forEach(td=>{const y=td.dataset.cat.split('|')[1];td.textContent=tot[y]!=null?fIdx(tot[y]):'–'});
-  box.querySelectorAll('[data-cd]').forEach(td=>{const key=td.dataset.cd,ym=key.split('|')[1],open=cdOpen.has(key),bt=box.querySelector('[data-tgd="'+key+'"]');td.parentElement.hidden=!open;if(bt)bt.textContent=open?'▾':'▸';
+/* gaz / électricité : le total du mois suit le cumul des index */
+function syncMonth(id,ym,mm){if(id!=='e'&&id!=='g')return;const r=autoMonth(id,ym,mm);if(r&&r.v>=0)setDoc(doc(db,'releves',ym),{[id]:r.v},{merge:true}).catch(refus)}
+function fillAutoCells(root,id){const tot={};
+  root.querySelectorAll('[data-ca]').forEach(td=>{const ym=td.dataset.ca.split('|')[1],r=autoMonth(id,ym);td.innerHTML=r?`<b>${fIdx(r.v)}</b> <span class="note" style="margin:0">${r.left>0?'reste '+r.left+' jour'+(r.left>1?'s':'')+' à saisir':'complet'}${r.partial?' · sans index de référence':''}</span>`:'–';if(r)tot[ym.slice(0,4)]=(tot[ym.slice(0,4)]||0)+r.v});
+  root.querySelectorAll('[data-cat]').forEach(td=>{const y=td.dataset.cat.split('|')[1];td.textContent=tot[y]!=null?fIdx(tot[y]):'–'})}
+function fillDays(root,id){const m=autoMap[id]||{},ds=Object.keys(m).sort();
+  root.querySelectorAll('[data-cd]').forEach(td=>{const key=td.dataset.cd,ym=key.split('|')[1],open=cdOpen.has(key),bt=root.querySelector('[data-tgd="'+key+'"]');td.parentElement.hidden=!open;if(bt)bt.textContent=open?'▾':'▸';
     if(!open){td.innerHTML='';return}
     if(!td.querySelector('table')){const nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),tdy=today();let h='<table class="gt"><thead><tr><th>Jour</th><th>Index</th><th>Écart</th><th>Source</th></tr></thead><tbody>';
       for(let dd=1;dd<=nd;dd++){const d2=ym+'-'+String(dd).padStart(2,'0');h+=`<tr><td>${esc(dfr(d2))}</td><td><input type="number" step="any" min="0" class="cell" placeholder="–" data-di="${esc(id)}|${d2}"${d2>tdy?' disabled':''}></td><td data-dg="${esc(id)}|${d2}"></td><td data-dsrc="${esc(id)}|${d2}"></td></tr>`}
       td.innerHTML=h+'</tbody></table><p class="note edit-only" style="margin:4px 0">Les index reçus automatiquement remplissent les cases. Complétez les jours manquants à la main ; videz une case pour supprimer l’index.</p>'}
     td.querySelectorAll('[data-di]').forEach(inp=>{const d2=inp.dataset.di.split('|')[1],v=m[d2];if(document.activeElement!==inp)inp.value=v==null?'':v});
     td.querySelectorAll('[data-dsrc]').forEach(c2=>{const d2=c2.dataset.dsrc.split('|')[1];c2.innerHTML=m[d2]==null?'':autoMan[id+'|'+d2]?'<span class="mode man">Manuel</span>':'<span class="mode aut">Automatique</span>'});
-    td.querySelectorAll('[data-dg]').forEach(c2=>{const d2=c2.dataset.dg.split('|')[1],pd=ds.filter(x=>x<d2).pop();c2.textContent=m[d2]!=null&&pd?(m[d2]-m[pd]>0?'+':'')+fIdx(m[d2]-m[pd]):'—'})})})}
+    td.querySelectorAll('[data-dg]').forEach(c2=>{const d2=c2.dataset.dg.split('|')[1],pd=ds.filter(x=>x<d2).pop();c2.textContent=m[d2]!=null&&pd?(m[d2]-m[pd]>0?'+':'')+fIdx(m[d2]-m[pd]):'—'})})}
+/* tous les compteurs secondaires */
+function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),ds=Object.keys(autoMap[id]||{}),box=document.querySelector('[data-oc="'+c.id+'"]');if(!box)return;
+  box.setAttribute('data-auto','1');
+  box.querySelectorAll('[data-cv]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],lock=ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.classList.toggle('lk',lock);inp.title=lock?LOCKT:''});
+  fillAutoCells(box,id);
+  box.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1];sp.textContent=c.valeurs&&c.valeurs[ym]!=null?'total saisi':''});
+  fillDays(box,id)})}
+/* gaz et électricité principaux */
+function gridAutoFill(){try{['e','g'].forEach(id=>{const root=$(id==='e'?'gridsE':'gridsG');if(!root)return;const ds=Object.keys(autoMap[id]||{});
+  root.querySelectorAll('[data-c]').forEach(inp=>{const ym=inp.dataset.c.split('|')[0],lock=ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.classList.toggle('lk',lock);inp.title=lock?LOCKT:''});
+  fillAutoCells(root,id);
+  root.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1],d=data.find(x=>x.m===ym);sp.textContent=d&&d[id]!=null&&!ds.some(x=>x.slice(0,7)===ym)?'total saisi':''});
+  fillDays(root,id)})}catch(e){console.error(e)}}
 function autoMonForm(id){const e=esc(id);return `<div class="edit-only" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px"><button type="button" class="main" data-mkcpt="${e}">Saisir les valeurs mensuelles (tableau par année)</button><span class="note" style="margin:0">Crée le compteur « ${esc(autoNames[id]||id)} » dans la liste des compteurs, lié aux index automatiques.</span></div>`}
 function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
   return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
@@ -1903,9 +1915,9 @@ function cptModes(){
   const ids=new Set(Object.keys(autoMap));
   ['e','g'].forEach(k=>{const au=ids.has(k);setMode($('mode'+k.toUpperCase()),au);$('info'+k.toUpperCase()).innerHTML=au?autoStat(k):esc(lastManual(k));$('auto'+k.toUpperCase()).innerHTML=au?'<p class="note" style="margin:0 0 6px"><b>Relevés automatiques</b> (index reçus par CSV)</p>'+autoHist(k):''});
   const sec=new Set(['e','g']);
-  compteurs.forEach(c=>{const id=slug(c.nom||'');sec.add(id);setMode(document.querySelector('[data-cmode="'+c.id+'"]'),ids.has(id))});
+  compteurs.forEach(c=>{const id=slug(c.nom||'');sec.add(id);setMode(document.querySelector('[data-cmode="'+c.id+'"]'),Object.keys(autoMap[id]||{}).some(d=>!autoMan[id+'|'+d]))});
   $('nC').textContent=2+compteurs.length+[...ids].filter(id=>!sec.has(id)).length;
-  cptAutoFill();cptFilter()}
+  cptAutoFill();gridAutoFill();cptFilter()}
 function cptFilter(){const q=slug($('autoQ').value||'');document.querySelectorAll('#cptRows details.cp').forEach(d=>{d.hidden=!!q&&!slug(d.querySelector('summary').textContent).includes(q)})}
 function renderAutoMeters(){
   const el=$('autoMeters');if(!el)return;
@@ -1925,15 +1937,16 @@ function autoAddClick(ev){const b=ev.target.closest('button');if(!b)return;
     setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{[id+'_'+d.slice(8,10)]:v,['N_'+id]:autoNames[id]||id,['M_'+id+'_'+d.slice(8,10)]:true},{merge:true}).catch(refus)}
   else if(b.dataset.mkcpt){const id=b.dataset.mkcpt,nom=autoNames[id]||id,cid='a_'+id;openC.add(cid);
     setDoc(doc(db,'compteurs',cid),{nom,unite:'',energie:'',valeurs:{},cree:Date.now()},{merge:true}).then(()=>setTimeout(()=>{const el=document.querySelector('[data-oc="'+cid+'"]');if(el){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}},500)).catch(refus)}}
-$('vCpt').addEventListener('click',ev=>{const b=ev.target.closest('[data-delidx]');if(!b)return;const[id,d]=b.dataset.delidx.split('|'),x=(autoMap[id]||{})[d];
+$('vRel').addEventListener('click',ev=>{const b=ev.target.closest('[data-delidx]');if(!b)return;const[id,d]=b.dataset.delidx.split('|'),x=(autoMap[id]||{})[d],ym=d.slice(0,7),mm={...(autoMap[id]||{})};
   if(!confirm('Supprimer l’index du '+dfr(d)+(x!=null?' ('+fIdx(x)+')':'')+' ?'))return;
-  setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{[id+'_'+d.slice(8,10)]:deleteField(),['M_'+id+'_'+d.slice(8,10)]:deleteField()},{merge:true}).catch(refus)});
-$('vCpt').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!t.dataset.di)return;const[id,d]=t.dataset.di.split('|'),raw=t.value.trim().replace(',','.'),old=(autoMap[id]||{})[d],f=id+'_'+d.slice(8,10),ref=doc(db,'releves','_idx_'+d.slice(0,7));
-  if(raw===''){if(old!=null)setDoc(ref,{[f]:deleteField(),['M_'+f]:deleteField()},{merge:true}).catch(()=>{refus();cptModes()});return}
+  delete mm[d];setDoc(doc(db,'releves','_idx_'+ym),{[id+'_'+d.slice(8,10)]:deleteField(),['M_'+id+'_'+d.slice(8,10)]:deleteField()},{merge:true}).then(()=>syncMonth(id,ym,mm)).catch(refus)});
+$('vRel').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!t.dataset.di)return;const[id,d]=t.dataset.di.split('|'),ym=d.slice(0,7),raw=t.value.trim().replace(',','.'),old=(autoMap[id]||{})[d],f=id+'_'+d.slice(8,10),ref=doc(db,'releves','_idx_'+ym),mm={...(autoMap[id]||{})};
+  if(raw===''){if(old==null)return;delete mm[d];setDoc(ref,{[f]:deleteField(),['M_'+f]:deleteField()},{merge:true}).then(()=>syncMonth(id,ym,mm)).catch(()=>{refus();cptModes()});return}
   const v=+raw;if(isNaN(v)||v<0){alert('Index invalide.');t.value=old==null?'':old;return}
   if(v===old)return;
-  setDoc(ref,{[f]:v,['M_'+f]:true,['N_'+id]:autoNames[id]||(compteurs.find(c=>slug(c.nom||'')===id)||{}).nom||id},{merge:true}).catch(()=>{refus();cptModes()})});
-$('autoMeters').addEventListener('click',autoAddClick);$('cList').addEventListener('click',autoAddClick);
+  if((id==='e'||id==='g')&&!Object.keys(mm).some(x=>x.slice(0,7)===ym)){const dm=data.find(x=>x.m===ym);if(dm&&dm[id]!=null&&!confirm('Le total du mois ('+fmt(dm[id],1)+') sera remplacé par le cumul des index du jour. Continuer ?')){t.value='';return}}
+  mm[d]=v;setDoc(ref,{[f]:v,['M_'+f]:true,['N_'+id]:autoNames[id]||(id==='e'?'Électricité':id==='g'?'Gaz':(compteurs.find(c=>slug(c.nom||'')===id)||{}).nom||id)},{merge:true}).then(()=>syncMonth(id,ym,mm)).catch(()=>{refus();cptModes()})});
+$('vRel').addEventListener('click',autoAddClick);
 $('autoMeters').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.ao){d.open?autoOpen.add(d.dataset.ao):autoOpen.delete(d.dataset.ao)}},true);
 function renderAuto(){
   const a=autoLast,el=$('autoLast');if(!el)return;
