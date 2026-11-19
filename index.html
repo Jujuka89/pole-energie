@@ -1870,7 +1870,7 @@ function autoHist(id){
   const old=ds.slice(0,-14).reverse();
   return tb(ds.slice(-14).reverse())+(old.length?`<details style="margin-top:6px"><summary class="note" style="cursor:pointer">Voir les ${old.length} relevé${old.length>1?'s':''} plus ancien${old.length>1?'s':''}</summary>${tb(old)}</details>`:'')}
 function autoDayForm(id){const e=esc(id);return `<div class="edit-only" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px"><span class="note" style="margin:0">Ajouter un index d’avant la remontée :</span><input type="date" max="${today()}" data-f="d" value="${autoNextD[id]||''}"><input type="number" step="any" min="0" placeholder="Index" data-f="i" style="width:130px"><button type="button" data-addidx="${e}">Ajouter l’index</button></div>`}
-function autoMonForm(id){const e=esc(id);return `<div class="edit-only" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 4px"><span class="note" style="margin:0">Ajouter la consommation d’un mois :</span><input type="month" max="${today().slice(0,7)}" data-f="m"><input type="number" step="any" min="0" placeholder="Consommation" data-f="mv" style="width:130px"><input type="text" maxlength="20" placeholder="Unité" data-f="u" style="width:80px"><button type="button" data-addmon="${e}">Ajouter la valeur</button></div><p class="note edit-only" style="margin:0 0 10px">Les valeurs mensuelles sont saisies dans un compteur du même nom : il est créé au premier ajout et rejoint alors la liste des compteurs (grille de saisie mensuelle).</p>`}
+function autoMonForm(id){const e=esc(id);return `<div class="edit-only" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px"><button type="button" class="main" data-mkcpt="${e}">Saisir les valeurs mensuelles (tableau par année)</button><span class="note" style="margin:0">Crée le compteur « ${esc(autoNames[id]||id)} » dans la liste des compteurs, lié aux index automatiques.</span></div>`}
 function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
   return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
 function setMode(el,auto){if(!el)return;el.textContent=auto?'Automatique':'Manuel';el.className='mode '+(auto?'aut':'man')}
@@ -1898,11 +1898,8 @@ function autoAddClick(ev){const b=ev.target.closest('button');if(!b)return;const
     if(autoMap[id]&&autoMap[id][d]!=null&&!confirm('Un index existe déjà au '+dfr(d)+' ('+fIdx(autoMap[id][d])+'). Le remplacer ?'))return;
     const nd=new Date(d+'T12:00:00');nd.setDate(nd.getDate()+1);autoNextD[id]=nd.toISOString().slice(0,10);
     setDoc(doc(db,'releves','_idx_'+d.slice(0,7)),{[id+'_'+d.slice(8,10)]:v,['N_'+id]:autoNames[id]||id},{merge:true}).catch(refus)}
-  else if(b.dataset.addmon){const id=b.dataset.addmon,ym=g('m').value,raw=g('mv').value.replace(',','.'),v=raw===''?NaN:+raw,u=g('u').value.trim();
-    if(!/^\d{4}-\d{2}$/.test(ym)||isNaN(v)||v<0){alert('Indiquez un mois et une valeur valides.');return}
-    const nom=autoNames[id]||id,c=compteurs.find(x=>slug(x.nom||'')===id);
-    if(c)setDoc(doc(db,'compteurs',c.id),{valeurs:{[ym]:v}},{merge:true}).catch(refus);
-    else if(confirm('Les valeurs mensuelles sont saisies dans un compteur. Créer le compteur « '+nom+' » ?\nIl sera lié aux index automatiques et apparaîtra dans la liste des compteurs.'))addDoc(collection(db,'compteurs'),{nom,unite:u,energie:'',valeurs:{[ym]:v},cree:Date.now()}).catch(refus)}}
+  else if(b.dataset.mkcpt){const id=b.dataset.mkcpt,nom=autoNames[id]||id,cid='a_'+id;openC.add(cid);
+    setDoc(doc(db,'compteurs',cid),{nom,unite:'',energie:'',valeurs:{},cree:Date.now()},{merge:true}).then(()=>setTimeout(()=>{const el=document.querySelector('[data-oc="'+cid+'"]');if(el){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}},500)).catch(refus)}}
 $('autoMeters').addEventListener('click',autoAddClick);$('cList').addEventListener('click',autoAddClick);
 $('autoMeters').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.ao){d.open?autoOpen.add(d.dataset.ao):autoOpen.delete(d.dataset.ao)}},true);
 function renderAuto(){
