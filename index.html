@@ -2044,7 +2044,7 @@ function renderSyno(){
   $('syVue').value=synV;  $('syType').innerHTML=SYT[v].filter(t=>synV!=='s'||SYSIMPLE.includes(t[0])).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
   $('syBats').innerHTML=BATS.map(b=>`<option value="${esc(b)}">`).join('');
   $('syTpl').hidden=!!allIds.length||synV==='s';
-  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer ; dans un bâtiment, glissez les blocs où vous voulez, ou vers un autre bâtiment. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer.'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
+  $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer ; dans un bâtiment, glissez les blocs où vous voulez, ou vers un autre bâtiment. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer. L’épaisseur des traits est proportionnelle à la consommation (période choisie en haut de page).'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
   const qa='<option value="">＋ Ajouter un bloc…</option>'+SYT[v].filter(t=>SYCHILD.includes(t[0])&&(synV!=='s'||SYSIMPLE.includes(t[0]))).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');
   const vis=new Set(),kidsOf=pid=>allIds.filter(k=>D.nodes[k].parent===pid&&(synV!=='s'||SYSIMPLE.includes(D.nodes[k].t))).sort((x,y)=>(D.nodes[x].o||0)-(D.nodes[y].o||0));
   const html1=(id,child)=>{vis.add(id);const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
@@ -2112,12 +2112,28 @@ function synDraw(){
   let W=cv.clientWidth,H=cv.clientHeight;Object.values(els).forEach(r=>{W=Math.max(W,r.x+r.w+60);H=Math.max(H,r.y+r.h+60)});$('syNodes').querySelectorAll(':scope>.sycol').forEach(c=>{W=Math.max(W,c.offsetLeft+c.offsetWidth+4)});
   svg.setAttribute('width',W);svg.setAttribute('height',H);$('syNodes').style.width=W+'px';$('syNodes').style.height=H+'px';$('syNodes').querySelectorAll(':scope>.sycol').forEach(c=>{c.style.height=H+'px'});
   const col=v==='e'?'#2563eb':'#ea580c';
-  svg.innerHTML=`<defs><marker id="syar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${col}"/></marker></defs>`+
-  Object.entries(D.links).map(([id,l])=>{const A=els[l.a],B=els[l.b];if(!A||!B||(A.hb&&A.hb===B.hb))return '';let d;const py=l.p&&A.ports[l.p]!=null?A.y+A.ports[l.p]:A.y+A.h/2;
-    if(B.x>=A.x+A.w-10){const x1=A.x+A.w+(l.p?12:0),y1=py,x2=B.x,y2=B.y+B.h/2,dx=Math.max(40,(x2-x1)/2);d=`M${x1} ${y1}C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}`}
-    else if(B.x+B.w<=A.x+10){const x1=A.x,y1=py,x2=B.x+B.w,y2=B.y+B.h/2,dx=Math.max(40,(x1-x2)/2);d=`M${x1} ${y1}C${x1-dx} ${y1} ${x2+dx} ${y2} ${x2} ${y2}`}
-    else{const dn=B.y>=A.y,x1=A.x+A.w/2,y1=dn?A.y+A.h:A.y,x2=B.x+B.w/2,y2=dn?B.y:B.y+B.h,dy=Math.max(30,Math.abs(y2-y1)/2)*(dn?1:-1);d=`M${x1} ${y1}C${x1} ${y1+dy} ${x2} ${y2-dy} ${x2} ${y2}`}
-    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" marker-end="url(#syar)"/><path class="lk" data-lk="${id}" d="${d}" fill="none" stroke="transparent" stroke-width="12"/>`}).join('')}
+  /* Sankey : l'épaisseur du trait est proportionnelle à la consommation (période choisie en haut) */
+  const cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c])),memo={};
+  const cval=key=>{const c=key?by[key]:null;if(!c)return null;const f=derFac(c);if(f==null)return null;const m=derMeasure(c);return m?Math.max(0,m.cur*f):null};
+  const lval=(l,stk)=>{if(l.p){const d=((D.nodes[l.a]||{}).deps||{})[l.p],x=d&&d.c?cval(d.c):null;if(x!=null)return x}return nval(l.b,stk)};
+  const nval=(id,stk)=>{if(id in memo)return memo[id];stk=stk||{};if(stk[id])return null;stk[id]=1;const n=D.nodes[id];let r=null;
+    if(n){
+      if(n.c)r=cval(n.c);
+      if(r==null&&n.t==='bat'&&BATS.includes(n.nom)){let t=0,k=0;(derDeps[slug(n.nom)]||[]).forEach(d=>{const x=cval(d.c);if(x!=null){t+=x;k++}});if(k)r=t}
+      if(r==null){let t=0,k=0;Object.keys(D.nodes).forEach(c=>{if(D.nodes[c].parent===id){const x=nval(c,stk);if(x!=null){t+=x;k++}}});if(k)r=t}
+      if(r==null){let t=0,k=0;Object.values(D.links).forEach(l=>{if(l.a===id){const x=lval(l,stk);if(x!=null){t+=x;k++}}});if(k)r=t}}
+    delete stk[id];memo[id]=r;return r};
+  const LK=Object.entries(D.links).filter(([id,l])=>{const A=els[l.a],B=els[l.b];return A&&B&&!(A.hb&&A.hb===B.hb)}).map(([id,l])=>({id,l,v:lval(l)}));
+  const mx=Math.max(0,...LK.map(o=>o.v||0)),MAXW=34,MINW=3;
+  svg.innerHTML=LK.map(({id,l,v})=>{const A=els[l.a],B=els[l.b];let P;const py=l.p&&A.ports[l.p]!=null?A.y+A.ports[l.p]:A.y+A.h/2;
+    if(B.x>=A.x+A.w-10){const x1=A.x+A.w+(l.p?12:0),y1=py,x2=B.x,y2=B.y+B.h/2,dx=Math.max(40,(x2-x1)/2);P=[x1,y1,x1+dx,y1,x2-dx,y2,x2,y2]}
+    else if(B.x+B.w<=A.x+10){const x1=A.x,y1=py,x2=B.x+B.w,y2=B.y+B.h/2,dx=Math.max(40,(x1-x2)/2);P=[x1,y1,x1-dx,y1,x2+dx,y2,x2,y2]}
+    else{const dn=B.y>=A.y,x1=A.x+A.w/2,y1=dn?A.y+A.h:A.y,x2=B.x+B.w/2,y2=dn?B.y:B.y+B.h,dy=Math.max(30,Math.abs(y2-y1)/2)*(dn?1:-1);P=[x1,y1,x1,y1+dy,x2,y2-dy,x2,y2]}
+    const d=`M${P[0]} ${P[1]}C${P[2]} ${P[3]} ${P[4]} ${P[5]} ${P[6]} ${P[7]}`,w=v==null||!mx?MINW:Math.max(MINW,v/mx*MAXW),
+      mxp=(P[0]+3*P[2]+3*P[4]+P[6])/8,myp=(P[1]+3*P[3]+3*P[5]+P[7])/8,tt=v==null?'Pas de valeur : trait fin':fmt(v/AUTO_DIV,1)+' MWh';
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w.toFixed(1)}" stroke-opacity="${v==null?.3:.5}" stroke-linecap="butt"><title>${tt}</title></path>`+
+      (v!=null?`<text x="${mxp}" y="${myp+4}" text-anchor="middle" style="fill:var(--ink);font:700 11px system-ui,sans-serif;paint-order:stroke;stroke:var(--card);stroke-width:3.5px;stroke-linejoin:round">${fmt(v/AUTO_DIV,v/AUTO_DIV<10?1:0)} MWh</text>`:'')+
+      `<path class="lk" data-lk="${id}" d="${d}" fill="none" stroke="transparent" stroke-width="${Math.max(12,w)}"><title>${tt} — cliquez pour supprimer la liaison</title></path>`}).join('')}
 function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:Math.round(y)};if(c)n.c=c;{const D0=synoD[derTab];if(D0.cols&&D0.cols.length){const sn=synSel&&D0.nodes[synSel];n.col=sn&&sn.col&&D0.cols.some(q=>q.id===sn.col)?sn.col:D0.cols[0].id;n.o=Date.now()}}synoD[derTab].nodes[id]=n;return id}
 (function(){
   const nodes=$('syNodes');
