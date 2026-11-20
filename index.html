@@ -2083,7 +2083,7 @@ function synLayout(){const v=derTab,D=synoD[v];if(!D||!D.cols||!D.cols.length)re
   nd.querySelectorAll(':scope>.sycol').forEach(el=>{const q=X[el.dataset.col];if(q){el.style.left=q.x+'px';el.style.width=q.w+'px'}});
   const by={};[...nd.querySelectorAll(':scope>.synode')].forEach(e=>{const n=D.nodes[e.dataset.id]||{},c=X[n.col]?n.col:first;(by[c]||(by[c]=[])).push({e,n})});
   Object.entries(by).forEach(([cid,arr])=>{const q=X[cid];
-    arr.forEach(({e})=>{if(e.classList.contains('rd')){e.style.left=Math.round(q.x+(q.w-e.offsetWidth)/2)+'px'}else{e.style.maxWidth='none';e.style.width=(q.w-2*PAD)+'px';e.style.left=(q.x+PAD)+'px'}});
+    arr.forEach(({e,n})=>{const mx=Math.max(0,q.w-e.offsetWidth),lx=n.lx!=null?n.lx:(e.classList.contains('rd')?mx/2:PAD);e.style.left=Math.round(q.x+Math.min(Math.max(0,lx),mx))+'px'});
     let bottom=HEAD+PAD-GAP;
     /* blocs placés librement : position verticale enregistrée */
     arr.filter(o=>o.n.ly!=null).forEach(({e,n})=>{e.style.top=n.ly+'px';bottom=Math.max(bottom,n.ly+e.offsetHeight)});
@@ -2182,7 +2182,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
     const ch={};
     /* le bloc reste où on le dépose ; les autres sont figés à leur place actuelle */
     nodes.querySelectorAll(':scope>.synode').forEach(e=>{const k=e.dataset.id,nn=D.nodes[k];if(!nn)return;
-      if(k===d.id){const ly=Math.max(48,Math.round(e.offsetTop));nn.ly=ly;nn.col=t.cid;ch[k]={col:t.cid,ly}}
+      if(k===d.id){const ly=Math.max(48,Math.round(e.offsetTop)),lx=Math.max(0,Math.round(e.offsetLeft-t.el.offsetLeft));nn.ly=ly;nn.lx=lx;nn.col=t.cid;ch[k]={col:t.cid,ly,lx}}
       else if(nn.ly==null){const ly=Math.round(e.offsetTop);nn.ly=ly;ch[k]={ly}}});
     synSel=d.id;synKey='';renderSyno();synSave({[v]:{nodes:ch}})};
   /* Glisser-déposer des blocs d'un bâtiment : réordonner, ou passer dans un autre bâtiment */
