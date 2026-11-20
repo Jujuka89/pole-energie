@@ -2084,11 +2084,14 @@ function synLayout(){const v=derTab,D=synoD[v];if(!D||!D.cols||!D.cols.length)re
   const by={};[...nd.querySelectorAll(':scope>.synode')].forEach(e=>{const n=D.nodes[e.dataset.id]||{},c=X[n.col]?n.col:first;(by[c]||(by[c]=[])).push({e,n})});
   Object.entries(by).forEach(([cid,arr])=>{const q=X[cid];
     arr.forEach(({e,n})=>{const mx=Math.max(0,q.w-e.offsetWidth),lx=n.lx!=null?n.lx:(e.classList.contains('rd')?mx/2:PAD);e.style.left=Math.round(q.x+Math.min(Math.max(0,lx),mx))+'px'});
+    const pl=arr.filter(o=>o.n.ly!=null).sort((a,b)=>a.n.ly-b.n.ly),un=arr.filter(o=>o.n.ly==null).sort((a,b)=>(a.n.o||0)-(b.n.o||0)||(a.n.y||0)-(b.n.y||0)),done=[];
     let bottom=HEAD+PAD-GAP;
-    /* blocs placés librement : position verticale enregistrée */
-    arr.filter(o=>o.n.ly!=null).forEach(({e,n})=>{e.style.top=n.ly+'px';bottom=Math.max(bottom,n.ly+e.offsetHeight)});
-    /* nouveaux blocs sans position : posés sous les autres */
-    arr.filter(o=>o.n.ly==null).sort((a,b)=>(a.n.o||0)-(b.n.o||0)||(a.n.y||0)-(b.n.y||0)).forEach(({e})=>{e.style.top=(bottom+GAP)+'px';bottom+=GAP+e.offsetHeight})});
+    /* un bloc agrandi (bâtiment déroulé) repousse vers le bas les blocs qui le chevauchent */
+    const put=(o,top)=>{const e=o.e,l=e.offsetLeft,w=e.offsetWidth,h=e.offsetHeight;let ch=true,n=0;
+      while(ch&&n++<50){ch=false;done.forEach(p=>{if(l<p.l+p.w&&p.l<l+w&&top<p.t+p.h+GAP&&top+h>p.t){top=p.t+p.h+GAP;ch=true}})}
+      e.style.top=top+'px';done.push({l,w,t:top,h});bottom=Math.max(bottom,top+h)};
+    pl.forEach(o=>put(o,o.n.ly));
+    un.forEach(o=>put(o,bottom+GAP))});
   return true}
 function synColsOn(){const v=derTab,D=synoD[v],ch={},top=Object.entries(D.nodes).filter(([k,n])=>!n.parent);
   const cols=[0,1,2].map(i=>({id:uid()+i,nom:'Colonne '+(i+1),w:320})),mx=Math.max(1,...top.map(([k,n])=>(n.x||0)+1));
