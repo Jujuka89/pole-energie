@@ -1423,11 +1423,12 @@ function lateList(){
   return{need,late:[...main,...sec].filter(o=>o.miss.length)}}
 function sideCpt(){
   const {late}=lateList();
-  const bd=$('badgeRel');bd.textContent=late.length;bd.hidden=!late.length;bd.title=late.length+' compteur'+(late.length>1?'s':'')+' à mettre à jour';
+  const bd=$('badgeRel');bd.textContent='';bd.hidden=true;bd.title='';
   renderTodo()
 }
 let todoPending=false;
 function renderTodo(){
+  {const e0=$('relTodo');e0.hidden=true;e0.innerHTML='';todoPending=false;return} /* liste « À mettre à jour » supprimée */
   const el=$('relTodo'),ae=document.activeElement;
   if(el.contains(ae)&&ae.tagName==='INPUT'){todoPending=true;return}
   todoPending=false;
