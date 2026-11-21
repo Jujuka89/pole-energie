@@ -2049,7 +2049,7 @@ function derDelta(r,fmtV,unit){ /* vert avec "−" = économie, rouge avec "+" =
   return `<span style="color:${col};font-weight:700">${r.pct==null?'':sg+fmt(Math.abs(r.pct),1)+' %'}</span> <small>(${sg}${fmtV(Math.abs(r.diff))}${unit?' '+unit:''})</small>`}
 /* affichage d'un compteur pour la période choisie : card=true pour les arrivées EDF / Gaz */
 function derDisp(key,aid,unit,card){
-  const kwhMode=key==='e'||key==='g',fv=kwhMode?fE:fIdx,un=kwhMode?'':unit;
+  const kf=derFac({key,unit}),kwhMode=kf!=null,fv=kwhMode?(v=>fE(v*kf)):fIdx,un=kwhMode?'':unit;
   if(derP==='c'){const m=derMeasure({key,aid});
     if(!m)return card?'<span class="big">—</span><span class="det">Pas de relevé sur ces dates</span>':'<small>—</small>';
     const pv=m.prev!=null,dl=pv?derDelta(derRel(m),fv,un):'';
@@ -2064,8 +2064,8 @@ function derDisp(key,aid,unit,card){
   if(!has)return card?'<span class="det">Pas de compteur relevé</span>':'<small title="Pas de relevé automatique pour cette période">—</small>';
   if(!r)return card?'<span class="big">—</span><span class="det">Pas assez de relevés pour cette période</span>':'<small>—</small>';
   const mm=derMeasure({key,aid}),pv=mm&&mm.prev!=null?mm:null;
-  if(!card)return `<b${r.kwh<0?' style="color:#b91c1c"':''}>${kwhMode?fE(r.kwh):fIdx(r.kwh)+(unit?' '+esc(unit):'')}</b>${pv?' '+derDelta(derRel(pv),kwhMode?fE:fIdx,kwhMode?'':unit):''}`;
-  return `<span class="big"${r.kwh<0?' style="color:#b91c1c"':''}>${fE(r.kwh)}</span><span class="det">${esc(DERL[derP])}</span><span class="det">du ${esc(dfr(r.ref))} au ${esc(dfr(r.L))} · ${r.days} j</span><span class="det">${kwhMode?fE(r.kwh)+' · moy. '+fE(Math.round(r.kwh/r.days))+'/j':fIdx(r.kwh)+' kWh · moy. '+fIdx(Math.round(r.kwh/r.days))+' kWh/j'}</span>${pv?`<span class="det">${esc(derCLab())} : ${fv(pv.prev)} ${un}</span><span class="det">${derDelta(derRel(pv),fv,un)}</span>`:''}${r.partial?'<span class="det" style="color:#b45309">Données partielles : historique plus court que la période</span>':''}${r.age>1?`<span class="det" style="color:#b45309">Dernier relevé il y a ${r.age} j</span>`:''}`}
+  if(!card)return `<b${r.kwh<0?' style="color:#b91c1c"':''}>${kwhMode?fv(r.kwh):fIdx(r.kwh)+(unit?' '+esc(unit):'')}</b>${pv?' '+derDelta(derRel(pv),fv,un):''}`;
+  return `<span class="big"${r.kwh<0?' style="color:#b91c1c"':''}>${fv(r.kwh)}</span><span class="det">${esc(DERL[derP])}</span><span class="det">du ${esc(dfr(r.ref))} au ${esc(dfr(r.L))} · ${r.days} j</span><span class="det">${kwhMode?fv(r.kwh)+' · moy. '+fv(Math.round(r.kwh/r.days))+'/j':fIdx(r.kwh)+' kWh · moy. '+fIdx(Math.round(r.kwh/r.days))+' kWh/j'}</span>${pv?`<span class="det">${esc(derCLab())} : ${fv(pv.prev)} ${un}</span><span class="det">${derDelta(derRel(pv),fv,un)}</span>`:''}${r.partial?'<span class="det" style="color:#b45309">Données partielles : historique plus court que la période</span>':''}${r.age>1?`<span class="det" style="color:#b45309">Dernier relevé il y a ${r.age} j</span>`:''}`}
 function renderDer(){
   const sel=$('derP');if(!sel)return;
   if(derP==='a')derP='y'+new Date().getFullYear();
