@@ -266,7 +266,7 @@ body.out .edit-only{display:none!important}
     <div id="vCpt"><div id="cList"></div></div>
     <div id="autoMeters"></div>
   </div>
-  <details class="djs" id="autoDet" style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
+  <details class="djs" id="autoDet" hidden style="display:none;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
   <summary><h3 style="display:inline;margin:0;font-size:1.05rem">Import automatique (fichier CSV)</h3> <span id="autoBdg" class="note" style="font-weight:400"></span></summary>
   <p class="note" style="margin:8px 0 6px">Import quotidien du fichier CSV reçu par mail (script Google). Une ligne par compteur : <code>nom du compteur,index</code>, par exemple <code>Chaufferie,1520</code> ; la date est celle du mail (ou <code>Chaufferie,1520,2026-10-31</code> pour un index passé). Pour le gaz et l’électricité principaux, utilisez <code>g,…</code> et <code>e,…</code> : l’index (kWh) alimente aussi la consommation mensuelle (dernier index du mois − dernier index du mois précédent). Le format <code>2026-11;g;1234,5</code> (consommation du mois en MWh) reste accepté.</p>
   <div id="autoLast" style="margin:0 0 12px"></div>
@@ -279,9 +279,9 @@ body.out .edit-only{display:none!important}
 <section>
   <h2>Données</h2>
   <div class="tools">
-    <button id="exJson">Exporter (JSON)</button>
+    <button id="exJson" hidden style="display:none">Exporter (JSON)</button>
     <button id="exCsv">Exporter (CSV)</button>
-    <button id="imp">Importer (JSON)</button>
+    <button id="imp" hidden style="display:none">Importer (JSON)</button>
     <input type="file" id="file" accept=".json,application/json" hidden>
   </div>
   <p class="note">Les relevés sont stockés dans Firebase (Firestore) et partagés en temps réel. Seules les personnes connectées peuvent les modifier.</p>
