@@ -1787,7 +1787,7 @@ const BICO='<svg viewBox="0 0 54 40"><g fill="none" stroke="currentColor" stroke
 let derOrder=[...BATS],derDeps={},derDrag=null,derKey='';const derOpen=new Set();
 const derNorm=(o,d)=>JSON.stringify([o,Object.keys(d).sort().map(k=>[k,d[k]])]);
 /* énergie en kWh : en dessous de 1 MWh on affiche des kWh */
-const fE=v=>Math.abs(v)<1000?fmt(v,0)+' kWh':fmt(v/AUTO_DIV,1)+' MWh';
+const fE=v=>Math.abs(v)<1000?fmt(v,0)+' kWh':fmt(v/AUTO_DIV,Math.abs(v)<10000?1:0)+' MWh';
 function derCounters(){
   const L=[{key:'e',nom:'Électricité (compteur principal)',g:'Compteurs principaux',aid:'e',unit:'kWh',ic:'⚡'},{key:'g',nom:'Gaz (compteur principal)',g:'Compteurs principaux',aid:'g',unit:'kWh',ic:'🔥'}];
   compteurs.forEach(c=>{const a=slug(c.nom||'');L.push({key:'s:'+c.id,nom:c.nom||'Compteur',g:'Compteurs secondaires',aid:autoMap[a]?a:null,unit:c.unite||'',ic:c.energie==='e'?'⚡':c.energie==='g'?'🔥':'📟'})});
