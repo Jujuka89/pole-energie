@@ -260,8 +260,8 @@ body.out .edit-only{display:none!important}
     </form>
   </div>
   <div id="cptRows">
-    <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-E" data-cyr="E"></select></label></div><div id="cs-E" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-E"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsE"></div></div></details>
-    <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span> <span class="mode" id="modeG"></span> <span class="note" id="infoG"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-G" data-cyr="G"></select></label></div><div id="cs-G" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-G"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsG"></div></div></details>
+    <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-E" data-cyr="E"></select></label><label>Graphique <select id="cm-E" data-cmd="E"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-E" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-E"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsE"></div></div></details>
+    <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span> <span class="mode" id="modeG"></span> <span class="note" id="infoG"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-G" data-cyr="G"></select></label><label>Graphique <select id="cm-G" data-cmd="G"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-G" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-G"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsG"></div></div></details>
     <div id="vCpt"><div id="cList"></div></div>
     <div id="autoMeters"></div>
   </div>
@@ -1561,7 +1561,7 @@ function buildCpt(){
     return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span> <span class="mode" data-cmode="${c.id}"></span> <span class="badge" data-cn="${c.id}"></span></summary><div class="cpb">
       <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><label>Énergie <select data-cene="${c.id}"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
       <p class="note" data-cproj="${c.id}"></p>
-      <div class="tools" style="margin-top:10px"><label>Année <select id="cy-${c.id}" data-cyr="${c.id}"></select></label></div><div id="cs-${c.id}" style="margin:4px 0 0"></div>
+      <div class="tools" style="margin-top:10px"><label>Année <select id="cy-${c.id}" data-cyr="${c.id}"></select></label><label>Graphique <select id="cm-${c.id}" data-cmd="${c.id}"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-${c.id}" style="margin:4px 0 0"></div>
       <div class="box" style="height:280px;margin-top:6px"><canvas id="cc-${c.id}"></canvas></div>
       <h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3>${yh}</div></details>`}).join(''):'';
 }
@@ -1573,12 +1573,14 @@ const cptMark={id:'cptmark',afterDatasetsDraw(ch){
     ctx.save();ctx.translate(x+4,ch.chartArea.top+4);ctx.rotate(Math.PI/2);ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(o.txt||('Fin : '+o.nom),0,0);ctx.restore()});
   ctx.restore();
 }};
-const cptYr={};
+const cptYr={},cptMode={};
+try{Object.assign(cptMode,JSON.parse(localStorage.getItem('cptMode')||'{}'))}catch(e){}
 const yearsOf=mon=>{const y=new Set([new Date().getFullYear()]);Object.keys(mon).forEach(k=>{if(mon[k]!=null)y.add(+k.slice(0,4))});return[...y].sort((a,b)=>b-a)};
 /* graphique « année choisie / année précédente » (même présentation que le suivi des projets) */
 function drawYearCmp(key,mon,mk,lp){
   if(cptCharts[key]){cptCharts[key].destroy();delete cptCharts[key]}
   const cv=document.getElementById('cc-'+key),sel=document.getElementById('cy-'+key),st=document.getElementById('cs-'+key);if(!cv||!sel)return;
+  const md=cptMode[key]==='d'||cptMode[key]==='u'?cptMode[key]:'c',msel=document.getElementById('cm-'+key);if(msel)msel.value=md;
   const ys=yearsOf(mon),sig=ys.join(',');
   if(cptYr[key]==null||!ys.includes(cptYr[key]))cptYr[key]=new Date().getFullYear();
   const Y=cptYr[key];if(sel.dataset.sig!==sig){sel.innerHTML=ys.map(y=>`<option value="${y}">${y}</option>`).join('');sel.dataset.sig=sig}sel.value=Y;
@@ -1591,6 +1593,24 @@ function drawYearCmp(key,mon,mk,lp){
   else st.innerHTML='<p class="note" style="margin:0">Pas de mois comparable entre '+Y+' et '+(Y-1)+'.</p>';
   const marks=(lp||[]).filter(p=>p.termine&&+p.termine.slice(0,4)===Y).map(p=>({idx:+p.termine.slice(5,7)-1,txt:'Projet terminé : '+p.nom}));
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),u=mk.u?' ('+mk.u+')':'',cv2=x=>x.map(v=>v==null?null:v*mk.k);
+  if(md!=='c'){ /* consommation / DJU : même graphique que la page DJU */
+    const U=md==='u',DL=U?'DJU Unique':'DJU',unx=(mk.u||'unité')+'/'+DL,fm2=v=>fmt(v,v<0.1?4:3);
+    const rt=(y,arr)=>arr.map((v,i)=>{if(v==null)return null;const vv=v*mk.k,kk=ymKey(y,i+1),ch=dju[kk]||0,fr=djuC[kk]||0;
+      if(U){const d=Math.abs(ch-fr);return d>0?{m:ch-fr>0?'c':'f',v:vv/d,t:vv,d}:null}
+      if(i<4||i>8)return ch>0?{m:'c',v:vv/ch,t:vv,d:ch}:null;
+      return fr>0?{m:'f',v:vv/fr,t:vv,d:fr}:null});
+    const A=rt(Y,cur),P=rt(Y-1,prev);
+    if(!A.some(Boolean)&&!P.some(Boolean)){wrap.style.display='none';st.innerHTML='<p class="note" style="margin:0">Aucun mois exploitable en '+Y+' : il faut les DJU du mois (page DJU) et la consommation du mois.</p>';return}
+    const sm=m=>{const l=A.filter(o=>o&&o.m===m),d=l.reduce((a,o)=>a+o.d,0);return d?l.reduce((a,o)=>a+o.t,0)/d:null},ac=sm('c'),af=sm('f');
+    st.innerHTML=`<p style="margin:0"><b>Consommation / ${DL} · ${Y}</b></p><p class="note" style="margin:2px 0 0">${(ac!=null||af!=null?'Moyennes '+Y+' (pondérées) : '+[ac!=null?(U?'mois froids ':'chauffage ')+fm2(ac)+' '+esc(unx):'',af!=null?(U?'mois chauds ':'climatisation ')+fm2(af)+' '+esc(unx):''].filter(Boolean).join(' · ')+'. ':'Aucun mois exploitable pour '+Y+'. ')+(U?'Rapportée au DJU Unique du mois (|DJU chaud − DJU froid|). ':'De mai à septembre rapportée au DJU froid, les autres mois au DJU chaud. ')}Ligne pointillée : ratio de ${Y-1}.</p>`;
+    const pick=m=>A.map(o=>o&&o.m===m?o.v:null);
+    cptCharts[key]=new Chart(cv,{type:'bar',data:{labels:MOIS.slice(),datasets:[
+      {type:'bar',label:U?'Mois froids (DJU Unique positif)':'Chauffage : consommation ÷ DJU chaud',data:pick('c'),backgroundColor:U?'#3b7dd8':'#e8590c',stack:'r',order:2},
+      {type:'bar',label:U?'Mois chauds (DJU Unique négatif)':'Climatisation : consommation ÷ DJU froid',data:pick('f'),backgroundColor:U?'#d9534f':'#7048e8',stack:'r',order:2},
+      {type:'line',label:(Y-1)+'',data:P.map(o=>o?o.v:null),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,borderDash:[6,4],pointRadius:4,tension:.25,spanGaps:true,order:1}]},
+      plugins:[{id:'djur',afterDatasetsDraw(ch){const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';ch.data.datasets.forEach((ds,di)=>{if(ds.type!=='bar')return;ch.getDatasetMeta(di).data.forEach((b,i)=>{const v=ds.data[i];if(v!=null)ctx.fillText(fm2(v),b.x,b.y-4)})});ctx.restore()}}],
+      options:{maintainAspectRatio:false,layout:{padding:{top:22}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.type==='line'?c.dataset.label:c.dataset.label.split(' :')[0]} : ${fm2(c.parsed.y)} ${unx}`}}},scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:unx,color:txt},ticks:{color:txt},grid:{display:false}}}}});
+    return}
   cptCharts[key]=new Chart(cv,{type:'bar',data:{labels:MOIS.slice(),datasets:[
     {label:'Année '+(Y-1)+u,data:cv2(prev),backgroundColor:col('--prev')},
     {label:'Année '+Y+u,data:cv2(cur),backgroundColor:col('--s-ctrl')}]},
@@ -1601,7 +1621,7 @@ function drawYearCmp(key,mon,mk,lp){
 }
 function drawCptChart(c,lp){drawYearCmp(c.id,c.valeurs||{},munit(c),lp)}
 /* compteurs principaux électricité / gaz : relevés mensuels en kWh affichés en MWh */
-function cptEG(){['e','g'].forEach(k=>{const mon={};data.forEach(d=>{if(d[k]!=null)mon[d.m]=+d[k]});drawYearCmp(k.toUpperCase(),mon,{k:0.001,u:'MWh'},[])})}
+function cptEG(){['e','g'].forEach(k=>{const mon={};data.forEach(d=>{if(d[k]!=null)mon[d.m]=+d[k]});drawYearCmp(k.toUpperCase(),mon,{k:0.001,u:'MWh'},[])});compteurs.forEach(c=>{if(cptMode[c.id]==='d'||cptMode[c.id]==='u')drawCptChart(c,projets.filter(p=>usesC(p,c.id)))})}
 function fillCpt(){
   const act=document.activeElement;
   document.querySelectorAll('#cList [data-cv]').forEach(el=>{if(el===act)return;const[id,ym]=el.dataset.cv.split('|'),c=compteurs.find(x=>x.id===id),v=c&&c.valeurs?c.valeurs[ym]:null;el.value=v!=null?v:''});
@@ -1620,7 +1640,7 @@ function fillCpt(){
 }
 function renderCpt(){buildCpt();fillCpt()}
 $('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
-$('cptRows').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!t.dataset.cyr)return;const id=t.dataset.cyr;cptYr[id]=+t.value;
+$('cptRows').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!(t.dataset.cyr||t.dataset.cmd))return;const id=t.dataset.cyr||t.dataset.cmd;if(t.dataset.cyr)cptYr[id]=+t.value;else{cptMode[id]=t.value;try{localStorage.setItem('cptMode',JSON.stringify(cptMode))}catch(e){}}
   if(id==='E'||id==='G')cptEG();else{const c=compteurs.find(x=>x.id===id);if(c)drawCptChart(c,projets.filter(p=>usesC(p,c.id)))}});
 ['rowE','rowG'].forEach(i=>$(i).addEventListener('toggle',()=>setTimeout(()=>Object.values(cptCharts).forEach(c=>c.resize()),0)));
 $('vCpt').onchange=ev=>{const t=ev.target,d=t.dataset;
