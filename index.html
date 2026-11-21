@@ -2119,7 +2119,7 @@ function renderSyno(){
     let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
     let tg='';if(n.t==='bat'){const ts=synTgbtSum(D,id,by);if(ts){val='';
       const dl=ts.hp?derDelta({prev:ts.p,base:ts.b,diff:ts.b-ts.p,pct:ts.p?(ts.b-ts.p)/ts.p*100:null},fE,''):'';
-      tg=`<div class="syv" style="margin:2px 0 4px" title="${esc('Total des TGBT'+(ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':'')+(ts.hp?' · vs '+derCLab():derC!=='n'?' · pas de comparaison':''))}"><b style="font-size:1.05rem">${fE(ts.t)}</b>${dl?`<span style="display:block;font-size:.8rem">${dl}</span>`:''}</div>`}}
+      tg=`<div class="syv" style="margin:2px 0 4px" title="${esc('Total des TGBT'+(ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':'')+(ts.hp?' · vs '+derCLab():derC!=='n'?' · pas de comparaison':''))}"><b style="font-size:1.05rem">${fE(ts.t)}</b>${dl?` <span style="font-size:1.05rem">${dl}</span>`:''}</div>`}}
     const ct=SYCT.includes(n.t),deps=n.deps||{},tcl=ct&&synTc.has(id);
     let tsum='';if(tcl){let t=0,k=0;Object.values(deps).forEach(d=>{const x=d.c?synCv(by,d.c):null;if(x!=null){t+=x;k++}});if(k)tsum=`<div class="syv"><b>${fE(t)}</b></div>`}
     const rows=ct&&!tcl?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
