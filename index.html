@@ -1968,13 +1968,15 @@ function syncMonth(id,ym,mm){if(id!=='e'&&id!=='g')return;const r=autoMonth(id,y
 function fillAutoCells(root,id){const tot={};
   root.querySelectorAll('[data-ca]').forEach(td=>{const ym=td.dataset.ca.split('|')[1],r=autoMonth(id,ym);td.innerHTML=r?`<b>${fIdx(r.v)}</b> <span class="note" style="margin:0">${r.left>0?'reste '+r.left+' jour'+(r.left>1?'s':'')+' à saisir':'complet'}${r.partial?' · sans index de référence':''}</span>`:'–';if(r)tot[ym.slice(0,4)]=(tot[ym.slice(0,4)]||0)+r.v});
   root.querySelectorAll('[data-cat]').forEach(td=>{const y=td.dataset.cat.split('|')[1];td.textContent=tot[y]!=null?fIdx(tot[y]):'–'})}
-function fillDays(root,id){const m=autoMap[id]||{},ds=Object.keys(m).sort();
+function fillDays(root,id,tot){const m=autoMap[id]||{},ds=Object.keys(m).sort();
   root.querySelectorAll('[data-cd]').forEach(td=>{const key=td.dataset.cd,ym=key.split('|')[1],open=cdOpen.has(key),bt=root.querySelector('[data-tgd="'+key+'"]');td.parentElement.hidden=!open;if(bt)bt.textContent=open?'▾':'▸';
     if(!open){td.innerHTML='';return}
     if(!td.querySelector('table')){const nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),tdy=today();let h='<table class="gt"><thead><tr><th>Jour</th><th>Index</th><th>Écart</th><th>Source</th></tr></thead><tbody>';
       for(let dd=1;dd<=nd;dd++){const d2=ym+'-'+String(dd).padStart(2,'0');h+=`<tr><td>${esc(dfr(d2))}</td><td><input type="number" step="any" min="0" class="cell" placeholder="–" data-di="${esc(id)}|${d2}"${d2>tdy?' disabled':''}></td><td data-dg="${esc(id)}|${d2}"></td><td data-dsrc="${esc(id)}|${d2}"></td></tr>`}
       td.innerHTML=h+'</tbody></table><p class="note edit-only" style="margin:4px 0">Les index reçus automatiquement remplissent les cases. Complétez les jours manquants à la main ; videz une case pour supprimer l’index.</p>'}
-    td.querySelectorAll('[data-di]').forEach(inp=>{const d2=inp.dataset.di.split('|')[1],v=m[d2];if(document.activeElement!==inp)inp.value=v==null?'':v});
+    const manTot=tot&&tot(ym)!=null&&!ds.some(x=>x.slice(0,7)===ym),tdy2=today();
+    td.querySelectorAll('[data-di]').forEach(inp=>{const d2=inp.dataset.di.split('|')[1],v=m[d2];if(document.activeElement!==inp)inp.value=v==null?'':v;
+      inp.disabled=manTot||d2>tdy2;inp.classList.toggle('lk',manTot);inp.title=manTot?'Verrouillé : le total du mois a été saisi à la main. Videz ce total pour saisir les jours.':''});
     td.querySelectorAll('[data-dsrc]').forEach(c2=>{const d2=c2.dataset.dsrc.split('|')[1];c2.innerHTML=m[d2]==null?'':autoMan[id+'|'+d2]?'<span class="mode man">Manuel</span>':'<span class="mode aut">Automatique</span>'});
     td.querySelectorAll('[data-dg]').forEach(c2=>{const d2=c2.dataset.dg.split('|')[1],pd=ds.filter(x=>x<d2).pop();c2.textContent=m[d2]!=null&&pd?(m[d2]-m[pd]>0?'+':'')+fIdx(m[d2]-m[pd]):'—'})})}
 /* tous les compteurs secondaires */
@@ -1983,13 +1985,13 @@ function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),ds=Object.
   box.querySelectorAll('[data-cv]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],lock=ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.classList.toggle('lk',lock);inp.title=lock?LOCKT:''});
   fillAutoCells(box,id);
   box.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1];sp.textContent=c.valeurs&&c.valeurs[ym]!=null?'total saisi':''});
-  fillDays(box,id)})}
+  fillDays(box,id,ym=>c.valeurs?c.valeurs[ym]:null)})}
 /* gaz et électricité principaux */
 function gridAutoFill(){try{['e','g'].forEach(id=>{const root=$(id==='e'?'gridsE':'gridsG');if(!root)return;const ds=Object.keys(autoMap[id]||{});
   root.querySelectorAll('[data-c]').forEach(inp=>{const ym=inp.dataset.c.split('|')[0],lock=ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.classList.toggle('lk',lock);inp.title=lock?LOCKT:''});
   fillAutoCells(root,id);
   root.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1],d=data.find(x=>x.m===ym);sp.textContent=d&&d[id]!=null&&!ds.some(x=>x.slice(0,7)===ym)?'total saisi':''});
-  fillDays(root,id)})}catch(e){console.error(e)}}
+  fillDays(root,id,ym=>{const d=data.find(x=>x.m===ym);return d?d[id]:null})})}catch(e){console.error(e)}}
 function autoMonForm(id){const e=esc(id);return `<div class="edit-only" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px"><button type="button" class="main" data-mkcpt="${e}">Saisir les valeurs mensuelles (tableau par année)</button><span class="note" style="margin:0">Crée le compteur « ${esc(autoNames[id]||id)} » dans la liste des compteurs, lié aux index automatiques.</span></div>`}
 function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
   return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
