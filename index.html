@@ -337,7 +337,8 @@ body.out .edit-only{display:none!important}
     <p class="sub">Vue d’ensemble des bâtiments</p>
   </div>
 </header>
-<div class="dtabs" id="derTabs"><a class="btn" href="#" style="margin-right:6px">← Tableau de bord</a><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" hidden style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
+<div class="dtabs" id="derTabs"><a class="btn" href="#" style="margin-right:6px">← Tableau de bord</a><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><label style="order:5;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Comparer <select id="derC"><option value="n">Aucune</option><option value="p">Période précédente</option><option value="y">Même période l’an dernier</option><option value="c">Dates choisies…</option></select></label><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" hidden style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
+<div id="derRg" hidden style="margin:6px 0 2px;font-size:.85rem"><span id="derRgA" hidden style="margin-right:18px">Période : du <input type="date" id="derCf"> au <input type="date" id="derCt"></span><span id="derRgB" hidden>comparée à : du <input type="date" id="derPf"> au <input type="date" id="derPt"></span></div>
 <div id="derVb">
 <div class="dmap" id="derMap">
 <svg class="dl" id="derLines"></svg>
@@ -1793,8 +1794,15 @@ function derCounters(){
   return L}
 function derFac(c){if(c.key==='e'||c.key==='g'||c.key[0]==='a')return 1;const u=(c.unit||'').toLowerCase();return u==='kwh'?1:u==='mwh'?1000:null}
 function derMeasure(c){
-  if(derP[0]==='y'){const r=derYearCmp(derSeries(c.key,c.aid),+derP.slice(1));return r?{cur:r.cur,base:r.base,prev:r.prev}:null}
-  const r=c.aid&&Object.keys(autoMap[c.aid]||{}).length?derCalc(c.aid,derP):null;return r?{cur:r.kwh}:null}
+  if(derP[0]==='y'){const r=derYearCmp(derSeries(c.key,c.aid),+derP.slice(1));if(!r)return null;
+    if(derC==='n')return{cur:r.cur};if(derC==='p'||derC==='y')return r.prev!=null?{cur:r.cur,base:r.base,prev:r.prev}:{cur:r.cur};
+    const p=rangeCons(c.key,c.aid,derPf,derPt);return p!=null?{cur:r.cur,base:r.cur,prev:p}:{cur:r.cur}}
+  let cur,from,to;
+  if(derP==='c'){from=derCf;to=derCt;cur=rangeCons(c.key,c.aid,from,to);if(cur==null)return null}
+  else{const r=c.aid&&Object.keys(autoMap[c.aid]||{}).length?derCalc(c.aid,derP):null;if(!r)return null;cur=r.kwh;from=dAdd(r.ref,1);to=r.L}
+  if(derC==='n')return{cur};
+  const q=derCmpRange(from,to,derP),p=q?rangeCons(c.key,c.aid,q[0],q[1]):null;
+  return p!=null?{cur,base:cur,prev:p}:{cur}}
 function derTot(n,by){const dp=derDeps[slug(n)]||[];if(!dp.length)return null;const mwh=v=>fmt(v/AUTO_DIV,1);
   let cur=0,base=0,prev=0,hp=false,ok=0;
   dp.forEach(d=>{const c=d.c?by[d.c]:null;if(!c)return;const f=derFac(c);if(f==null)return;const m=derMeasure(c);if(!m)return;cur+=m.cur*f;ok++;if(m.prev!=null){base+=m.base*f;prev+=m.prev*f;hp=true}});
@@ -1979,6 +1987,32 @@ $('autoApply').onclick=async()=>{const ok=autoRows.filter(r=>!r.err);if(!ok.leng
     await wb.commit();$('autoApply').disabled=true;$('autoRes').insertAdjacentHTML('afterbegin','<p style="color:#15803d;margin:0 0 6px"><b>Enregistré.</b></p>')}catch(e){refus()}};
 
 
+const dAdd=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+const dAddM=(d,n)=>{const m=+d.slice(5,7)-1+n,Y=+d.slice(0,4)+Math.floor(m/12),M=((m%12)+12)%12,last=new Date(Y,M+1,0).getDate();return Y+'-'+String(M+1).padStart(2,'0')+'-'+String(Math.min(+d.slice(8,10),last)).padStart(2,'0')};
+const dDays=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
+let derC='p',derCf='',derCt='',derPf='',derPt='';
+try{derC=localStorage.getItem('derC')||'p';derCf=localStorage.getItem('derCf')||'';derCt=localStorage.getItem('derCt')||'';derPf=localStorage.getItem('derPf')||'';derPt=localStorage.getItem('derPt')||''}catch(e){}
+{const t=new Date().toISOString().slice(0,10),y=t.slice(0,4);if(!derCf)derCf=y+'-01-01';if(!derCt)derCt=t;if(!derPf)derPf=(y-1)+'-01-01';if(!derPt)derPt=dAddM(t,-12)}
+const derSaveC=()=>{try{localStorage.setItem('derC',derC);localStorage.setItem('derCf',derCf);localStorage.setItem('derCt',derCt);localStorage.setItem('derPf',derPf);localStorage.setItem('derPt',derPt)}catch(e){}};
+/* dernier relevé d'index à la date d (ou au plus 3 jours avant) */
+function idxAt(aid,d){const m=autoMap[aid]||{};let b=null;for(const k in m)if(k<=d&&(b===null||k>b))b=k;return b&&dDays(b,d)<=3?m[b]:null}
+/* consommation du jour from au jour to inclus : index auto, sinon mois entiers des relevés mensuels */
+function rangeCons(key,aid,from,to){
+  if(!from||!to||from>to)return null;
+  if(aid&&autoMap[aid]){const a=idxAt(aid,dAdd(from,-1)),b=idxAt(aid,to);if(a!=null&&b!=null&&b>=a)return b-a}
+  if(from.slice(8)!=='01'||new Date(+to.slice(0,4),+to.slice(5,7),0).getDate()!==+to.slice(8))return null;
+  const mon=derSeries(key,aid).mon;let t=0,n=0;
+  for(let m=from.slice(0,7);m<=to.slice(0,7);m=dAddM(m+'-01',1).slice(0,7)){if(mon[m]==null)return null;t+=mon[m];n++}
+  return n?t:null}
+/* période de comparaison pour [from,to] */
+function derCmpRange(from,to,per){
+  if(derC==='c')return derPf&&derPt?[derPf,derPt]:null;
+  if(derC==='y')return [dAddM(from,-12),dAddM(to,-12)];
+  if(per==='m')return [dAddM(from,-1),dAddM(to,-1)];
+  const n=dDays(from,to)+1,pt=dAdd(from,-1);return [dAdd(pt,-(n-1)),pt]}
+function derCLab(){if(derC==='c')return 'dates choisies';if(derC==='y')return derP[0]==='y'?'année '+(+derP.slice(1)-1):'même période l’an dernier';
+  return derP[0]==='y'?'année '+(+derP.slice(1)-1):({h:'jour précédent',s:'7 jours précédents',m:'mois précédent',c:'période précédente'})[derP]||'période précédente'}
+const derRel=m=>{const b=m.base!=null?m.base:m.cur;return{prev:m.prev,base:b,diff:b-m.prev,pct:m.prev?(b-m.prev)/m.prev*100:null}};
 const DERL={h:'consommation de la veille',s:'7 derniers jours',m:'mois en cours',a:'année en cours'};
 let derP='h';try{derP=localStorage.getItem('derP')||'h'}catch(e){}
 function derCalc(id,per){
@@ -2014,25 +2048,35 @@ function derDelta(r,fmtV,unit){ /* vert avec "−" = économie, rouge avec "+" =
 /* affichage d'un compteur pour la période choisie : card=true pour les arrivées EDF / Gaz */
 function derDisp(key,aid,unit,card){
   const kwhMode=key==='e'||key==='g',fv=kwhMode?(v=>fmt(v/AUTO_DIV,1)):fIdx,un=kwhMode?'MWh':unit;
-  if(derP[0]==='y'){const Y=+derP.slice(1),r=derYearCmp(derSeries(key,aid),Y);
+  if(derP==='c'){const m=derMeasure({key,aid});
+    if(!m)return card?'<span class="big">—</span><span class="det">Pas de relevé sur ces dates</span>':'<small>—</small>';
+    const pv=m.prev!=null,dl=pv?derDelta(derRel(m),fv,un):'';
+    if(!card)return `<b>${fv(m.cur)}${un?' '+esc(un):''}</b>${dl?' '+dl:''}`;
+    return `<span class="big">${fv(m.cur)} ${un}</span><span class="det">du ${esc(dfr(derCf))} au ${esc(dfr(derCt))}</span>`+(pv?`<span class="det">${esc(derCLab())} : ${fv(m.prev)} ${un}</span><span class="det">${dl}</span>`:derC==='n'?'':'<span class="det">Pas de relevé comparable</span>')}
+  if(derP[0]==='y'){const Y=+derP.slice(1),r=derYearCmp(derSeries(key,aid),Y),mm=r?derMeasure({key,aid}):null,pv=mm&&mm.prev!=null?mm:null;
     if(!r)return card?`<span class="big">—</span><span class="det">Aucun relevé en ${Y}</span>`:'<small>—</small>';
-    if(!card)return `<b>${fv(r.cur)}${un?' '+esc(un):''}</b>${r.prev!=null?' '+derDelta(r,fv,un):''}`;
+    if(!card)return `<b>${fv(r.cur)}${un?' '+esc(un):''}</b>${pv?' '+derDelta(derRel(pv),fv,un):''}`;
     const mois=r.annual?'total annuel':r.n+' mois ('+MOIS[+r.first.slice(5)-1].toLowerCase()+(r.n>1?' → '+MOIS[+r.last.slice(5)-1].toLowerCase():'')+')';
-    return `<span class="big">${fv(r.cur)} ${un}</span><span class="det">Année ${Y} · ${mois}</span>`+(r.prev!=null?`<span class="det">${Y-1}${r.same?' sur les mêmes mois':''} : ${fv(r.prev)} ${un}</span><span class="det">${derDelta(r,fv,un)}</span>`:`<span class="det">Pas de relevé comparable en ${Y-1}</span>`)}
+    return `<span class="big">${fv(r.cur)} ${un}</span><span class="det">Année ${Y} · ${mois}</span>`+(pv?`<span class="det">${derC==='c'?esc(derCLab()):(Y-1)+(r.same?' sur les mêmes mois':'')} : ${fv(pv.prev)} ${un}</span><span class="det">${derDelta(derRel(pv),fv,un)}</span>`:derC==='n'?'':`<span class="det">Pas de relevé comparable${derC==='c'?'':' en '+(Y-1)}</span>`)}
   const has=Object.keys(autoMap[aid]||{}).length>0,r=has?derCalc(aid,derP):null;
   if(!has)return card?'<span class="det">Pas de compteur relevé</span>':'<small title="Pas de relevé automatique pour cette période">—</small>';
   if(!r)return card?'<span class="big">—</span><span class="det">Pas assez de relevés pour cette période</span>':'<small>—</small>';
-  if(!card)return `<b${r.kwh<0?' style="color:#b91c1c"':''}>${fIdx(r.kwh)}${unit?' '+esc(unit):''}</b>`;
-  return `<span class="big"${r.kwh<0?' style="color:#b91c1c"':''}>${fmt(r.kwh/AUTO_DIV,1)} MWh</span><span class="det">${esc(DERL[derP])}</span><span class="det">du ${esc(dfr(r.ref))} au ${esc(dfr(r.L))} · ${r.days} j</span><span class="det">${fIdx(r.kwh)} kWh · moy. ${fIdx(Math.round(r.kwh/r.days))} kWh/j</span>${r.partial?'<span class="det" style="color:#b45309">Données partielles : historique plus court que la période</span>':''}${r.age>1?`<span class="det" style="color:#b45309">Dernier relevé il y a ${r.age} j</span>`:''}`}
+  const mm=derMeasure({key,aid}),pv=mm&&mm.prev!=null?mm:null;
+  if(!card)return `<b${r.kwh<0?' style="color:#b91c1c"':''}>${fIdx(r.kwh)}${unit?' '+esc(unit):''}</b>${pv?' '+derDelta(derRel(pv),fIdx,unit):''}`;
+  return `<span class="big"${r.kwh<0?' style="color:#b91c1c"':''}>${fmt(r.kwh/AUTO_DIV,1)} MWh</span><span class="det">${esc(DERL[derP])}</span><span class="det">du ${esc(dfr(r.ref))} au ${esc(dfr(r.L))} · ${r.days} j</span><span class="det">${fIdx(r.kwh)} kWh · moy. ${fIdx(Math.round(r.kwh/r.days))} kWh/j</span>${pv?`<span class="det">${esc(derCLab())} : ${fv(pv.prev)} ${un}</span><span class="det">${derDelta(derRel(pv),fv,un)}</span>`:''}${r.partial?'<span class="det" style="color:#b45309">Données partielles : historique plus court que la période</span>':''}${r.age>1?`<span class="det" style="color:#b45309">Dernier relevé il y a ${r.age} j</span>`:''}`}
 function renderDer(){
   const sel=$('derP');if(!sel)return;
   if(derP==='a')derP='y'+new Date().getFullYear();
-  sel.innerHTML='<option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option>'+derYears().map(y=>`<option value="y${y}">Année ${y}</option>`).join('');
+  sel.innerHTML='<option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="c">Dates choisies…</option>'+derYears().map(y=>`<option value="y${y}">Année ${y}</option>`).join('');
   if(![...sel.options].some(o=>o.value===derP))derP='h';sel.value=derP;
+  $('derC').value=derC;$('derRgA').hidden=derP!=='c';$('derRgB').hidden=derC!=='c';$('derRg').hidden=derP!=='c'&&derC!=='c';
+  [['derCf',derCf],['derCt',derCt],['derPf',derPf],['derPt',derPt]].forEach(([i,v])=>{if(document.activeElement!==$(i))$(i).value=v});
   if(!derDrag&&!$('derList').contains(document.activeElement))derBuild();
   if(derTab!=='b'&&!synDrag&&document.activeElement!==$('syNom')&&document.activeElement!==$('syCpt')&&document.activeElement!==$('syType')&&!(document.activeElement&&document.activeElement.classList.contains('syq'))){synKey='';renderSyno()}
   $('derEdfV').innerHTML=derDisp('e','e','kWh',true);$('derGazV').innerHTML=derDisp('g','g','kWh',true);
   derDraw()}
+$('derC').onchange=ev=>{derC=ev.target.value;derSaveC();renderDer()};
+[['derCf','f'],['derCt','t'],['derPf','pf'],['derPt','pt']].forEach(([i,k])=>{$(i).onchange=ev=>{const v=ev.target.value;if(!v)return;if(i==='derCf')derCf=v;else if(i==='derCt')derCt=v;else if(i==='derPf')derPf=v;else derPt=v;derSaveC();renderDer()}});
 $('derP').onchange=ev=>{derP=ev.target.value;try{localStorage.setItem('derP',derP)}catch(e){}renderDer()};
 
 /* ---------- Synoptiques (électricité / chauffage) ---------- */
@@ -2055,11 +2099,11 @@ function renderSyno(){
   $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer ; dans un bâtiment, glissez les blocs où vous voulez, ou vers un autre bâtiment. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer. L’épaisseur des traits est proportionnelle à la consommation (période choisie en haut de page).'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
   const qa='<option value="">＋ Ajouter un bloc…</option>'+SYT[v].filter(t=>SYCHILD.includes(t[0])&&(synV!=='s'||SYSIMPLE.includes(t[0]))).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');
   const vis=new Set(),kidsOf=pid=>allIds.filter(k=>D.nodes[k].parent===pid&&(synV!=='s'||SYSIMPLE.includes(D.nodes[k].t))).sort((x,y)=>(D.nodes[x].o||0)-(D.nodes[y].o||0));
-  const btot=allIds.reduce((a,i)=>{const nn=D.nodes[i];if(nn.t!=='bat')return a;const q=synTgbtSum(D,i,by);return a+(q?q.t:0)},0);
   const html1=(id,child)=>{vis.add(id);const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
     let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
-    let tg='';if(n.t==='bat'){const ts=synTgbtSum(D,id,by);if(ts){const pc=btot>0?ts.t/btot*100:null;val='';
-      tg=`<div class="syv" style="margin:2px 0 4px"><b style="font-size:1.05rem">${fmt(ts.t/AUTO_DIV,1)} MWh</b>${pc!=null?` <b style="color:var(--accent)">· ${fmt(pc,pc<10?1:0)} %</b>`:''}<span style="display:block;color:var(--mute);font-size:.72rem;font-weight:400">total des TGBT${ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':''}${pc!=null?' · part du total des bâtiments':''}</span>${pc!=null?`<span style="display:block;height:5px;border-radius:3px;background:var(--line);margin-top:3px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,pc).toFixed(1)}%;background:var(--accent)"></i></span>`:''}</div>`}}
+    let tg='';if(n.t==='bat'){const ts=synTgbtSum(D,id,by);if(ts){val='';
+      const dl=ts.hp?derDelta({prev:ts.p,base:ts.b,diff:ts.b-ts.p,pct:ts.p?(ts.b-ts.p)/ts.p*100:null},x=>fmt(x/AUTO_DIV,1),'MWh'):'';
+      tg=`<div class="syv" style="margin:2px 0 4px"><b style="font-size:1.05rem">${fmt(ts.t/AUTO_DIV,1)} MWh</b>${dl?`<span style="display:block;font-size:.8rem">${dl}</span>`:''}<span style="display:block;color:var(--mute);font-size:.72rem;font-weight:400">total des TGBT${ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':''}${ts.hp?' · vs '+esc(derCLab()):derC!=='n'?' · pas de comparaison':''}</span></div>`}}
     const ct=SYCT.includes(n.t),deps=n.deps||{};
     const rows=ct?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
       return `<div class="sydep" data-did="${did}"><span class="sdn" title="${esc(d.nom||'')}">${esc(d.nom||(dc?dc.nom:'Départ'))}</span><span class="sdv">${dv}</span><button type="button" class="edit-only sp${synLink===id&&synLinkP===did?' on':''}" data-sp="${did}" title="Relier ce départ à un autre élément">⇢</button><button type="button" class="edit-only" data-xd="${did}" title="Supprimer ce départ">✕</button></div>`}).join('')||'<small>Aucun départ : sélectionnez ce bloc puis « + Ajouter un départ ».</small>'}</div>`:'';
@@ -2147,8 +2191,11 @@ function synDraw(){
       (v!=null?`<text x="${mxp}" y="${myp+4}" text-anchor="middle" style="fill:var(--ink);font:700 11px system-ui,sans-serif;paint-order:stroke;stroke:var(--card);stroke-width:3.5px;stroke-linejoin:round">${fmt(v/AUTO_DIV,v/AUTO_DIV<10?1:0)} MWh</text>`:'')+
       `<path class="lk" data-lk="${id}" d="${d}" fill="none" stroke="transparent" stroke-width="${Math.max(12,w)}"><title>${tt} — cliquez pour supprimer la liaison</title></path>`}).join('')}
 function synCv(by,key){const c=key?by[key]:null;if(!c)return null;const f=derFac(c);if(f==null)return null;const m=derMeasure(c);return m?Math.max(0,m.cur*f):null}
-/* total général d'un bâtiment = somme des compteurs des départs de ses TGBT */
-function synTgbtSum(D,id,by){let t=0,k=0,n=0;Object.keys(D.nodes).forEach(i=>{const c=D.nodes[i];if(c.parent!==id||c.t!=='tgbt')return;const dp=Object.values(c.deps||{}).filter(d=>d.c);if(dp.length)dp.forEach(d=>{n++;const x=synCv(by,d.c);if(x!=null){t+=x;k++}});else if(c.c){n++;const x=synCv(by,c.c);if(x!=null){t+=x;k++}}});return k?{t,k,n}:null}
+function synCm(by,key){const c=key?by[key]:null;if(!c)return null;const f=derFac(c);if(f==null)return null;const m=derMeasure(c);return m?{cur:Math.max(0,m.cur*f),b:(m.base!=null?m.base:m.cur)*f,p:m.prev!=null?m.prev*f:null}:null}
+/* total général d'un bâtiment = somme des compteurs des départs de ses TGBT (avec comparaison à la période choisie) */
+function synTgbtSum(D,id,by){let t=0,k=0,n=0,b=0,p=0,hp=0;const add=key=>{n++;const x=synCm(by,key);if(x){t+=x.cur;k++;if(x.p!=null){b+=x.b;p+=x.p;hp++}}};
+  Object.keys(D.nodes).forEach(i=>{const c=D.nodes[i];if(c.parent!==id||c.t!=='tgbt')return;const dp=Object.values(c.deps||{}).filter(d=>d.c);if(dp.length)dp.forEach(d=>add(d.c));else if(c.c)add(c.c)});
+  return k?{t,k,n,b,p,hp}:null}
 function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:Math.round(y)};if(c)n.c=c;{const D0=synoD[derTab];if(D0.cols&&D0.cols.length){const sn=synSel&&D0.nodes[synSel];n.col=sn&&sn.col&&D0.cols.some(q=>q.id===sn.col)?sn.col:D0.cols[0].id;n.o=Date.now()}}synoD[derTab].nodes[id]=n;return id}
 (function(){
   const nodes=$('syNodes');
