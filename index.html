@@ -1965,9 +1965,9 @@ function autoMonth(id,ym,mp){const m=mp||autoMap[id]||{},ds=Object.keys(m).sort(
   return{v,partial:!pv,n:inM.length,left:Math.max(0,nd-inM.length)}}
 /* gaz / électricité : le total du mois suit le cumul des index */
 function syncMonth(id,ym,mm){if(id!=='e'&&id!=='g')return;const r=autoMonth(id,ym,mm);if(r&&r.v>=0)setDoc(doc(db,'releves',ym),{[id]:r.v},{merge:true}).catch(refus)}
-function fillAutoCells(root,id){const tot={};
-  root.querySelectorAll('[data-ca]').forEach(td=>{const ym=td.dataset.ca.split('|')[1],r=autoMonth(id,ym);td.innerHTML=r?`<b>${fIdx(r.v)}</b> <span class="note" style="margin:0">${r.left>0?'reste '+r.left+' jour'+(r.left>1?'s':'')+' à saisir':'complet'}${r.partial?' · sans index de référence':''}</span>`:'–';if(r)tot[ym.slice(0,4)]=(tot[ym.slice(0,4)]||0)+r.v});
-  root.querySelectorAll('[data-cat]').forEach(td=>{const y=td.dataset.cat.split('|')[1];td.textContent=tot[y]!=null?fIdx(tot[y]):'–'})}
+function fillAutoCells(root,id){const tot={},kf=(id==='e'||id==='g')?AUTO_DIV:1,ku=kf>1?' kWh':'';
+  root.querySelectorAll('[data-ca]').forEach(td=>{const ym=td.dataset.ca.split('|')[1],r=autoMonth(id,ym);td.innerHTML=r?`<b>${fIdx(r.v*kf)}${ku}</b> <span class="note" style="margin:0">${r.left>0?'reste '+r.left+' jour'+(r.left>1?'s':'')+' à saisir':'complet'}${r.partial?' · sans index de référence':''}</span>`:'–';if(r)tot[ym.slice(0,4)]=(tot[ym.slice(0,4)]||0)+r.v});
+  root.querySelectorAll('[data-cat]').forEach(td=>{const y=td.dataset.cat.split('|')[1];td.textContent=tot[y]!=null?fIdx(tot[y]*kf)+ku:'–'})}
 function fillDays(root,id,tot){const m=autoMap[id]||{},ds=Object.keys(m).sort();
   root.querySelectorAll('[data-cd]').forEach(td=>{const key=td.dataset.cd,ym=key.split('|')[1],open=cdOpen.has(key),bt=root.querySelector('[data-tgd="'+key+'"]');td.parentElement.hidden=!open;if(bt)bt.textContent=open?'▾':'▸';
     if(!open){td.innerHTML='';return}
