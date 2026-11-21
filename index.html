@@ -1585,6 +1585,7 @@ function drawYearCmp(key,mon,mk,lp){
   const ys=yearsOf(mon),sig=ys.join(',');
   if(cptYr[key]==null||!ys.includes(cptYr[key]))cptYr[key]=new Date().getFullYear();
   const Y=cptYr[key];if(sel.dataset.sig!==sig){sel.innerHTML=ys.map(y=>`<option value="${y}">${y}</option>`).join('');sel.dataset.sig=sig}sel.value=Y;
+  const nowM=new Date().getMonth(),inc=Y===new Date().getFullYear(),AMB='#f59e0b',pal=(c0,n)=>Array.from({length:12},(_,i)=>inc&&i===nowM?AMB:c0);
   const cur=[],prev=[];for(let m=1;m<=12;m++){const v=mon[ymKey(Y,m)],p=mon[ymKey(Y-1,m)];cur.push(v!=null?v:null);prev.push(p!=null?p:null)}
   const wrap=cv.parentElement;
   if(!cur.some(v=>v!=null)&&!prev.some(v=>v!=null)){wrap.style.display='none';st.innerHTML='<p class="note" style="margin:0">Aucune valeur en '+Y+' ni en '+(Y-1)+'.</p>';return}
@@ -1592,6 +1593,7 @@ function drawYearCmp(key,mon,mk,lp){
   const fm=x=>fmt(x,decs(Math.abs(x)));let a=0,b=0,k=0;cur.forEach((v,i)=>{if(v!=null&&prev[i]!=null){a+=v;b+=prev[i];k++}});
   if(k&&b){const q=(a-b)/Math.abs(b)*100,g=b-a;st.innerHTML=`<span class="delta ${q<0?'down':q>0?'up':'flat'}">${k===12?'Année '+Y:k+' mois comparables en '+Y} : ${fm(a*mk.k)} contre ${fm(b*mk.k)}${mk.u?' '+esc(mk.u):''} en ${Y-1} (${q>0?'+':''}${fmt(q,1)} %) · ${g>=0?'gain':'perte'} de ${fm(Math.abs(g)*mk.k)}${mk.u?' '+esc(mk.u):''}</span>`}
   else st.innerHTML='<p class="note" style="margin:0">Pas de mois comparable entre '+Y+' et '+(Y-1)+'.</p>';
+  if(inc&&cur[nowM]!=null)st.insertAdjacentHTML('beforeend','<p class="note" style="margin:2px 0 0">Barre orange : mois en cours, pas encore terminé.</p>');
   const marks=(lp||[]).filter(p=>p.termine&&+p.termine.slice(0,4)===Y).map(p=>({idx:+p.termine.slice(5,7)-1,txt:'Projet terminé : '+p.nom}));
   const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim(),txt=col('--mute'),u=mk.u?' ('+mk.u+')':'',cv2=x=>x.map(v=>v==null?null:v*mk.k);
   if(md!=='c'){ /* consommation / DJU : même graphique que la page DJU */
@@ -1605,16 +1607,17 @@ function drawYearCmp(key,mon,mk,lp){
     const sm=m=>{const l=A.filter(o=>o&&o.m===m),d=l.reduce((a,o)=>a+o.d,0);return d?l.reduce((a,o)=>a+o.t,0)/d:null},ac=sm('c'),af=sm('f');
     st.innerHTML=`<p style="margin:0"><b>Consommation / ${DL} · ${Y}</b></p><p class="note" style="margin:2px 0 0">${(ac!=null||af!=null?'Moyennes '+Y+' (pondérées) : '+[ac!=null?(U?'mois froids ':'chauffage ')+fm2(ac)+' '+esc(unx):'',af!=null?(U?'mois chauds ':'climatisation ')+fm2(af)+' '+esc(unx):''].filter(Boolean).join(' · ')+'. ':'Aucun mois exploitable pour '+Y+'. ')+(U?'Rapportée au DJU Unique du mois (|DJU chaud − DJU froid|). ':'De mai à septembre rapportée au DJU froid, les autres mois au DJU chaud. ')}Ligne pointillée : ratio de ${Y-1}.</p>`;
     const pick=m=>A.map(o=>o&&o.m===m?o.v:null);
+    if(inc&&A[nowM])st.insertAdjacentHTML('beforeend','<p class="note" style="margin:2px 0 0">Barre orange : mois en cours, pas encore terminé.</p>');
     cptCharts[key]=new Chart(cv,{type:'bar',data:{labels:MOIS.slice(),datasets:[
-      {type:'bar',label:U?'Mois froids (DJU Unique positif)':'Chauffage : consommation ÷ DJU chaud',data:pick('c'),backgroundColor:U?'#3b7dd8':'#e8590c',stack:'r',order:2},
-      {type:'bar',label:U?'Mois chauds (DJU Unique négatif)':'Climatisation : consommation ÷ DJU froid',data:pick('f'),backgroundColor:U?'#d9534f':'#7048e8',stack:'r',order:2},
+      {type:'bar',label:U?'Mois froids (DJU Unique positif)':'Chauffage : consommation ÷ DJU chaud',data:pick('c'),backgroundColor:pal(U?'#3b7dd8':'#e8590c'),stack:'r',order:2},
+      {type:'bar',label:U?'Mois chauds (DJU Unique négatif)':'Climatisation : consommation ÷ DJU froid',data:pick('f'),backgroundColor:pal(U?'#d9534f':'#7048e8'),stack:'r',order:2},
       {type:'line',label:(Y-1)+'',data:P.map(o=>o?o.v:null),borderColor:col('--ink'),backgroundColor:col('--ink'),borderWidth:2.5,borderDash:[6,4],pointRadius:4,tension:.25,spanGaps:true,order:1}]},
       plugins:[{id:'djur',afterDatasetsDraw(ch){const ctx=ch.ctx,ink=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();ctx.save();ctx.font='700 11px "Segoe UI",system-ui,sans-serif';ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='bottom';ch.data.datasets.forEach((ds,di)=>{if(ds.type!=='bar')return;ch.getDatasetMeta(di).data.forEach((b,i)=>{const v=ds.data[i];if(v!=null)ctx.fillText(fm2(v),b.x,b.y-4)})});ctx.restore()}}],
       options:{maintainAspectRatio:false,layout:{padding:{top:22}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:txt}},tooltip:{callbacks:{label:c=>` ${c.dataset.type==='line'?c.dataset.label:c.dataset.label.split(' :')[0]} : ${fm2(c.parsed.y)} ${unx}`}}},scales:{x:{stacked:true,ticks:{color:txt},grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:unx,color:txt},ticks:{color:txt},grid:{display:false}}}}});
     return}
   cptCharts[key]=new Chart(cv,{type:'bar',data:{labels:MOIS.slice(),datasets:[
     {label:'Année '+(Y-1)+u,data:cv2(prev),backgroundColor:col('--prev')},
-    {label:'Année '+Y+u,data:cv2(cur),backgroundColor:col('--s-ctrl')}]},
+    {label:'Année '+Y+u,data:cv2(cur),backgroundColor:pal(col('--s-ctrl'))}]},
     plugins:[gainPlugin,cptMark],
     options:{maintainAspectRatio:false,layout:{padding:{top:window.innerWidth<600?105:58}},plugins:{legend:{labels:{color:txt}},cptmark:{marks},gain:{unit:mk.u},
       tooltip:{callbacks:{label:t=>`${t.dataset.label} : ${fmt(t.parsed.y,decs(Math.abs(t.parsed.y)))}`,afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);if(q==null)return '';const d=t.parsed.y-pv;return (q>0?'+':'')+fmt(q,1)+' % vs '+(Y-1)+' · '+(d>0?'+':d<0?'-':'')+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')}}}},
