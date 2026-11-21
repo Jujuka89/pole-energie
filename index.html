@@ -2145,6 +2145,11 @@ function synFloat(){const v=derTab,D=synoD[v],ch={};
     let base=0;fl.forEach(k=>{base=Math.max(base,k.offsetTop+k.offsetHeight+8)});
     const pos=nf.map(k=>({k,x:k.offsetLeft,y:k.offsetTop+base}));
     pos.forEach(q=>{q.k.classList.add('fl');q.k.style.left=q.x+'px';q.k.style.top=q.y+'px';const n=D.nodes[q.k.dataset.id];if(n){n.cx=q.x;n.cy=q.y;ch[q.k.dataset.id]={cx:q.x,cy:q.y}}});
+    /* un bloc déplié (TGBT…) repousse vers le bas ceux qui se trouvent dessous ; replié, ils reprennent leur place */
+    {const all=[...sy.querySelectorAll(':scope>.synode.ch')].map(k=>{const n=D.nodes[k.dataset.id]||{};return{k,y:n.cy!=null?n.cy:k.offsetTop}}).sort((p,q)=>p.y-q.y),done=[],GAP=8;
+      all.forEach(o=>{const k=o.k,l=k.offsetLeft,w=k.offsetWidth,h=k.offsetHeight;let top=o.y,c=true,i=0;
+        while(c&&i++<50){c=false;done.forEach(d=>{if(l<d.l+d.w&&d.l<l+w&&top<d.t+d.h&&top+h>d.t){top=d.t+d.h+GAP;c=true}})}
+        k.style.top=top+'px';done.push({l,w,t:top,h})})}
     let mw=0,mh=0;sy.querySelectorAll(':scope>.synode.ch').forEach(k=>{mw=Math.max(mw,k.offsetLeft+k.offsetWidth);mh=Math.max(mh,k.offsetTop+k.offsetHeight)});
     sy.style.minWidth=mw?mw+'px':'';sy.style.minHeight=Math.max(110,mh+48)+'px';if(mw)b.style.maxWidth='none'});
   if(Object.keys(ch).length&&!synRO()){synKey='';synSave({[v]:{nodes:ch}})}}
