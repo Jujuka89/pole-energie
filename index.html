@@ -2102,8 +2102,18 @@ function renderSyno(){
   const qa='<option value="">＋ Ajouter un bloc…</option>'+SYT[v].filter(t=>SYCHILD.includes(t[0])&&(synV!=='s'||SYSIMPLE.includes(t[0]))).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');
   const vis=new Set(),kidsOf=pid=>allIds.filter(k=>D.nodes[k].parent===pid&&(synV!=='s'||SYSIMPLE.includes(D.nodes[k].t))).sort((x,y)=>(D.nodes[x].o||0)-(D.nodes[y].o||0));
   /* alerte : un bâtiment alimenté par un autre bâtiment ne doit pas consommer plus que lui */
-  const bv=id=>{const n=D.nodes[id];if(!n||n.t!=='bat')return null;const q=synTgbtSum(D,id,by);return q?q.t:(n.c?synCv(by,n.c):null)},warn={};
-  Object.values(D.links).forEach(l=>{const a=bv(l.a),b=bv(l.b);if(a!=null&&b!=null&&b>a+0.5){const w=warn[l.b]||(warn[l.b]=[]);w.push(`${D.nodes[l.a].nom||'bâtiment'} (${fE(a)})`)}});
+  const bv=id=>{const n=D.nodes[id];if(!n||n.t!=='bat')return null;const q=synTgbtSum(D,id,by);if(q)return q.t;
+    if(n.c){const x=synCv(by,n.c);if(x!=null)return x}
+    let t=0,k=0;(derDeps[slug(n.nom||'')]||[]).forEach(d=>{const x=synCv(by,d.c);if(x!=null){t+=x;k++}});if(k)return t;
+    Object.keys(D.nodes).forEach(i=>{const c=D.nodes[i];if(c.parent===id&&c.c){const x=synCv(by,c.c);if(x!=null){t+=x;k++}}});return k?t:null},warn={};
+  const owner=id=>{let g=0;while(id&&g++<20){const n=D.nodes[id];if(!n)return null;if(n.t==='bat')return id;id=n.parent}return null};
+  /* bâtiments situés en amont de B : on remonte les liaisons (à travers TGBT, départs, etc.) jusqu'au premier bâtiment rencontré */
+  const upBats=B=>{const res=new Set(),seen=new Set(),q=[B];
+    while(q.length){const cur=q.shift();Object.values(D.links).forEach(l=>{const dst=l.b,own=owner(dst);if(dst!==cur&&own!==cur)return;
+      const a=l.a,oa=owner(a);if(oa&&oa!==B){res.add(oa);return}if(oa===B)return;if(!seen.has(a)){seen.add(a);q.push(a)}})}
+    return [...res]};
+  Object.keys(D.nodes).forEach(B=>{if(D.nodes[B].t!=='bat')return;const b=bv(B);if(b==null)return;
+    upBats(B).forEach(A=>{const a=bv(A);if(a!=null&&b>a+0.5)(warn[B]||(warn[B]=[])).push(`${D.nodes[A].nom||'bâtiment'} (${fE(a)})`)})});
   const WSVG='<svg viewBox="0 0 24 22" width="17" height="16" style="vertical-align:-3px;margin-left:5px;flex:none"><path d="M12 1.5 23 20.5H1z" fill="#facc15" stroke="#ca8a04" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 8v6" stroke="#422006" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.4" fill="#422006"/></svg>';
   const html1=(id,child)=>{vis.add(id);const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
     let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
