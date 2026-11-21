@@ -337,9 +337,9 @@ body.out .edit-only{display:none!important}
     <p class="sub">Vue d’ensemble des bâtiments</p>
   </div>
 </header>
-<div class="dtabs" id="derTabs"><a class="btn" href="#" style="margin-right:6px">← Tableau de bord</a><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><label style="order:5;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Comparer <select id="derC"><option value="n">Aucune</option><option value="p">Période précédente</option><option value="y">Même période l’an dernier</option><option value="c">Dates choisies…</option></select></label><button type="button" class="on" data-vt="b">Bâtiments</button><button type="button" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" hidden style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
+<div class="dtabs" id="derTabs"><a class="btn" href="#" style="margin-right:6px">← Tableau de bord</a><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><label style="order:5;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Comparer <select id="derC"><option value="n">Aucune</option><option value="p">Période précédente</option><option value="y">Même période l’an dernier</option><option value="c">Dates choisies…</option></select></label><button type="button" class="on" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
 <div id="derRg" hidden style="margin:6px 0 2px;font-size:.85rem"><span id="derRgA" hidden style="margin-right:18px">Période : du <input type="date" id="derCf"> au <input type="date" id="derCt"></span><span id="derRgB" hidden>comparée à : du <input type="date" id="derPf"> au <input type="date" id="derPt"></span></div>
-<div id="derVb">
+<div id="derVb" hidden>
 <div class="dmap" id="derMap">
 <svg class="dl" id="derLines"></svg>
 <div class="dsrcs">
@@ -357,7 +357,7 @@ body.out .edit-only{display:none!important}
 <div class="dlist" id="derList"></div>
 </div>
 </div>
-<div id="derVs" hidden>
+<div id="derVs">
   <div class="sytool edit-only" id="syTool">
     <button type="button" id="syLock" title="Verrouiller / déverrouiller le synoptique">🔓 Verrouiller</button>
     <button type="button" id="syCols" title="Organiser le synoptique en colonnes réglables">▦ Colonnes : désactivées</button><button type="button" id="syColAdd" hidden>＋ Colonne</button>
@@ -2087,7 +2087,7 @@ const SYT={
   c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['gfr','❄️','Groupe de froid','#0ea5e9'],['bat','🏢','Bâtiment','#0f766e'],['etg','🔼','Étage','#0d9488'],['cpt','📟','Compteur','#7c3aed']]};
 const synOpen=new Set(),synTc=new Set(); /* synTc : TGBT repliés */
 const colMode=()=>{const D=synoD[derTab];return !!(D&&D.cols&&D.cols.length)};
-let derTab='b',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'],SYSIMPLE=['bat','etg'],SYCHILD=['tgbt','tab','chf','ss','etg','gen','ond'];let synV='t';try{synV=localStorage.getItem('synV')||'t'}catch(e){}
+let derTab='e',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'],SYSIMPLE=['bat','etg'],SYCHILD=['tgbt','tab','chf','ss','etg','gen','ond'];let synV='t';try{synV=localStorage.getItem('synV')||'t'}catch(e){}
 const synRO=()=>document.body.classList.contains('out')||!!(synoD[derTab]&&synoD[derTab].lock);
 const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
 function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{},lock:!!(x&&x.lock),cols:Array.isArray(x&&x.cols)?x.cols:[]}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
