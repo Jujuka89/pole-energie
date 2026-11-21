@@ -1623,9 +1623,11 @@ function drawYearCmp(key,mon,mk,lp){
       tooltip:{callbacks:{label:t=>`${t.dataset.label} : ${fmt(t.parsed.y,decs(Math.abs(t.parsed.y)))}`,afterLabel:t=>{if(t.datasetIndex!==1)return;const pv=t.chart.data.datasets[0].data[t.dataIndex],q=pct(t.parsed.y,pv);if(q==null)return '';const d=t.parsed.y-pv;return (q>0?'+':'')+fmt(q,1)+' % vs '+(Y-1)+' · '+(d>0?'+':d<0?'-':'')+fmt(Math.abs(d),decs(Math.abs(d)))+(mk.u?' '+mk.u:'')}}}},
       scales:{x:{ticks:{color:txt},grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'Consommation par mois'+u,color:txt},ticks:{color:txt},grid:{display:false}}}}});
 }
-function drawCptChart(c,lp){drawYearCmp(c.id,c.valeurs||{},munit(c),lp)}
+/* mois sans total saisi mais avec des index automatiques : total calculé à partir des index (mois en cours compris) */
+function withAuto(mon,id,kf){const o={...mon};[...new Set(autoDates(id).map(d=>d.slice(0,7)))].forEach(ym=>{if(o[ym]==null){const r=autoMonth(id,ym);if(r&&r.v>=0)o[ym]=r.v*kf}});return o}
+function drawCptChart(c,lp){drawYearCmp(c.id,withAuto(c.valeurs||{},slug(c.nom||''),1),munit(c),lp)}
 /* compteurs principaux électricité / gaz : relevés mensuels en kWh affichés en MWh */
-function cptEG(){['e','g'].forEach(k=>{const mon={};data.forEach(d=>{if(d[k]!=null)mon[d.m]=+d[k]});drawYearCmp(k.toUpperCase(),mon,{k:0.001,u:'MWh'},[])});compteurs.forEach(c=>{if(cptMode[c.id]==='d'||cptMode[c.id]==='u')drawCptChart(c,projets.filter(p=>usesC(p,c.id)))})}
+function cptEG(){['e','g'].forEach(k=>{const mon={};data.forEach(d=>{if(d[k]!=null)mon[d.m]=+d[k]});drawYearCmp(k.toUpperCase(),withAuto(mon,k,AUTO_DIV),{k:0.001,u:'MWh'},[])});compteurs.forEach(c=>drawCptChart(c,projets.filter(p=>usesC(p,c.id))))}
 function fillCpt(){
   const act=document.activeElement;
   document.querySelectorAll('#cList [data-cv]').forEach(el=>{if(el===act)return;const[id,ym]=el.dataset.cv.split('|'),c=compteurs.find(x=>x.id===id),v=c&&c.valeurs?c.valeurs[ym]:null;el.value=v!=null?v:''});
