@@ -129,6 +129,7 @@ body:not(.out) .synode{cursor:grab}.synode.sel{outline:2px solid var(--ink)}.syn
 .sydep::after{content:'';position:absolute;right:-12px;top:50%;width:9px;height:9px;border-radius:50%;background:var(--elec);border:2px solid var(--bg);transform:translateY(-50%)}
 .sydep .sdn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.sydep .sdv{white-space:nowrap}.sydep .sdv b{font-size:.82rem}
 .sydep button{padding:0 5px;line-height:1.3;font-size:.78rem}.sydep .sp.on{background:var(--ink);color:var(--bg)}
+.masq{display:none!important}.mx{margin-left:8px;color:var(--mute);padding:0 4px}.mx:hover{color:var(--bad)}
 .synode.ch.dragging{z-index:30;opacity:.88;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:grabbing}.synode.bf.dropin{outline:2px dashed var(--elec);outline-offset:2px}.synode.ch.dbf{box-shadow:0 -4px 0 var(--elec)}.synode.ch.dbe{box-shadow:0 4px 0 var(--elec)}.syq{margin-top:8px;width:100%;font-size:.78rem}.syrz{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;opacity:.75;background:linear-gradient(135deg,transparent 0 50%,var(--mute) 50% 60%,transparent 60% 72%,var(--mute) 72% 82%,transparent 82%)}.syrz:hover{opacity:1}.synode.bf{display:flex;flex-direction:column}.synode.bf>.syin{position:relative;flex:1 1 auto;margin-top:6px;border-radius:8px;min-height:110px;background:rgba(127,127,127,.07)}.synode.ch.fl{position:absolute;width:176px;margin:0}.synode.ch.fl.ct{width:250px}.synode.rd{width:150px;height:150px;box-sizing:border-box;border-radius:50%;border-width:4px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}.synode.rd .sit{flex-direction:column;gap:0;font-size:1.3rem;line-height:1.1}.synode.rd small{font-size:.68rem}.synode.rd .syv{margin-top:2px;font-size:.85rem}#syTool.locked>*:not(#syLock){display:none!important}.sylocked .syrz,.sylocked .syq,.sylocked .sydep button{display:none!important}body:not(.out) .sylocked .synode{cursor:default}.synode.bf:not(.cl){z-index:1}#syLock.on,#syCols.on{background:var(--ink);color:var(--bg)}.sycol{position:absolute;top:0;box-sizing:border-box;border-right:1px dashed var(--line);background:rgba(127,127,127,.04)}.sycol.alt{background:rgba(127,127,127,.09)}.sycol.colhl{outline:2px dashed var(--elec);outline-offset:-2px}.sych{display:flex;gap:4px;align-items:center;padding:6px 8px;height:44px;box-sizing:border-box}.sych button{padding:0 5px;line-height:1.3;font-size:.78rem}.sycn{flex:1;min-width:0;font-weight:700;border:1px solid transparent;background:transparent;text-align:center}.sycn:focus{border-color:var(--line);background:var(--bg)}.sycr{position:absolute;right:-5px;top:0;bottom:0;width:10px;cursor:ew-resize;touch-action:none;z-index:3}.sycr:hover{background:rgba(37,99,235,.25)}.sycr::after{content:'';position:absolute;left:3px;top:50%;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:var(--mute);opacity:.55}.sycr:hover::after{background:var(--elec);opacity:1}.sydl{position:absolute;height:4px;background:var(--elec);border-radius:2px;pointer-events:none;z-index:40}.sylocked .sych button,.sylocked .sycr{display:none!important}.synode.bf.cl>.syin,.synode.bf.cl>.syq,.synode.bf.cl>.syrz{display:none!important}.syt{border:0;background:transparent;padding:0 6px 0 0;cursor:pointer;font-size:1rem;line-height:1;color:inherit}details.cp:not([data-auto]) .cax{display:none}.cadet>td{background:rgba(127,127,127,.07)}.cadet table{margin:4px 0}input.lk:disabled{background:repeating-linear-gradient(45deg,rgba(127,127,127,.30) 0 4px,transparent 4px 9px);cursor:not-allowed;opacity:1}
 #syDepBox,#syEtgBox{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}#syDepBox[hidden],#syEtgBox[hidden],#syVueL[hidden]{display:none!important}
 .dmap{position:relative;display:grid;grid-template-columns:minmax(210px,260px) minmax(40px,.25fr) minmax(0,1fr);align-items:center;padding:6px 0}
@@ -249,7 +250,7 @@ body.out .edit-only{display:none!important}
 <section id="relTodo" hidden></section>
 
 <section id="cptSec">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span> <button type="button" class="link edit-only" id="mxReset" hidden style="font-weight:400"></button></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div></div>
   <p class="note" style="margin:8px 0 10px">Tous les compteurs. Le badge indique comment le relevé est fait : <span class="mode man">Manuel</span> (saisi à la main) ou <span class="mode aut">Automatique</span> (reçu par le fichier CSV). Cliquez sur un compteur pour voir ou saisir ses valeurs.</p>
   <div id="cForm" hidden style="margin:0 0 12px;padding:12px;border:1px solid var(--line);border-radius:8px">
     <form id="cfForm">
@@ -527,13 +528,13 @@ const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.',
 const $=id=>document.getElementById(id);
 const mwh=v=>v==null?'–':(v/1000).toLocaleString('fr-FR',{maximumFractionDigits:0});
 const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('fr-FR',{maximumFractionDigits:d});
-let data=[],year=new Date().getFullYear(),charts={};
+let data=[],year=new Date().getFullYear(),charts={},masques={};
 
 const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
@@ -1142,7 +1143,7 @@ function grids(){
   q('data-t').forEach(el=>{const[y,k]=el.dataset.t.split('|');el.hidden=count(val(+y,k))>0;if(el===act)return;const v=totaux[y]&&totaux[y][k];el.value=v!=null?v:''});
   q('data-totc').forEach(el=>{const[y,k]=el.dataset.totc.split('|'),a=costArr(+y,k);let t='–';if(count(a))t=fmt(sum(a));else if(annualOnly(+y,k)){const pr=priceOf(+y,k,null);if(pr!=null)t=fmt(totaux[y][k]/1000*pr)}el.textContent=t});
   q('data-n').forEach(el=>{const[y,k]=el.dataset.n.split('|'),n=count(val(+y,k));el.textContent=n+'/12 relevés'+(annualOnly(+y,k)?' · total annuel':'')});
-  gridAutoFill();
+  gridAutoFill();safe(applyMasques,'lignes masquées');
 }
 const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)window.__showErr(l+' : '+(e&&e.message||e))}};
 function render(){
@@ -1636,8 +1637,32 @@ function fillCpt(){
       el.textContent=k?fmt(t,1):'–';const bd=document.querySelector('#cList [data-cy="'+el.dataset.ct+'"]');if(bd)bd.textContent=k+'/12'});
     drawCptChart(c,lp);
   });
-  safe(cptEG,'graphiques compteurs principaux');renderAutoMeters();safe(renderDer,'dérives');
+  safe(cptEG,'graphiques compteurs principaux');safe(applyMasques,'lignes masquées');renderAutoMeters();safe(renderDer,'dérives');
 }
+/* lignes vierges (années, mois) : croix pour les masquer, enregistré pour tout le monde (document _masques) */
+function applyMasques(){
+  const aHas=(id,pre)=>autoDates(id).some(d=>d.startsWith(pre));
+  const mark=(host,key,empty,els)=>{const hid=empty&&!!masques[key];els.forEach(e=>e&&e.classList.toggle('masq',hid));
+    let b=host.querySelector(':scope>.mx');
+    if(empty&&!hid){if(!b){b=document.createElement('button');b.type='button';b.className='link edit-only mx';b.title='Masquer cette ligne vierge';b.textContent='✕';host.appendChild(b)}b.dataset.mx=key}
+    else if(b)b.remove()};
+  const rowsOf=(inp)=>{const tr=inp.closest('tr'),nx=tr&&tr.nextElementSibling;return[tr,nx&&nx.classList.contains('cadet')?nx:null]};
+  /* compteurs secondaires */
+  compteurs.forEach(c=>{const sl=slug(c.nom||''),vals=c.valeurs||{};
+    document.querySelectorAll('#cList details.yr[data-oc^="'+c.id+'|"]').forEach(el=>{const y=el.dataset.oc.split('|')[1];
+      mark(el.querySelector(':scope>summary'),'y|'+c.id+'|'+y,!Object.keys(vals).some(k=>k.startsWith(y+'-')&&vals[k]!=null)&&!aHas(sl,y+'-'),[el])});
+    document.querySelectorAll('#cList input[data-cv^="'+c.id+'|"]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],[tr,nx]=rowsOf(inp);if(!tr)return;
+      mark(tr.cells[0],'m|'+c.id+'|'+ym,vals[ym]==null&&!aHas(sl,ym),[tr,nx])})});
+  /* électricité et gaz principaux */
+  ['e','g'].forEach(k=>{const root=$(k==='e'?'gridsE':'gridsG');if(!root)return;
+    root.querySelectorAll('details.yr').forEach(el=>{const bd=el.querySelector('[data-n]');if(!bd)return;const y=bd.dataset.n.split('|')[0];
+      mark(el.querySelector(':scope>summary'),'y|'+k+'|'+y,count(val(+y,k))===0&&!(totaux[y]&&totaux[y][k]!=null)&&!aHas(k,y+'-'),[el])});
+    root.querySelectorAll('input[data-c]').forEach(inp=>{const[ym,kk]=inp.dataset.c.split('|');if(kk!==k)return;const[tr,nx]=rowsOf(inp);if(!tr)return;const d=data.find(x=>x.m===ym);
+      mark(tr.cells[0],'m|'+k+'|'+ym,!(d&&d[k]!=null)&&!aHas(k,ym),[tr,nx])})});
+  const n=Object.keys(masques).length,b=$('mxReset');if(b){b.hidden=!n;b.textContent=n?'· '+n+' ligne'+(n>1?'s':'')+' masquée'+(n>1?'s':'')+' : tout réafficher':''}
+}
+$('cptRows').addEventListener('click',ev=>{const b=ev.target.closest('[data-mx]');if(!b)return;ev.preventDefault();ev.stopPropagation();masques={...masques,[b.dataset.mx]:true};applyMasques();setDoc(doc(db,'releves','_masques'),{h:{[b.dataset.mx]:true}},{merge:true}).catch(refus)},true);
+$('mxReset').onclick=()=>{if(!confirm('Réafficher toutes les lignes masquées ?'))return;masques={};applyMasques();setDoc(doc(db,'releves','_masques'),{h:{}}).catch(refus)};
 function renderCpt(){buildCpt();fillCpt()}
 $('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
 $('cptRows').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!(t.dataset.cyr||t.dataset.cmd))return;const id=t.dataset.cyr||t.dataset.cmd;if(t.dataset.cyr)cptYr[id]=+t.value;else{cptMode[id]=t.value;try{localStorage.setItem('cptMode',JSON.stringify(cptMode))}catch(e){}}
