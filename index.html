@@ -1822,11 +1822,23 @@ let actu={},archs={},actuEdit=null;
 const dLong=d=>new Date(d+'T00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const nMWh=v=>fmt(v,v%1?1:0)+' MWh';
 let impBusy=null;
-function autoActu(ad){const a=autoLast;if(!a||!a.c||!user)return;const seen=ad&&ad.data()?ad.data().imp:undefined;if(seen===a.c||impBusy===a.c)return;impBusy=a.c;
-  const day=new Date(a.c-864e5).toISOString().slice(0,10),L=[];
-  Object.keys(autoMap).forEach(id=>{const ds=autoDates(id),d=ds[ds.length-1];if(d&&d>=day&&!autoMan[id+'|'+d])L.push((autoNames[id]||(id==='e'?'Électricité':id==='g'?'Gaz':id))+' '+fIdx(autoMap[id][d]))});
-  const t='Relevés automatiques reçus le '+new Date(a.c).toLocaleDateString('fr-FR')+' : '+(+a.n||0)+' ligne'+(a.n>1?'s':'')+(L.length?' ('+L.slice(0,6).join(', ')+(L.length>6?'…':'')+')':'')+(a.nerr?' · '+a.nerr+' erreur'+(a.nerr>1?'s':''):'');
-  setDoc(doc(db,'releves','_actu'),{imp:a.c,l:{['auto_imp_'+a.c]:{t,d:today(),c:Date.now(),auto:true}}},{merge:true}).catch(()=>{impBusy=null})}
+function autoActu(ad){if(!user)return;
+  const o=ad&&ad.data()?ad.data():{},seen=o.imp,rep=o.rep||{},a=autoLast,hasImp=!!(a&&a.c),newImp=hasImp&&seen!==a.c;
+  const day=hasImp?new Date(a.c-864e5).toISOString().slice(0,10):today(),L=[],nrep={};let mx='';
+  /* relevés non encore annoncés : tout index postérieur au dernier index déjà annoncé pour ce compteur (sinon : depuis la veille de l'import) */
+  Object.keys(autoMap).forEach(id=>{const ds=autoDates(id),last=ds[ds.length-1];if(!last)return;
+    if(rep[id]!==last)nrep[id]=last;
+    ds.filter(d=>rep[id]?d>rep[id]:d>=day).forEach(d=>{if(autoMan[id+'|'+d])return;
+      L.push({d,t:(autoNames[id]||(id==='e'?'Électricité':id==='g'?'Gaz':id))+' '+fIdx(autoMap[id][d])});if(d>mx)mx=d})});
+  if(!newImp&&!L.length&&!Object.keys(nrep).length)return;
+  const sig=(newImp?a.c:'x')+'|'+mx+'|'+L.length+'|'+JSON.stringify(nrep);if(impBusy===sig)return;impBusy=sig;
+  L.sort((x,y)=>x.d.localeCompare(y.d)||x.t.localeCompare(y.t));
+  const lst=L.length?' ('+L.slice(0,8).map(x=>x.t).join(', ')+(L.length>8?', … +'+(L.length-8):'')+')':'';
+  const out={rep:nrep};if(newImp)out.imp=a.c;
+  if(newImp||L.length){
+    const t=newImp?'Relevés automatiques reçus le '+new Date(a.c).toLocaleDateString('fr-FR')+' : '+(+a.n||0)+' ligne'+(a.n>1?'s':'')+lst+(a.nerr?' · '+a.nerr+' erreur'+(a.nerr>1?'s':''):''):'Nouveaux relevés automatiques'+lst;
+    out.l={['auto_imp_'+(hasImp?a.c:Date.now())+(newImp?'':'_'+mx)]:{t,d:today(),c:Date.now(),auto:true}}}
+  setDoc(doc(db,'releves','_actu'),out,{merge:true}).catch(()=>{impBusy=null})}
 const idxNom=id=>autoNames[id]||(id==='e'?'Électricité':id==='g'?'Gaz':(compteurs.find(c=>slug(c.nom||'')===id)||{}).nom||id);
 function addActu(key,t){setDoc(doc(db,'releves','_actu'),{l:{['auto_'+key]:{t,d:today(),c:Date.now(),auto:true}}},{merge:true}).catch(()=>{})}
 function ymL(m){const[y,mo]=m.split('-');return MOISL[+mo-1].toLowerCase()+' '+y}
