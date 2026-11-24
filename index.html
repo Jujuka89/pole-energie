@@ -165,6 +165,27 @@ body.out .edit-only{display:none!important}
 .svgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;margin-top:12px}
 .svh{font-size:.8rem;color:var(--mute);margin-top:10px;font-weight:600}
 .sv.cur{color:var(--ink);font-weight:600}.sv.cur input{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+/* Relevés : onglets Électricité / Gaz et compteurs en grille (généraux au centre en haut) */
+.ctabs{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:6px 0 14px}
+.ctabs button{display:flex;align-items:center;gap:8px;padding:10px 24px;font-size:1.05rem;font-weight:700;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.ctabs button[hidden]{display:none}
+.ctabs button.on[data-tab="e"]{border-color:var(--elec);background:color-mix(in srgb,var(--elec) 14%,var(--card))}
+.ctabs button.on[data-tab="g"]{border-color:var(--gaz);background:color-mix(in srgb,var(--gaz) 22%,var(--card))}
+.ctabs button.on[data-tab="o"]{border-color:var(--mute);background:var(--bg)}
+#cptRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
+#cptRows #vCpt,#cptRows #cList,#cptRows #autoMeters{display:contents}
+#cptRows details.cp{margin-top:0}
+#cptRows details.cp:not(.cgen)>summary{font-size:.98rem}
+#cptRows details.cp[open]{grid-column:1/-1}
+#cptRows details.cp.cgen{grid-column:1/-1;justify-self:center;width:min(100%,520px);border-width:2px}
+#cptRows details.cp.cgen[open]{width:100%}
+#cptRows details.cp.cgen>summary{text-align:center;font-size:1.15rem}
+#cptRows details.cp.cgen[data-en="e"]{border-color:var(--elec)}
+#cptRows details.cp.cgen[data-en="g"]{border-color:var(--gaz)}
+#cptRows:not([data-q])[data-tab="e"] details.cp[data-en]:not([data-en="e"]),
+#cptRows:not([data-q])[data-tab="g"] details.cp[data-en]:not([data-en="g"]),
+#cptRows:not([data-q])[data-tab="o"] details.cp[data-en]:not([data-en="o"]){display:none}
 </style>
 </head>
 <body>
@@ -260,6 +281,7 @@ body.out .edit-only{display:none!important}
       <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
     </form>
   </div>
+  <div class="ctabs" id="cTabs"><button type="button" data-tab="e">⚡ Électricité <span class="badge" data-tn></span></button><button type="button" data-tab="g">🔥 Gaz <span class="badge" data-tn></span></button><button type="button" data-tab="o" hidden>📟 Autres <span class="badge" data-tn></span></button></div>
   <div id="cptRows">
     <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-E" data-cyr="E"></select></label><label>Graphique <select id="cm-E" data-cmd="E"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-E" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-E"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsE"></div></div></details>
     <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span> <span class="mode" id="modeG"></span> <span class="note" id="infoG"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-G" data-cyr="G"></select></label><label>Graphique <select id="cm-G" data-cmd="G"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-G" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-G"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsG"></div></div></details>
@@ -1670,7 +1692,7 @@ function applyMasques(){
 }
 $('cptRows').addEventListener('click',ev=>{const b=ev.target.closest('[data-mx]');if(!b)return;ev.preventDefault();ev.stopPropagation();masques={...masques,[b.dataset.mx]:true};applyMasques();setDoc(doc(db,'releves','_masques'),{h:{[b.dataset.mx]:true}},{merge:true}).catch(refus)},true);
 $('mxReset').onclick=()=>{if(!confirm('Réafficher toutes les lignes masquées ?'))return;masques={};applyMasques();setDoc(doc(db,'releves','_masques'),{h:{}}).catch(refus)};
-function renderCpt(){buildCpt();fillCpt()}
+function renderCpt(){buildCpt();fillCpt();cptTabs()}
 $('vCpt').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.oc){d.open?openC.add(d.dataset.oc):openC.delete(d.dataset.oc);Object.values(cptCharts).forEach(c=>c.resize())}},true);
 $('cptRows').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!(t.dataset.cyr||t.dataset.cmd))return;const id=t.dataset.cyr||t.dataset.cmd;if(t.dataset.cyr)cptYr[id]=+t.value;else{cptMode[id]=t.value;try{localStorage.setItem('cptMode',JSON.stringify(cptMode))}catch(e){}}
   if(id==='E'||id==='G')cptEG();else{const c=compteurs.find(x=>x.id===id);if(c)drawCptChart(c,projets.filter(p=>usesC(p,c.id)))}});
@@ -2046,8 +2068,23 @@ function cptModes(){
   const sec=new Set(['e','g']);
   compteurs.forEach(c=>{const id=slug(c.nom||'');sec.add(id);setMode(document.querySelector('[data-cmode="'+c.id+'"]'),Object.keys(autoMap[id]||{}).some(d=>!autoMan[id+'|'+d]))});
   $('nC').textContent=2+compteurs.length+[...ids].filter(id=>!sec.has(id)).length;
-  cptAutoFill();gridAutoFill();cptFilter()}
-function cptFilter(){const q=slug($('autoQ').value||'');document.querySelectorAll('#cptRows details.cp').forEach(d=>{d.hidden=!!q&&!slug(d.querySelector('summary').textContent).includes(q)})}
+  cptAutoFill();gridAutoFill();cptTabs();cptFilter()}
+let cptTab='e';try{cptTab=localStorage.getItem('cptTab')||'e'}catch(e){}
+/* énergie d'un compteur : champ « Énergie » du compteur, sinon deviné d'après son nom */
+const enOf=t=>{const s=slug(t||'');return /gaz/.test(s)?'g':/elec/.test(s)?'e':'o'};
+function cptTabs(){
+  const root=$('cptRows');if(!root)return;const cnt={e:0,g:0,o:0};
+  root.querySelectorAll(':scope>details.cp,#cList>details.cp,#autoMeters>details.cp').forEach(d=>{
+    let en;
+    if(d.id==='rowE')en='e';else if(d.id==='rowG')en='g';
+    else if(d.dataset.oc){const c=compteurs.find(x=>x.id===d.dataset.oc);en=c&&(c.energie==='e'||c.energie==='g')?c.energie:enOf(c&&c.nom)}
+    else en=enOf(autoNames[d.dataset.ao]||d.dataset.ao);
+    d.dataset.en=en;cnt[en]++;d.classList.toggle('cgen',d.id==='rowE'||d.id==='rowG')});
+  if(cptTab==='o'&&!cnt.o)cptTab='e';
+  root.dataset.tab=cptTab;
+  document.querySelectorAll('#cTabs [data-tab]').forEach(b=>{const t=b.dataset.tab;b.classList.toggle('on',t===cptTab);b.querySelector('[data-tn]').textContent=cnt[t];if(t==='o')b.hidden=!cnt.o})}
+$('cTabs').onclick=ev=>{const b=ev.target.closest('[data-tab]');if(!b)return;cptTab=b.dataset.tab;try{localStorage.setItem('cptTab',cptTab)}catch(e){}cptTabs()};
+function cptFilter(){const q=slug($('autoQ').value||'');$('cptRows').toggleAttribute('data-q',!!q);document.querySelectorAll('#cptRows details.cp').forEach(d=>{d.hidden=!!q&&!slug(d.querySelector('summary').textContent).includes(q)})}
 function renderAutoMeters(){
   const el=$('autoMeters');if(!el)return;
   const sec=new Set(['e','g']);compteurs.forEach(c=>sec.add(slug(c.nom||'')));
