@@ -271,16 +271,8 @@ body.out .edit-only{display:none!important}
 <section id="relTodo" hidden></section>
 
 <section id="cptSec">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span> <button type="button" class="link edit-only" id="mxReset" hidden style="font-weight:400"></button></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"><button class="main edit-only" id="newC" type="button">Ajouter un compteur</button></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span> <button type="button" class="link edit-only" id="mxReset" hidden style="font-weight:400"></button></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"></div></div>
   <p class="note" style="margin:8px 0 10px">Tous les compteurs. Le badge indique comment le relevé est fait : <span class="mode man">Manuel</span> (saisi à la main) ou <span class="mode aut">Automatique</span> (reçu par le fichier CSV). Cliquez sur un compteur pour voir ou saisir ses valeurs.</p>
-  <div id="cForm" hidden style="margin:0 0 12px;padding:12px;border:1px solid var(--line);border-radius:8px">
-    <form id="cfForm">
-      <label>Nom du compteur <input id="cfn" required maxlength="80" placeholder="Ex. Électricité atelier"></label>
-      <label>Unité <input id="cfu" maxlength="20" placeholder="kWh ou MWh (pour calculer les gains)"></label>
-      <label>Énergie <select id="cfe"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label>
-      <div class="tools"><button class="main" type="submit">Créer le compteur</button></div>
-    </form>
-  </div>
   <div class="ctabs" id="cTabs"><button type="button" data-tab="e">⚡ Électricité <span class="badge" data-tn></span></button><button type="button" data-tab="g">🔥 Gaz <span class="badge" data-tn></span></button><button type="button" data-tab="o" hidden>📟 Autres <span class="badge" data-tn></span></button></div>
   <div id="cptRows">
     <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span> <span class="mode" id="modeE"></span> <span class="note" id="infoE"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-E" data-cyr="E"></select></label><label>Graphique <select id="cm-E" data-cmd="E"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-E" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-E"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsE"></div></div></details>
@@ -1709,9 +1701,6 @@ $('vCpt').onclick=ev=>{const d=ev.target.dataset;
   if(d.addyr){const y=+d.yr;if(y>=2000)updateDoc(doc(db,'compteurs',d.addyr),{anneeMin:y}).catch(refus);return}
   if(d.delc){const c=compteurs.find(x=>x.id===d.delc),n=projets.filter(p=>usesC(p,d.delc)).length;
     if(confirm('Supprimer le compteur « '+(c?c.nom:'')+' » et toutes ses valeurs ?'+(n?'\n'+n+' projet(s) l’utilisent : leur suivi sera perdu.':'')))deleteDoc(doc(db,'compteurs',d.delc)).catch(refus)}};
-$('cfForm').onsubmit=async ev=>{ev.preventDefault();
-  try{await addDoc(collection(db,'compteurs'),{nom:$('cfn').value.trim(),unite:$('cfu').value.trim(),energie:$('cfe').value,valeurs:{},cree:Date.now()});$('cfForm').reset();$('cForm').hidden=true;$('newC').textContent='Ajouter un compteur'}catch(e){refus()}};
-$('newC').onclick=()=>{const f=$('cForm');f.hidden=!f.hidden;$('newC').textContent=f.hidden?'Ajouter un compteur':'Annuler';if(!f.hidden)$('cfn').focus()};
 $('totMode').onchange=ev=>{totMode=ev.target.value;drawTotal()};
 $('year').onchange=ev=>{year=+ev.target.value;render()};
 
