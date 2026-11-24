@@ -534,10 +534,10 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
+    const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
-    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
+    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(gazSync,'gaz mensuel');safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
 const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
@@ -1943,6 +1943,29 @@ window.addEventListener('resize',derDraw);
 
 let autoLast=null,autoRows=[],autoMap={},autoNames={},autoDer=[],autoMan={};
 const AUTO_DIV=1000; /* index en kWh -> MWh (gaz et électricité principaux) */
+/* ===== Gaz principal automatique = index chaudière 1 + index chaudière 2 =====
+   - GAZ_SOMME : identifiants des compteurs à additionner (= nom du compteur en minuscules, sans accents, espaces remplacés par « - »).
+     Ex. « Gaz chaudière 1 » -> gaz-chaudiere-1
+   - GAZ_COEF : coefficient pour convertir l'index des chaudières en kWh (1 si déjà en kWh ; ex. 11.2 si les index sont en m³). */
+const GAZ_SOMME=['gaz-chaudiere-1','gaz-chaudiere-2'];
+const GAZ_COEF=1;
+let gazDeriv={};
+function gazSomme(){
+  gazDeriv={};
+  if(!GAZ_SOMME.every(id=>autoMap[id]&&Object.keys(autoMap[id]).length))return;
+  if(autoMap.g&&Object.keys(autoMap.g).length){console.warn('Gaz principal : des index « g » existent déjà, la somme des chaudières n’est pas appliquée.');return}
+  const g=autoMap.g={};
+  Object.keys(autoMap[GAZ_SOMME[0]]).forEach(d=>{
+    if(!GAZ_SOMME.every(id=>autoMap[id][d]!=null))return;
+    g[d]=Math.round(GAZ_SOMME.reduce((t,id)=>t+autoMap[id][d],0)*GAZ_COEF*1000)/1000;gazDeriv[d]=1});
+  if(!Object.keys(g).length)delete autoMap.g;else if(!autoNames.g)autoNames.g='Gaz'}
+/* enregistre la consommation mensuelle de gaz calculée (mois ayant un index de référence), seulement si elle change */
+function gazSync(){
+  if(document.body.classList.contains('out'))return;
+  [...new Set(Object.keys(gazDeriv).map(d=>d.slice(0,7)))].forEach(ym=>{
+    const r=autoMonth('g',ym);if(!r||r.partial||!(r.v>=0))return;
+    const dm=data.find(x=>x.m===ym);if(dm&&dm.g!=null&&Math.abs(dm.g-r.v)<0.0005)return;
+    setDoc(doc(db,'releves',ym),{g:r.v},{merge:true}).catch(()=>{})})}
 function autoId(raw){const l=String(raw).trim().toLowerCase();
   if(/^(e|elec|élec|electricite|électricité)$/.test(l))return{id:'e',nom:'Électricité'};
   if(/^(g|gaz)$/.test(l))return{id:'g',nom:'Gaz'};
