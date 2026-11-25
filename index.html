@@ -263,10 +263,7 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
 </section>
 </div>
 </div>
-<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section><section style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px">Actualité <span class="badge cnt" id="sNa"></span></h2><div id="actuList"></div>
-<form id="actuForm" style="margin-top:8px"><textarea id="actuT" rows="2" maxlength="600" placeholder="Écrire une actualité…" style="width:100%"></textarea>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="main" id="actuSave" type="submit">Ajouter</button><button type="button" id="actuCancel" hidden>Annuler</button></div></form>
-<p class="note" style="margin:8px 0 0"><a href="#archives">Voir les archives</a> · à archiver après le point du jeudi</p></section></aside>
+<aside class="side"><section style="margin-top:0"><h2 style="font-size:1.05rem;margin:0 0 10px">Projets terminés à contrôler <span class="badge cnt" id="sNf"></span></h2><div id="sideCtl"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir le contrôle</a></p></section><section class="st st-cours" style="margin-top:14px"><h2 style="font-size:1.05rem;margin:0 0 10px;color:var(--s-cours)">Projets en cours <span class="badge cnt" id="sNc"></span></h2><div id="sideProj"></div><p class="note" style="margin:10px 0 0"><a href="#projets">Voir les projets</a></p></section></aside>
 </div>
 </div>
 
@@ -413,16 +410,6 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
   <div class="sycanvas" id="syCanvas"><svg id="syLines"></svg><div id="syNodes"></div></div>
 </div>
 </div>
-<div id="vArc" hidden>
-<header>
-  <div>
-    <h1>Archives</h1>
-    <p class="sub">Actualités validées (coche ✓ de la page 1)</p>
-  </div>
-  <a class="btn" href="#">← Tableau de bord</a>
-</header>
-<div id="arcList"></div>
-</div>
 <div id="vChr" hidden>
 <header>
   <div>
@@ -564,7 +551,7 @@ function listen(){
     {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}{const oq=snap.docs.find(d=>d.id==='_ordre');cptOrd=oq&&Array.isArray(oq.data().l)?oq.data().l:[]}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
-    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(gazSync,'gaz mensuel');safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
+    if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(gazSync,'gaz mensuel');safe(renderDju,'DJU');safe(renderChr,'chronologie');
   },()=>{data=[];render();status('Lecture impossible : connectez-vous ou vérifiez les règles Firestore.')});
 }
 const val=(y,k)=>Array.from({length:12},(_,i)=>{const r=data.find(d=>d.m===`${y}-${String(i+1).padStart(2,'0')}`);return r&&r[k]!=null?r[k]:null});
@@ -1848,49 +1835,10 @@ let actu={},archs={},actuEdit=null;
 const dLong=d=>new Date(d+'T00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const nMWh=v=>fmt(v,v%1?1:0)+' MWh';
 let impBusy=null;
-function autoActu(ad){if(!user)return;
-  const o=ad&&ad.data()?ad.data():{},seen=o.imp,rep=o.rep||{},a=autoLast,hasImp=!!(a&&a.c),newImp=hasImp&&seen!==a.c;
-  const day=hasImp?new Date(a.c-864e5).toISOString().slice(0,10):today(),L=[],nrep={};let mx='';
-  /* relevés non encore annoncés : tout index postérieur au dernier index déjà annoncé pour ce compteur (sinon : depuis la veille de l'import) */
-  Object.keys(autoMap).forEach(id=>{const ds=autoDates(id),last=ds[ds.length-1];if(!last)return;
-    if(rep[id]!==last)nrep[id]=last;
-    ds.filter(d=>rep[id]?d>rep[id]:d>=day).forEach(d=>{if(autoMan[id+'|'+d])return;
-      L.push({d,t:(autoNames[id]||(id==='e'?'Électricité':id==='g'?'Gaz':id))+' '+fIdx(autoMap[id][d])});if(d>mx)mx=d})});
-  if(!newImp&&!L.length&&!Object.keys(nrep).length)return;
-  const sig=(newImp?a.c:'x')+'|'+mx+'|'+L.length+'|'+JSON.stringify(nrep);if(impBusy===sig)return;impBusy=sig;
-  L.sort((x,y)=>x.d.localeCompare(y.d)||x.t.localeCompare(y.t));
-  const lst=L.length?' ('+L.slice(0,8).map(x=>x.t).join(', ')+(L.length>8?', … +'+(L.length-8):'')+')':'';
-  const out={rep:nrep};if(newImp)out.imp=a.c;
-  if(newImp||L.length){
-    const t=newImp?'Relevés automatiques reçus le '+new Date(a.c).toLocaleDateString('fr-FR')+' : '+(+a.n||0)+' ligne'+(a.n>1?'s':'')+lst+(a.nerr?' · '+a.nerr+' erreur'+(a.nerr>1?'s':''):''):'Nouveaux relevés automatiques'+lst;
-    out.l={['auto_imp_'+(hasImp?a.c:Date.now())+(newImp?'':'_'+mx)]:{t,d:today(),c:Date.now(),auto:true}}}
-  setDoc(doc(db,'releves','_actu'),out,{merge:true}).catch(()=>{impBusy=null})}
+function autoActu(){} /* rubrique Actualité supprimée */
 const idxNom=id=>autoNames[id]||(id==='e'?'Électricité':id==='g'?'Gaz':(compteurs.find(c=>slug(c.nom||'')===id)||{}).nom||id);
-function addActu(key,t){setDoc(doc(db,'releves','_actu'),{l:{['auto_'+key]:{t,d:today(),c:Date.now(),auto:true}}},{merge:true}).catch(()=>{})}
+function addActu(){}
 function ymL(m){const[y,mo]=m.split('-');return MOISL[+mo-1].toLowerCase()+' '+y}
-function renderActu(){
-  const l=Object.entries(actu).filter(([,o])=>o&&o.t).sort((a,b)=>(b[1].c||0)-(a[1].c||0));
-  $('sNa').textContent=l.length||'';
-  $('actuList').innerHTML=l.length?l.map(([id,o])=>`<div class="act"><p>${esc(o.t)}</p><div class="ab"><button type="button" data-av="${id}" title="Valider (déplacer vers Archives)" aria-label="Valider" style="font-weight:700;color:#15803d">✓</button><button type="button" data-ae="${id}">Modifier</button><button type="button" data-ad="${id}">Supprimer</button></div></div>`).join(''):'<p class="note" style="margin:0">Aucune actualité en cours.</p>'}
-function renderArc(){
-  const l=Object.entries(archs).filter(([,o])=>o&&o.d).sort((a,b)=>b[1].d.localeCompare(a[1].d)||(b[1].c||0)-(a[1].c||0));
-  $('arcList').innerHTML=l.length?l.map(([id,o])=>`<section><h2 style="margin:0 0 8px">${esc(dLong(o.d).replace(/^./,c=>c.toUpperCase()))}</h2><p class="note" style="margin:0 0 6px">Actualités validées · ${(o.items||[]).length} actualité${(o.items||[]).length>1?'s':''}</p>${(o.items||[]).map((i,k)=>`<div class="act"><p>${esc(i.t)}</p><div class="ab"><small style="color:var(--mute)">${i.d?'Saisie le '+dfr(i.d):''}</small><button type="button" data-ai="${id}|${k}">Supprimer</button></div></div>`).join('')}</section>`).join(''):'<section><p class="note" style="margin:0">Aucune archive pour le moment. Validez une actualité avec la coche ✓ dans la case Actualité du tableau de bord.</p></section>'}
-$('arcList').onclick=ev=>{const b=ev.target.closest('button[data-ai]');if(!b)return;
-  const[id,k]=b.dataset.ai.split('|'),o=archs[id];if(!o||!Array.isArray(o.items))return;
-  if(!confirm('Supprimer cette actualité de l’archive ?'))return;
-  const items=o.items.filter((_,j)=>j!==+k);
-  setDoc(doc(db,'releves','_archives'),{l:{[id]:items.length?{...o,items}:deleteField()}},{merge:true}).catch(refus)};
-function actuReset(){actuEdit=null;$('actuT').value='';$('actuSave').textContent='Ajouter';$('actuCancel').hidden=true}
-$('actuForm').onsubmit=ev=>{ev.preventDefault();const t=$('actuT').value.trim();if(!t)return;const id=actuEdit||uid(),old=actu[id]||{};
-  setDoc(doc(db,'releves','_actu'),{l:{[id]:{t,d:old.d||today(),c:old.c||Date.now()}}},{merge:true}).then(actuReset).catch(refus)};
-$('actuT').onkeydown=ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey))$('actuForm').requestSubmit()};
-$('actuCancel').onclick=actuReset;
-$('actuList').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
-  if(b.dataset.ae){const o=actu[b.dataset.ae];if(!o)return;actuEdit=b.dataset.ae;$('actuT').value=o.t;$('actuSave').textContent='Enregistrer';$('actuCancel').hidden=false;$('actuT').focus()}
-  if(b.dataset.av){const o=actu[b.dataset.av];if(!o)return;const bid='v'+today(),ex=(archs[bid]&&archs[bid].items)||[],wb=writeBatch(db);
-    wb.set(doc(db,'releves','_archives'),{l:{[bid]:{d:today(),c:Date.now(),items:[...ex,{t:o.t,d:o.d||''}]}}},{merge:true});
-    wb.set(doc(db,'releves','_actu'),{l:{[b.dataset.av]:deleteField()}},{merge:true});wb.commit().catch(refus)}
-  if(b.dataset.ad&&confirm('Supprimer cette actualité ?'))setDoc(doc(db,'releves','_actu'),{l:{[b.dataset.ad]:deleteField()}},{merge:true}).catch(refus)};
 const slug=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const BATS=['PME','Bâtiment administratif','Blanchisserie','Entrepôt','EHPAD','Bâtiment principal','Logements','Urgences/Réa'];
 const BICO='<svg viewBox="0 0 54 40"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 36H48M10 36V14H44V36M10 14L27 5L44 14"/><path d="M22 36V26H32V36"/></g></svg>';
@@ -2522,7 +2470,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
     if(d.moved&&n){if(colMode())dropCol(d,ev,cancel);else{synKey='';synSave({[v]:{nodes:{[d.id]:{x:n.x,y:n.y}}}});renderSyno()}}else{synSel=d.id;renderSyno()}};
   nodes.addEventListener('pointerup',end);nodes.addEventListener('pointercancel',ev=>end(ev,true));
   window.addEventListener('resize',()=>{if(derTab!=='b')synDraw()})})();
-function route(){const h=location.hash;document.querySelector('main').classList.toggle('wide',h==='#derives');const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',ar=h==='#archives',dv=h==='#derives';$('vDash').hidden=r||pj||dj||ch||ar||dv;if(dv&&$('vDer').hidden)synOpen.clear();$('vDer').hidden=!dv;if(dv)renderDer();$('vArc').hidden=!ar;$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
+function route(){const h=location.hash;document.querySelector('main').classList.toggle('wide',h==='#derives');const r=h==='#releves'||h==='#compteurs',pj=h==='#projets',dj=h==='#dju',ch=h==='#chronologie',dv=h==='#derives';$('vDash').hidden=r||pj||dj||ch||dv;if(dv&&$('vDer').hidden)synOpen.clear();$('vDer').hidden=!dv;if(dv)renderDer();$('vChr').hidden=!ch;$('vDju').hidden=!dj;$('vRel').hidden=!r;$('vProj').hidden=!pj;document.querySelector('main').classList.toggle('wide',!(r||pj));window.scrollTo(0,0);Object.values(charts).forEach(c=>c.resize());rsz();Object.values(cptCharts).forEach(c=>c.resize())}
 window.addEventListener('hashchange',route);
 safe(render,'démarrage');safe(route,'navigation');
 auth.languageCode='fr';
