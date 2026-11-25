@@ -172,6 +172,7 @@ body.out .edit-only{display:none!important}
 .ctabs button{display:flex;align-items:center;gap:8px;padding:10px 24px;font-size:1.05rem;font-weight:700;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .ctabs button[hidden]{display:none}
 .ctabs button.on[data-tab="e"]{border-color:var(--elec);background:color-mix(in srgb,var(--elec) 14%,var(--card))}
+.ctabs button.on[data-tab="m"]{border-color:var(--gaz);background:color-mix(in srgb,var(--gaz) 22%,var(--card))}
 .ctabs button.on[data-tab="g"]{border-color:var(--gaz);background:color-mix(in srgb,var(--gaz) 22%,var(--card))}
 .ctabs button.on[data-tab="o"]{border-color:var(--mute);background:var(--bg)}
 #cptRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
@@ -195,7 +196,8 @@ body.out .edit-only{display:none!important}
 body.out .hist{cursor:default}body.out .hist input{cursor:default}
 #cptRows:not([data-q])[data-tab="e"] details.cp[data-en]:not([data-en="e"]),
 #cptRows:not([data-q])[data-tab="g"] details.cp[data-en]:not([data-en="g"]),
-#cptRows:not([data-q])[data-tab="o"] details.cp[data-en]:not([data-en="o"]){display:none}
+#cptRows:not([data-q])[data-tab="o"] details.cp[data-en]:not([data-en="o"]),
+#cptRows:not([data-q])[data-tab="m"] details.cp[data-en]:not([data-en="m"]){display:none}
 </style>
 </head>
 <body>
@@ -283,8 +285,9 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
 <section id="cptSec">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span> <button type="button" class="link edit-only" id="mxReset" hidden style="font-weight:400"></button></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"></div></div>
   <p class="note" style="margin:8px 0 10px">Tous les compteurs. Dans le détail jour par jour, la colonne Source indique si l’index est <span class="mode man">Manuel</span> (saisi à la main) ou <span class="mode aut">Automatique</span> (reçu par le fichier CSV). Cliquez sur un compteur pour voir ou saisir ses valeurs.</p>
-  <div class="ctabs" id="cTabs"><button type="button" data-tab="e">⚡ Électricité <span class="badge" data-tn></span></button><button type="button" data-tab="g">🔥 Gaz <span class="badge" data-tn></span></button><button type="button" data-tab="o" hidden>📟 Autres <span class="badge" data-tn></span></button></div>
+  <div class="ctabs" id="cTabs"><button type="button" data-tab="e">⚡ Électricité <span class="badge" data-tn></span></button><button type="button" data-tab="g">🔥 Gaz MWh (Facture) <span class="badge" data-tn></span></button><button type="button" data-tab="m">🔥 Gaz m3 <span class="badge" data-tn></span></button><button type="button" data-tab="o" hidden>📟 Autres <span class="badge" data-tn></span></button></div>
   <div id="cptRows">
+    <p class="note" id="cptEmpty" hidden style="grid-column:1/-1;margin:6px 0">Aucun compteur dans cette catégorie pour le moment. Pour y classer un compteur : ouvrez-le et choisissez « Gaz m3 » dans « Énergie » (ou indiquez « m3 » dans son nom).</p>
     <details class="cp cprow" id="rowE" data-nm="electricite principal"><summary><b>⚡ Électricité</b> <span class="sub">compteur principal</span><br><label class="hist" title="Cochez quand l’historique manuel de ce compteur a été saisi"><input type="checkbox" data-hist="e"> Historique saisi</label> <span class="badge" data-cnk="e"></span> <span id="infoE"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-E" data-cyr="E"></select></label><label>Graphique <select id="cm-E" data-cmd="E"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-E" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-E"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsE"></div></div></details>
     <details class="cp cprow" id="rowG" data-nm="gaz principal"><summary><b>🔥 Gaz</b> <span class="sub">compteur principal</span><br><label class="hist" title="Cochez quand l’historique manuel de ce compteur a été saisi"><input type="checkbox" data-hist="g"> Historique saisi</label> <span class="badge" data-cnk="g"></span> <span id="infoG"></span></summary><div class="cpb"><p class="note" style="margin:8px 0 4px">Valeurs en kWh : elles s’enregistrent dès que vous quittez la case (Tab ou Entrée). Une case vide = pas de relevé. Le prix au MWh se règle pour chaque année.</p><div class="tools" style="margin-top:10px"><label>Année <select id="cy-G" data-cyr="G"></select></label><label>Graphique <select id="cm-G" data-cmd="G"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-G" style="margin:4px 0 0"></div><div class="box" style="height:280px;margin-top:6px"><canvas id="cc-G"></canvas></div><h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3><div id="gridsG"></div></div></details>
     <div id="vCpt"><div id="cList"></div></div>
@@ -1586,7 +1589,7 @@ function buildCpt(){
     const {top,bot}=bnd(c);let yh='';for(let y=top;y>=bot;y--){const k=c.id+'|'+y;if(y===cur&&!initY.has(k)){initY.add(k);openC.add(k)}
       yh+=`<details class="yr" data-oc="${k}" ${openC.has(k)?'open':''}><summary><b>${y}</b> <span class="badge" data-cy="${k}"></span></summary><div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Saisie manuelle de la consommation</th><th class="cax">Saisie automatique</th></tr></thead><tbody>${MOISL.map((mn,i)=>`<tr><td><button type="button" class="link cax" data-tgd="${c.id}|${ymKey(y,i+1)}" title="Voir les index jour par jour" style="padding:0 6px 0 0">▸</button>${mn}</td><td><input type="number" step="any" class="cell cv" placeholder="–" data-cv="${c.id}|${ymKey(y,i+1)}"><span class="note cax" data-cm="${c.id}|${ymKey(y,i+1)}" style="margin:0 0 0 6px"></span></td><td class="cax" data-ca="${c.id}|${ymKey(y,i+1)}"></td></tr><tr class="cadet cax" hidden><td colspan="3" data-cd="${c.id}|${ymKey(y,i+1)}"></td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td data-ct="${k}"></td><td class="cax" data-cat="${k}"></td></tr></tfoot></table></div></details>`}
     return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span><br><label class="hist" title="Cochez quand l’historique manuel de ce compteur a été saisi"><input type="checkbox" data-hist="${c.id}"> Historique saisi</label> <span class="badge" data-cn="${c.id}"></span> <span data-cst="${c.id}"></span></summary><div class="cpb">
-      <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><label>Énergie <select data-cene="${c.id}"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz</option></select></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
+      <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><label>Énergie <select data-cene="${c.id}"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz MWh (Facture)</option><option value="m">Gaz m3</option></select></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
       <p class="note" data-cproj="${c.id}"></p>
       <div class="tools" style="margin-top:10px"><label>Année <select id="cy-${c.id}" data-cyr="${c.id}"></select></label><label>Graphique <select id="cm-${c.id}" data-cmd="${c.id}"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-${c.id}" style="margin:4px 0 0"></div>
       <div class="box" style="height:280px;margin-top:6px"><canvas id="cc-${c.id}"></canvas></div>
@@ -1897,7 +1900,7 @@ const derNorm=(o,d)=>JSON.stringify([o,Object.keys(d).sort().map(k=>[k,d[k]])]);
 const fE=v=>Math.abs(v)<1000?fmt(v,0)+' kWh':fmt(v/AUTO_DIV,Math.abs(v)<10000?1:0)+' MWh';
 function derCounters(){
   const L=[{key:'e',nom:'Électricité (compteur principal)',g:'Compteurs principaux',aid:'e',unit:'kWh',ic:'⚡'},{key:'g',nom:'Gaz (compteur principal)',g:'Compteurs principaux',aid:'g',unit:'kWh',ic:'🔥'}];
-  compteurs.forEach(c=>{const a=slug(c.nom||'');L.push({key:'s:'+c.id,nom:c.nom||'Compteur',g:'Compteurs secondaires',aid:autoMap[a]?a:null,unit:c.unite||'',ic:c.energie==='e'?'⚡':c.energie==='g'?'🔥':'📟'})});
+  compteurs.forEach(c=>{const a=slug(c.nom||'');L.push({key:'s:'+c.id,nom:c.nom||'Compteur',g:'Compteurs secondaires',aid:autoMap[a]?a:null,unit:c.unite||'',ic:c.energie==='e'?'⚡':(c.energie==='g'||c.energie==='m')?'🔥':'📟'})});
   const sec=new Set(['e','g',...compteurs.map(c=>slug(c.nom||''))]);
   Object.keys(autoMap).filter(id=>!sec.has(id)).forEach(id=>L.push({key:'a:'+id,nom:autoNames[id]||id,g:'Compteurs automatiques',aid:id,unit:'',ic:'📟'}));
   return L}
@@ -2087,18 +2090,18 @@ function cptModes(){
   cptAutoFill();gridAutoFill();histFill();cptTabs();cptFilter()}
 let cptTab='e';try{cptTab=localStorage.getItem('cptTab')||'e'}catch(e){}
 /* énergie d'un compteur : champ « Énergie » du compteur, sinon deviné d'après son nom */
-const enOf=t=>{const s=slug(t||'');return /gaz/.test(s)?'g':/elec/.test(s)?'e':'o'};
+const enOf=t=>{const s=slug(t||'');return /gaz/.test(s)?(/m3|m³/.test(s+' '+String(t||'').toLowerCase())?'m':'g'):/elec/.test(s)?'e':'o'};
 function cptTabs(){
-  const root=$('cptRows');if(!root)return;const cnt={e:0,g:0,o:0};
+  const root=$('cptRows');if(!root)return;const cnt={e:0,g:0,m:0,o:0};
   root.querySelectorAll(':scope>details.cp,#cList>details.cp,#autoMeters>details.cp').forEach(d=>{
     let en;
     if(d.id==='rowE')en='e';else if(d.id==='rowG')en='g';
-    else if(d.dataset.oc){const c=compteurs.find(x=>x.id===d.dataset.oc);en=c&&(c.energie==='e'||c.energie==='g')?c.energie:enOf(c&&c.nom)}
+    else if(d.dataset.oc){const c=compteurs.find(x=>x.id===d.dataset.oc);en=c&&(c.energie==='e'||c.energie==='g'||c.energie==='m')?c.energie:enOf(c&&c.nom)}
     else en=enOf(autoNames[d.dataset.ao]||d.dataset.ao);
     d.dataset.en=en;cnt[en]++;d.classList.toggle('cgen',d.id==='rowE'||d.id==='rowG')});
   if(cptTab==='o'&&!cnt.o)cptTab='e';
   root.dataset.tab=cptTab;
-  document.querySelectorAll('#cTabs [data-tab]').forEach(b=>{const t=b.dataset.tab;b.classList.toggle('on',t===cptTab);b.querySelector('[data-tn]').textContent=cnt[t];if(t==='o')b.hidden=!cnt.o});cptOrder()}
+  document.querySelectorAll('#cTabs [data-tab]').forEach(b=>{const t=b.dataset.tab;b.classList.toggle('on',t===cptTab);b.querySelector('[data-tn]').textContent=cnt[t];if(t==='o')b.hidden=!cnt.o});{const em=$('cptEmpty');if(em)em.hidden=!!root.hasAttribute('data-q')||cnt[cptTab]>0}cptOrder()}
 /* ordre des cases compteurs : glisser-déposer par la poignée ⠿, ordre enregistré pour tout le monde (document _ordre) */
 const cptKeyOf=d=>d.id==='rowE'?'e':d.id==='rowG'?'g':d.dataset.oc?'c:'+d.dataset.oc:d.dataset.ao?'a:'+d.dataset.ao:null;
 function cptKeys(){const m=new Map();document.querySelectorAll('#cptRows>details.cp,#cList>details.cp,#autoMeters>details.cp').forEach(d=>{const k=cptKeyOf(d);if(k)m.set(k,d)});
