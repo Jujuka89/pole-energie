@@ -1974,8 +1974,9 @@ const AUTO_DIV=1000; /* index en kWh -> MWh (gaz et électricité principaux) */
 const GAZ_SOMME=['gaz-chaudiere-1','gaz-chaudiere-2'];
 const GAZ_COEF=1;
 let gazDeriv={};
+const GAZ_SOMME_ACTIF=false; /* false : les index des 2 chaudières ne sont plus additionnés dans le Gaz (facture) */
 function gazSomme(){
-  gazDeriv={};
+  gazDeriv={};if(!GAZ_SOMME_ACTIF)return;
   if(!GAZ_SOMME.every(id=>autoMap[id]&&Object.keys(autoMap[id]).length))return;
   if(autoMap.g&&Object.keys(autoMap.g).length){console.warn('Gaz principal : des index « g » existent déjà, la somme des chaudières n’est pas appliquée.');return}
   const g=autoMap.g={};
@@ -2090,7 +2091,7 @@ function cptModes(){
   cptAutoFill();gridAutoFill();histFill();cptTabs();cptFilter()}
 let cptTab='e';try{cptTab=localStorage.getItem('cptTab')||'e'}catch(e){}
 /* énergie d'un compteur : champ « Énergie » du compteur, sinon deviné d'après son nom */
-const enOf=t=>{const s=slug(t||'');return /gaz/.test(s)?(/m3|m³/.test(s+' '+String(t||'').toLowerCase())?'m':'g'):/elec/.test(s)?'e':'o'};
+const enOf=t=>{const s=slug(t||'');if(GAZ_SOMME.includes(s))return'm';return /gaz/.test(s)?(/m3|m³/.test(s+' '+String(t||'').toLowerCase())?'m':'g'):/elec/.test(s)?'e':'o'};
 function cptTabs(){
   const root=$('cptRows');if(!root)return;const cnt={e:0,g:0,m:0,o:0};
   root.querySelectorAll(':scope>details.cp,#cList>details.cp,#autoMeters>details.cp').forEach(d=>{
