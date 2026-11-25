@@ -177,6 +177,10 @@ body.out .edit-only{display:none!important}
 #cptRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
 #cptRows #vCpt,#cptRows #cList,#cptRows #autoMeters{display:contents}
 #cptRows details.cp{margin-top:0}
+.dh{cursor:grab;color:var(--mute);margin-right:8px;padding:0 3px;font-weight:700;user-select:none;-webkit-user-select:none;border-radius:4px}.dh:hover{background:var(--line);color:var(--ink)}.dh:active{cursor:grabbing}
+#cptRows details.cp.dragging{opacity:.45}
+#cptRows details.cp.dropb{box-shadow:-6px 0 0 var(--accent,#2563eb)}#cptRows details.cp.dropa{box-shadow:6px 0 0 var(--accent,#2563eb)}
+#cptRows details.cp.cgen.dropb,#cptRows details.cp[open].dropb{box-shadow:0 -6px 0 var(--accent,#2563eb)}#cptRows details.cp.cgen.dropa,#cptRows details.cp[open].dropa{box-shadow:0 6px 0 var(--accent,#2563eb)}
 #cptRows details.cp:not(.cgen)>summary{font-size:.98rem}
 #cptRows details.cp[open]{grid-column:1/-1}
 #cptRows details.cp.cgen{grid-column:1/-1;justify-self:center;width:min(100%,520px);border-width:2px}
@@ -547,13 +551,13 @@ const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.',
 const $=id=>document.getElementById(id);
 const mwh=v=>v==null?'–':(v/1000).toLocaleString('fr-FR',{maximumFractionDigits:0});
 const fmt=(n,d=0)=>n==null?'–':n.toLocaleString('fr-FR',{maximumFractionDigits:d});
-let data=[],year=new Date().getFullYear(),charts={},masques={},histo={};
+let data=[],year=new Date().getFullYear(),charts={},masques={},histo={},cptOrd=[];
 
 const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
+    {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}{const oq=snap.docs.find(d=>d.id==='_ordre');cptOrd=oq&&Array.isArray(oq.data().l)?oq.data().l:[]}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(gazSync,'gaz mensuel');safe(renderDju,'DJU');safe(renderChr,'chronologie');safe(renderActu,'actualité');safe(renderArc,'archives');safe(renderActu,'actualité');safe(renderArc,'archives');
@@ -2082,7 +2086,24 @@ function cptTabs(){
     d.dataset.en=en;cnt[en]++;d.classList.toggle('cgen',d.id==='rowE'||d.id==='rowG')});
   if(cptTab==='o'&&!cnt.o)cptTab='e';
   root.dataset.tab=cptTab;
-  document.querySelectorAll('#cTabs [data-tab]').forEach(b=>{const t=b.dataset.tab;b.classList.toggle('on',t===cptTab);b.querySelector('[data-tn]').textContent=cnt[t];if(t==='o')b.hidden=!cnt.o})}
+  document.querySelectorAll('#cTabs [data-tab]').forEach(b=>{const t=b.dataset.tab;b.classList.toggle('on',t===cptTab);b.querySelector('[data-tn]').textContent=cnt[t];if(t==='o')b.hidden=!cnt.o});cptOrder()}
+/* ordre des cases compteurs : glisser-déposer par la poignée ⠿, ordre enregistré pour tout le monde (document _ordre) */
+const cptKeyOf=d=>d.id==='rowE'?'e':d.id==='rowG'?'g':d.dataset.oc?'c:'+d.dataset.oc:d.dataset.ao?'a:'+d.dataset.ao:null;
+function cptKeys(){const m=new Map();document.querySelectorAll('#cptRows>details.cp,#cList>details.cp,#autoMeters>details.cp').forEach(d=>{const k=cptKeyOf(d);if(k)m.set(k,d)});
+  return{m,keys:[...cptOrd.filter(k=>m.has(k)),...[...m.keys()].filter(k=>!cptOrd.includes(k))]}}
+function cptOrder(){const{m,keys}=cptKeys();
+  keys.forEach((k,i)=>{const d=m.get(k);d.style.order=i;const sm=d.querySelector(':scope>summary');
+    if(sm&&!sm.querySelector('.dh')){const h=document.createElement('span');h.className='dh edit-only';h.draggable=true;h.title='Glisser pour déplacer ce compteur';h.textContent='⠿';sm.insertBefore(h,sm.firstChild)}})}
+{let dragK=null;const root=$('cptRows'),clr=()=>root.querySelectorAll('.dragging,.dropb,.dropa').forEach(e=>e.classList.remove('dragging','dropb','dropa'));
+  root.addEventListener('click',ev=>{if(ev.target.closest('.dh'))ev.preventDefault()},true);
+  root.addEventListener('dragstart',ev=>{const h=ev.target.closest&&ev.target.closest('.dh');if(!h)return;const d=h.closest('details.cp');dragK=cptKeyOf(d);if(!dragK)return;
+    ev.dataTransfer.effectAllowed='move';try{ev.dataTransfer.setData('text/plain',dragK);ev.dataTransfer.setDragImage(d,24,16)}catch(e){}requestAnimationFrame(()=>d.classList.add('dragging'))});
+  root.addEventListener('dragend',()=>{dragK=null;clr()});
+  root.addEventListener('dragover',ev=>{if(!dragK)return;const t=ev.target.closest('details.cp'),tk=t&&cptKeyOf(t);if(!tk||tk===dragK)return;ev.preventDefault();ev.dataTransfer.dropEffect='move';
+    const ks=cptKeys().keys,after=ks.indexOf(dragK)<ks.indexOf(tk);root.querySelectorAll('.dropb,.dropa').forEach(e=>{if(e!==t)e.classList.remove('dropb','dropa')});t.classList.toggle('dropa',after);t.classList.toggle('dropb',!after)});
+  root.addEventListener('drop',ev=>{if(!dragK)return;const t=ev.target.closest('details.cp'),tk=t&&cptKeyOf(t);if(!tk||tk===dragK)return;ev.preventDefault();
+    const ks=cptKeys().keys,fi=ks.indexOf(dragK),ti=ks.indexOf(tk);ks.splice(fi,1);ks.splice(ks.indexOf(tk)+(fi<ti?1:0),0,dragK);
+    cptOrd=ks;dragK=null;clr();cptOrder();setDoc(doc(db,'releves','_ordre'),{l:ks}).catch(refus)})}
 $('cTabs').onclick=ev=>{const b=ev.target.closest('[data-tab]');if(!b)return;cptTab=b.dataset.tab;try{localStorage.setItem('cptTab',cptTab)}catch(e){}cptTabs()};
 function cptFilter(){const q=slug($('autoQ').value||'');$('cptRows').toggleAttribute('data-q',!!q);document.querySelectorAll('#cptRows details.cp').forEach(d=>{const sm=d.querySelector('summary').cloneNode(true);sm.querySelectorAll('.hist').forEach(x=>x.remove());d.hidden=!!q&&!slug(sm.textContent).includes(q)})}
 function renderAutoMeters(){
