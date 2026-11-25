@@ -177,7 +177,7 @@ body.out .edit-only{display:none!important}
 #cptRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
 #cptRows #vCpt,#cptRows #cList,#cptRows #autoMeters{display:contents}
 #cptRows details.cp{margin-top:0}
-.ast{font-size:.78rem;font-weight:600;white-space:nowrap}.ast.ok{color:#15803d}.ast.late{color:#b45309}.ast.none{color:var(--mute);font-weight:500}
+.ast{font-size:.78rem;font-weight:600;white-space:nowrap}.ast.ok{color:#15803d}.ast.late{color:#b45309}.rz{color:#b45309;font-weight:600;cursor:help}.ast.none{color:var(--mute);font-weight:500}
 .dh{cursor:grab;color:var(--mute);margin-right:8px;padding:0 3px;font-weight:700;user-select:none;-webkit-user-select:none;border-radius:4px}.dh:hover{background:var(--line);color:var(--ink)}.dh:active{cursor:grabbing}
 #cptRows details.cp.dragging{opacity:.45}
 #cptRows details.cp.dropb{box-shadow:-6px 0 0 var(--accent,#2563eb)}#cptRows details.cp.dropa{box-shadow:6px 0 0 var(--accent,#2563eb)}
@@ -2011,11 +2011,14 @@ function idxConso(map,id,mois){
 const fIdx=v=>fmt(v,v%1?2:0);
 const autoOpen=new Set();
 function autoDates(id){return Object.keys(autoMap[id]||{}).sort()}
+/* remise à zéro d'un compteur : un index plus bas que le précédent = compteur reparti de 0, la consommation de la période est la valeur repartie de 0 */
+function idxSum(m,d0,d1){const ds=Object.keys(m).filter(d=>d>=d0&&d<=d1).sort();let t=0;for(let i=1;i<ds.length;i++){const x=m[ds[i]]-m[ds[i-1]];t+=x<0?m[ds[i]]:x}return t}
+function idxStep(a,b){const x=b-a;if(x>=0)return(x>0?'+':'')+fIdx(x);return'<span class="rz" title="Remise à zéro du compteur : l’index a baissé, la consommation compte la valeur repartie de 0">+'+fIdx(b)+' ↺</span>'}
 function autoAge(d){const n=new Date();return Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-new Date(d+'T00:00'))/864e5)}
 const autoNextD={};
 function autoHist(id){
   const m=autoMap[id]||{},ds=Object.keys(m).sort();if(!ds.length)return '';
-  const row=d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?(m[d]-m[pd]>0?'+':'')+fIdx(m[d]-m[pd]):'—'}</td><td><button type="button" class="link edit-only" data-delidx="${esc(id)}|${d}" title="Supprimer cet index">✕</button></td></tr>`};
+  const row=d=>{const pd=ds[ds.indexOf(d)-1];return `<tr><td>${esc(dfr(d))}</td><td>${fIdx(m[d])}</td><td>${pd?idxStep(m[pd],m[d]):'—'}</td><td><button type="button" class="link edit-only" data-delidx="${esc(id)}|${d}" title="Supprimer cet index">✕</button></td></tr>`};
   const tb=l=>'<div style="overflow-x:auto"><table class="gt"><thead><tr><th>Date</th><th>Index</th><th>Écart</th><th class="edit-only"></th></tr></thead><tbody>'+l.map(row).join('')+'</tbody></table></div>';
   const old=ds.slice(0,-14).reverse();
   return tb(ds.slice(-14).reverse())+(old.length?`<details style="margin-top:6px"><summary class="note" style="cursor:pointer">Voir les ${old.length} relevé${old.length>1?'s':''} plus ancien${old.length>1?'s':''}</summary>${tb(old)}</details>`:'')}
@@ -2025,7 +2028,7 @@ function autoDayForm(id,ym){const e=esc(id);let mn='',mx=today();if(ym){mn=ym+'-
 const cdOpen=new Set();
 const LOCKT='Verrouillé : des index ont été saisis pour ce mois, le total est calculé à partir des jours.';
 function autoMonth(id,ym,mp){const m=mp||autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym),pv=ds.filter(d=>d.slice(0,7)<ym).pop();
-  if(!inM.length)return null;const dv=(id==='e'||id==='g')?AUTO_DIV:1,base=pv||inM[0],v=Math.round((m[inM[inM.length-1]]-m[base])/dv*1000)/1000,nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
+  if(!inM.length)return null;const dv=(id==='e'||id==='g')?AUTO_DIV:1,base=pv||inM[0],v=Math.round(idxSum(m,base,inM[inM.length-1])/dv*1000)/1000,nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
   return{v,partial:!pv,n:inM.length,left:Math.max(0,nd-inM.length)}}
 /* gaz / électricité : le total du mois suit le cumul des index */
 function syncMonth(id,ym,mm){if(id!=='e'&&id!=='g')return;const r=autoMonth(id,ym,mm);if(r&&r.v>=0)setDoc(doc(db,'releves',ym),{[id]:r.v},{merge:true}).catch(refus)}
@@ -2042,7 +2045,7 @@ function fillDays(root,id,tot){const m=autoMap[id]||{},ds=Object.keys(m).sort();
     td.querySelectorAll('[data-di]').forEach(inp=>{const d2=inp.dataset.di.split('|')[1],v=m[d2];if(document.activeElement!==inp)inp.value=v==null?'':v;
       inp.disabled=manTot||d2>tdy2;inp.classList.toggle('lk',manTot);inp.title=manTot?'Verrouillé : le total du mois a été saisi à la main. Videz ce total pour saisir les jours.':''});
     td.querySelectorAll('[data-dsrc]').forEach(c2=>{const d2=c2.dataset.dsrc.split('|')[1];c2.innerHTML=m[d2]==null?'':autoMan[id+'|'+d2]?'<span class="mode man">Manuel</span>':'<span class="mode aut">Automatique</span>'});
-    td.querySelectorAll('[data-dg]').forEach(c2=>{const d2=c2.dataset.dg.split('|')[1],pd=ds.filter(x=>x<d2).pop();c2.textContent=m[d2]!=null&&pd?(m[d2]-m[pd]>0?'+':'')+fIdx(m[d2]-m[pd]):'—'})})}
+    td.querySelectorAll('[data-dg]').forEach(c2=>{const d2=c2.dataset.dg.split('|')[1],pd=ds.filter(x=>x<d2).pop();c2.innerHTML=m[d2]!=null&&pd?idxStep(m[pd],m[d2]):'—'})})}
 /* tous les compteurs secondaires */
 function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),ds=Object.keys(autoMap[id]||{}),box=document.querySelector('[data-oc="'+c.id+'"]');if(!box)return;
   box.setAttribute('data-auto','1');
@@ -2200,11 +2203,12 @@ try{derC=localStorage.getItem('derC')||'p';derCf=localStorage.getItem('derCf')||
 {const t=new Date().toISOString().slice(0,10),y=t.slice(0,4);if(!derCf)derCf=y+'-01-01';if(!derCt)derCt=t;if(!derPf)derPf=(y-1)+'-01-01';if(!derPt)derPt=dAddM(t,-12)}
 const derSaveC=()=>{try{localStorage.setItem('derC',derC);localStorage.setItem('derCf',derCf);localStorage.setItem('derCt',derCt);localStorage.setItem('derPf',derPf);localStorage.setItem('derPt',derPt)}catch(e){}};
 /* dernier relevé d'index à la date d (ou au plus 3 jours avant) */
+function idxDt(aid,d){const m=autoMap[aid]||{};let b=null;for(const k in m)if(k<=d&&(b===null||k>b))b=k;return b&&dDays(b,d)<=3?b:null}
 function idxAt(aid,d){const m=autoMap[aid]||{};let b=null;for(const k in m)if(k<=d&&(b===null||k>b))b=k;return b&&dDays(b,d)<=3?m[b]:null}
 /* consommation du jour from au jour to inclus : index auto, sinon mois entiers des relevés mensuels */
 function rangeCons(key,aid,from,to){
   if(!from||!to||from>to)return null;
-  if(aid&&autoMap[aid]){const a=idxAt(aid,dAdd(from,-1)),b=idxAt(aid,to);if(a!=null&&b!=null&&b>=a)return b-a}
+  if(aid&&autoMap[aid]){const da=idxDt(aid,dAdd(from,-1)),db=idxDt(aid,to);if(da&&db&&db>=da)return idxSum(autoMap[aid],da,db)}
   if(from.slice(8)!=='01'||new Date(+to.slice(0,4),+to.slice(5,7),0).getDate()!==+to.slice(8))return null;
   const mon=derSeries(key,aid).mon;let t=0,n=0;
   for(let m=from.slice(0,7);m<=to.slice(0,7);m=dAddM(m+'-01',1).slice(0,7)){if(mon[m]==null)return null;t+=mon[m];n++}
@@ -2229,12 +2233,12 @@ function derCalc(id,per){
     if(per!=='s'&&L<=t)return null;
     const c=ds.filter(d=>d<=t&&d<L);ref=c.length?c[c.length-1]:ds[0];partial=!c.length}
   const days=Math.round((new Date(L)-new Date(ref))/864e5);if(days<1)return null;
-  return{L,ref,days,kwh:m[L]-m[ref],partial,age:autoAge(L)}}
+  return{L,ref,days,kwh:idxSum(m,ref,L),partial,age:autoAge(L)}}
 function derSeries(key,aid){
   const mon={},ann={};
   if(key==='e'||key==='g'){data.forEach(d=>{if(d[key]!=null)mon[d.m]=+d[key]});Object.keys(totaux||{}).forEach(y=>{const v=totaux[y]&&totaux[y][key];if(v!=null)ann[+y]=+v})}
   else if(key.startsWith('s:')){const c=compteurs.find(x=>x.id===key.slice(2));Object.entries((c&&c.valeurs)||{}).forEach(([k,v])=>{if(v!=null)mon[k]=+v})}
-  if(!Object.keys(mon).length&&aid){const m=autoMap[aid]||{},ds=Object.keys(m).sort();[...new Set(ds.map(d=>d.slice(0,7)))].forEach(mo=>{const cur=ds.filter(d=>d.slice(0,7)===mo).pop(),pv=ds.filter(d=>d.slice(0,7)<mo).pop();if(pv)mon[mo]=m[cur]-m[pv]})}
+  if(!Object.keys(mon).length&&aid){const m=autoMap[aid]||{},ds=Object.keys(m).sort();[...new Set(ds.map(d=>d.slice(0,7)))].forEach(mo=>{const cur=ds.filter(d=>d.slice(0,7)===mo).pop(),pv=ds.filter(d=>d.slice(0,7)<mo).pop();if(pv)mon[mo]=idxSum(m,pv,cur)})}
   return{mon,ann}}
 function derYears(){const ys=new Set([new Date().getFullYear()]);data.forEach(d=>ys.add(+d.m.slice(0,4)));Object.keys(totaux||{}).forEach(y=>ys.add(+y));compteurs.forEach(c=>Object.keys(c.valeurs||{}).forEach(k=>ys.add(+k.slice(0,4))));return [...ys].sort((a,b)=>b-a)}
 function derYearCmp(S,Y){
