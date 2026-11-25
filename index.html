@@ -362,7 +362,7 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
     <p class="sub">Vue d’ensemble des bâtiments</p>
   </div>
 </header>
-<div class="dtabs" id="derTabs"><a class="btn" href="#" style="margin-right:6px">← Tableau de bord</a><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><label style="order:5;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Comparer <select id="derC"><option value="n">Aucune</option><option value="p">Période précédente</option><option value="y">Même période l’an dernier</option><option value="c">Dates choisies…</option></select></label><button type="button" class="on" data-vt="e">⚡ Électricité</button><button type="button" data-vt="c">🔥 Chauffage</button><label id="syVueL" style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
+<div class="dtabs" id="derTabs"><a class="btn" href="#" style="margin-right:6px">← Tableau de bord</a><label style="order:5;margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center">Période <select id="derP"><option value="h">Hier</option><option value="s">Semaine</option><option value="m">Mois</option><option value="a">Année</option></select></label><label style="order:5;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Comparer <select id="derC"><option value="n">Aucune</option><option value="p">Période précédente</option><option value="y">Même période l’an dernier</option><option value="c">Dates choisies…</option></select></label><label id="syEnL" style="display:flex;flex-direction:row;gap:6px;align-items:center;font-weight:700">Énergie <select id="syEn"><option value="e">⚡ Électricité (TGBT)</option><option value="c">🔥 Gaz (sous-stations)</option></select></label><label id="syVueL" style="order:6;margin-left:10px;display:flex;flex-direction:row;gap:6px;align-items:center">Vue <select id="syVue"><option value="s">Simple</option><option value="t">Technique</option></select></label></div>
 <div id="derRg" hidden style="margin:6px 0 2px;font-size:.85rem"><span id="derRgA" hidden style="margin-right:18px">Période : du <input type="date" id="derCf"> au <input type="date" id="derCt"></span><span id="derRgB" hidden>comparée à : du <input type="date" id="derPf"> au <input type="date" id="derPt"></span></div>
 <div id="derVb" hidden>
 <div class="dmap" id="derMap">
@@ -2304,15 +2304,60 @@ const SYT={
   c:[['gaz','🔥','Arrivée gaz','#eab308'],['chf','🏭','Chaufferie','#dc2626'],['chd','♨️','Chaudière','#dc2626'],['pac','♻️','Pompe à chaleur','#0891b2'],['rdc','〰️','Réseau de chaleur','#ea580c'],['ss','🌡️','Sous-station','#ea580c'],['gfr','❄️','Groupe de froid','#0ea5e9'],['bat','🏢','Bâtiment','#0f766e'],['etg','🔼','Étage','#0d9488'],['cpt','📟','Compteur','#7c3aed']]};
 const synOpen=new Set(),synTc=new Set(); /* synTc : TGBT repliés */
 const colMode=()=>{const D=synoD[derTab];return !!(D&&D.cols&&D.cols.length)};
-let derTab='e',synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'],SYSIMPLE=['bat','etg'],SYCHILD=['tgbt','tab','chf','ss','etg','gen','ond'];let synV='t';try{synV=localStorage.getItem('synV')||'t'}catch(e){}
+let derTab='e';try{if(localStorage.getItem('synEn')==='c')derTab='c'}catch(e){}let synPart=false,synRaw=null,synRecN=0,synoD={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},synSel=null,synLink=null,synLinkP=null,synDrag=null,synKey='';const SYCT=['tgbt','tab','chf','ss'],SYSIMPLE=['bat','etg'],SYCHILD=['tgbt','tab','chf','ss','etg','gen','ond'];let synV='t';try{synV=localStorage.getItem('synV')||'t'}catch(e){}
 const synRO=()=>document.body.classList.contains('out')||!!(synoD[derTab]&&synoD[derTab].lock);
-const synSave=(o)=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
-function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{},lock:!!(x&&x.lock),cols:Array.isArray(x&&x.cols)?x.cols:[]}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;if(derTab!=='b')renderSyno()}
+const synSaveRaw=o=>setDoc(doc(db,'releves','_syno'),o,{merge:true}).catch(refus);
+/* Les bâtiments (nom, position, taille, colonne), les colonnes et le verrouillage sont COMMUNS à l'électricité et au gaz :
+   toute modification faite sur une énergie est répétée sur l'autre ; seuls les blocs intérieurs (TGBT / sous-stations), les compteurs et les liaisons restent propres à chaque énergie. */
+const SY_GEO=['x','y','w','h','col'],synOth=v=>v==='e'?'c':'e',isDel=x=>!!x&&typeof x==='object'&&x._methodName==='deleteField';
+const synSave=o=>{const out={...o};
+  ['e','c'].forEach(v=>{const P=o[v];if(!P||typeof P!=='object')return;const w=synOth(v),Dv=synoD[v],Dw=synoD[w];if(!Dv||!Dw)return;const mp={},nn={},ll={};
+    if(P.lock!==undefined)mp.lock=P.lock;if(P.cols!==undefined)mp.cols=P.cols;
+    if(P.nodes)Object.entries(P.nodes).forEach(([id,pn])=>{
+      if(isDel(pn)){const wn=Dw.nodes[id];if(wn&&wn.t==='bat'&&!wn.parent){nn[id]=pn;
+        Object.keys(Dw.nodes).forEach(k=>{if(Dw.nodes[k].parent===id)nn[k]=deleteField()});
+        Object.entries(Dw.links).forEach(([k,l])=>{if(l.a===id||l.b===id||(Dw.nodes[l.a]&&Dw.nodes[l.a].parent===id)||(Dw.nodes[l.b]&&Dw.nodes[l.b].parent===id))ll[k]=deleteField()})}
+        return}
+      if(!pn||typeof pn!=='object')return;const cur=Dv.nodes[id],t=(cur&&cur.t)||pn.t;if(t!=='bat'||(cur&&cur.parent))return;
+      const m={t:'bat',nom:(cur&&cur.nom)||pn.nom||''};let ch=!!pn.t||pn.nom!==undefined;
+      SY_GEO.forEach(k=>{if(pn[k]!==undefined){m[k]=pn[k];ch=true}else if(pn.t&&cur&&cur[k]!==undefined)m[k]=cur[k]});
+      if(ch)nn[id]=m});
+    if(Object.keys(nn).length)mp.nodes=nn;if(Object.keys(ll).length)mp.links=ll;
+    if(Object.keys(mp).length){const q=out[w]||{};out[w]={...q,...mp,...(q.nodes||mp.nodes?{nodes:{...(q.nodes||{}),...(mp.nodes||{})}}:{}),...(q.links||mp.links?{links:{...(q.links||{}),...(mp.links||{})}}:{})}}});
+  return synSaveRaw(out)};
+function synApplyLocal(w,P){const D=synoD[w];if(P.lock!==undefined)D.lock=P.lock;if(P.cols!==undefined)D.cols=P.cols;
+  const ap=(M,Q)=>Q&&Object.entries(Q).forEach(([id,pn])=>{if(isDel(pn)){delete M[id];return}const t=M[id]||(M[id]={});Object.entries(pn).forEach(([k,v])=>{if(isDel(v))delete t[k];else t[k]=v})});
+  ap(D.nodes,P.nodes);ap(D.links,P.links)}
+/* mise en commun des bâtiments : au premier chargement les deux synoptiques existants sont fusionnés (un exemplaire de sauvegarde est gardé) */
+function synReconcile(){
+  if(synRecN>6)return;const E=synoD.e,C=synoD.c,top=D=>Object.keys(D.nodes).filter(i=>D.nodes[i].t==='bat'&&!D.nodes[i].parent);
+  const te=top(E),tc=top(C);if(!te.length&&!tc.length)return;
+  const mv=tc.length>te.length?'c':'e',ov=synOth(mv),M=synoD[mv],O=synoD[ov],full=!synPart,nm=n=>slug((n&&n.nom)||'');
+  const P={e:{nodes:{},links:{}},c:{nodes:{},links:{}}},used=new Set(),strip=o=>JSON.parse(JSON.stringify(o));
+  top(M).forEach(mid=>{const mn=M.nodes[mid],on=O.nodes[mid];
+    if(on&&on.t==='bat'&&!on.parent){used.add(mid);
+      if(full){const q={};if(on.nom!==mn.nom&&mn.nom!==undefined)q.nom=mn.nom;SY_GEO.forEach(k=>{if(mn[k]!==on[k])q[k]=mn[k]!==undefined?mn[k]:deleteField()});if(Object.keys(q).length)P[ov].nodes[mid]=q}
+      return}
+    const X=top(O).find(x=>!used.has(x)&&!M.nodes[x]&&nm(mn)&&nm(O.nodes[x])===nm(mn));
+    if(X){used.add(X);const nn=strip(O.nodes[X]);nn.nom=mn.nom||nn.nom;SY_GEO.forEach(k=>{if(mn[k]!==undefined)nn[k]=mn[k];else delete nn[k]});
+      P[ov].nodes[mid]=nn;P[ov].nodes[X]=deleteField();
+      Object.keys(O.nodes).forEach(k=>{if(O.nodes[k].parent===X)P[ov].nodes[k]={parent:mid}});
+      Object.entries(O.links).forEach(([k,l])=>{const q={};if(l.a===X)q.a=mid;if(l.b===X)q.b=mid;if(Object.keys(q).length)P[ov].links[k]=q});return}
+    const nn={t:'bat',nom:mn.nom||''};SY_GEO.forEach(k=>{if(mn[k]!==undefined)nn[k]=mn[k]});P[ov].nodes[mid]=nn});
+  top(O).forEach(oid=>{if(used.has(oid)||M.nodes[oid])return;const on=O.nodes[oid],nn={t:'bat',nom:on.nom||''};SY_GEO.forEach(k=>{if(on[k]!==undefined)nn[k]=on[k]});P[mv].nodes[oid]=nn});
+  if(full){if(JSON.stringify(M.cols||[])!==JSON.stringify(O.cols||[]))P[ov].cols=M.cols||[];if(!!M.lock!==!!O.lock)P[ov].lock=!!M.lock}
+  const out={};['e','c'].forEach(v=>{const q=P[v];if(!Object.keys(q.nodes).length)delete q.nodes;if(!Object.keys(q.links).length)delete q.links;if(Object.keys(q).length)out[v]=q});
+  if(!Object.keys(out).length&&(synPart||document.body.classList.contains('out')))return;
+  ['e','c'].forEach(v=>{if(out[v])synApplyLocal(v,out[v])});synRecN++;
+  if(document.body.classList.contains('out'))return; /* visiteur : fusion en mémoire seulement */
+  if(full){out.partage=true;if(synRaw&&synRecN===1)setDoc(doc(db,'releves','_syno_avant_partage'),synRaw).catch(()=>{})}
+  synSaveRaw(out)}
+function synSync(d){const n=x=>({nodes:(x&&x.nodes)||{},links:(x&&x.links)||{},lock:!!(x&&x.lock),cols:Array.isArray(x&&x.cols)?x.cols:[]}),o={e:n(d&&d.e),c:n(d&&d.c)},k=JSON.stringify(o);if(k===synKey||synDrag)return;synKey=k;synoD=o;synPart=!!(d&&d.partage);synRaw=d||null;safe(synReconcile,'bâtiments communs');if(derTab!=='b')renderSyno()}
 function synTypeOf(v,t){return SYT[v].find(x=>x[0]===t)||SYT[v][SYT[v].length-1]}
 function renderSyno(){
   const v=derTab;if(v==='b'||!$('syNodes'))return;const D=synoD[v],allIds=Object.keys(D.nodes),top=allIds.filter(i=>!D.nodes[i].parent||!D.nodes[D.nodes[i].parent]),ids=synV==='s'?top.filter(i=>SYSIMPLE.includes(D.nodes[i].t)):top,cs=derCounters(),by=Object.fromEntries(cs.map(c=>[c.key,c]));
   const tv0=$('syType').value;
-  $('syVue').value=synV;  $('syType').innerHTML=SYT[v].filter(t=>synV!=='s'||SYSIMPLE.includes(t[0])).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
+  $('syVue').value=synV;$('syEn').value=v;  $('syType').innerHTML=SYT[v].filter(t=>synV!=='s'||SYSIMPLE.includes(t[0])).map(t=>`<option value="${t[0]}">${t[1]} ${esc(t[2])}</option>`).join('');if(tv0&&[...$('syType').options].some(o=>o.value===tv0))$('syType').value=tv0;
   $('syBats').innerHTML=BATS.map(b=>`<option value="${esc(b)}">`).join('');
   $('syTpl').hidden=!!allIds.length||synV==='s';
   $('syHint').textContent=synLink?'Cliquez sur l’élément de destination (Échap pour annuler).':ids.length?(synRO()?(synV==='s'?'Vue simple : bâtiments et étages.':''):(synV==='s'?'Vue simple : bâtiments et étages uniquement (TGBT et éléments techniques masqués). ':'')+'Glissez les éléments pour les placer ; dans un bâtiment, glissez les blocs où vous voulez, ou vers un autre bâtiment. Cliquez sur un élément pour le renommer, lui associer un compteur ou le relier à un autre. Cliquez sur un trait pour le supprimer. L’épaisseur des traits est proportionnelle à la consommation (période choisie en haut de page).'):allIds.length?'Aucun bâtiment ni étage : passez en vue technique ou ajoutez-en.':'Schéma vide : ajoutez des éléments, ou insérez un modèle de départ.';
@@ -2333,10 +2378,10 @@ function renderSyno(){
     upBats(B).forEach(A=>{const a=bv(A);if(a!=null&&b>a+0.5)(warn[A]||(warn[A]=[])).push(`${D.nodes[B].nom||'bâtiment'} (${fE(b)})`)})});
   const WSVG='<svg viewBox="0 0 24 22" width="17" height="16" style="vertical-align:-3px;margin-left:5px;flex:none"><path d="M12 1.5 23 20.5H1z" fill="#facc15" stroke="#ca8a04" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 8v6" stroke="#422006" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.4" fill="#422006"/></svg>';
   const html1=(id,child)=>{vis.add(id);const n=D.nodes[id],t=synTypeOf(v,n.t),c=n.c?by[n.c]:null;
-    let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
+    let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(v==='e'&&n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
     let tg='';if(n.t==='bat'){const ts=synTgbtSum(D,id,by);if(ts){val='';
       const dl=ts.hp?derDelta({prev:ts.p,base:ts.b,diff:ts.b-ts.p,pct:ts.p?(ts.b-ts.p)/ts.p*100:null},fE,''):'';
-      tg=`<div class="syv" style="margin:2px 0 4px" title="${esc('Total des TGBT'+(ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':'')+(ts.hp?' · vs '+derCLab():derC!=='n'?' · pas de comparaison':''))}"><b style="font-size:1.05rem">${fE(ts.t)}</b>${dl?` <span style="font-size:1.05rem">${dl}</span>`:''}</div>`}}
+      tg=`<div class="syv" style="margin:2px 0 4px" title="${esc((v==='c'?'Total des sous-stations':'Total des TGBT')+(ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':'')+(ts.hp?' · vs '+derCLab():derC!=='n'?' · pas de comparaison':''))}"><b style="font-size:1.05rem">${fE(ts.t)}</b>${dl?` <span style="font-size:1.05rem">${dl}</span>`:''}</div>`}}
     const ct=SYCT.includes(n.t),deps=n.deps||{},tcl=ct&&synTc.has(id);
     let tsum='';if(tcl){let t=0,k=0;Object.values(deps).forEach(d=>{const x=d.c?synCv(by,d.c):null;if(x!=null){t+=x;k++}});if(k)tsum=`<div class="syv"><b>${fE(t)}</b></div>`}
     const rows=ct&&!tcl?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
@@ -2433,14 +2478,13 @@ function synCv(by,key){const c=key?by[key]:null;if(!c)return null;const f=derFac
 function synCm(by,key){const c=key?by[key]:null;if(!c)return null;const f=derFac(c);if(f==null)return null;const m=derMeasure(c);return m?{cur:Math.max(0,m.cur*f),b:(m.base!=null?m.base:m.cur)*f,p:m.prev!=null?m.prev*f:null}:null}
 /* total général d'un bâtiment = somme des compteurs des départs de ses TGBT (avec comparaison à la période choisie) */
 function synTgbtSum(D,id,by){let t=0,k=0,n=0,b=0,p=0,hp=0;const add=key=>{n++;const x=synCm(by,key);if(x){t+=x.cur;k++;if(x.p!=null){b+=x.b;p+=x.p;hp++}}};
-  Object.keys(D.nodes).forEach(i=>{const c=D.nodes[i];if(c.parent!==id||c.t!=='tgbt')return;const dp=Object.values(c.deps||{}).filter(d=>d.c);if(dp.length)dp.forEach(d=>add(d.c));else if(c.c)add(c.c)});
+  Object.keys(D.nodes).forEach(i=>{const c=D.nodes[i];if(c.parent!==id||(c.t!=='tgbt'&&c.t!=='ss'))return;const dp=Object.values(c.deps||{}).filter(d=>d.c);if(dp.length)dp.forEach(d=>add(d.c));else if(c.c)add(c.c)});
   return k?{t,k,n,b,p,hp}:null}
 function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:Math.round(y)};if(c)n.c=c;{const D0=synoD[derTab];if(D0.cols&&D0.cols.length){const sn=synSel&&D0.nodes[synSel];n.col=sn&&sn.col&&D0.cols.some(q=>q.id===sn.col)?sn.col:D0.cols[0].id;n.o=Date.now()}}synoD[derTab].nodes[id]=n;return id}
 (function(){
   const nodes=$('syNodes');
-  document.querySelectorAll('#derTabs button').forEach(b=>b.onclick=()=>{derTab=b.dataset.vt;synSel=null;synLink=null;synLinkP=null;
-    document.querySelectorAll('#derTabs button').forEach(x=>x.classList.toggle('on',x===b));$('derVb').hidden=derTab!=='b';$('derVs').hidden=derTab==='b';$('syVueL').hidden=derTab==='b';
-    if(derTab==='b')derDraw();else{synKey='';renderSyno()}});
+  $('syEn').onchange=ev=>{derTab=ev.target.value==='c'?'c':'e';try{localStorage.setItem('synEn',derTab)}catch(e){}synSel=null;synLink=null;synLinkP=null;
+    $('derVb').hidden=true;$('derVs').hidden=false;$('syVueL').hidden=false;synKey='';renderSyno()};
   const synParent=()=>{const D=synoD[derTab],n=D.nodes[synSel];if(!n)return null;if(n.t==='bat')return synSel;return n.parent&&D.nodes[n.parent]?n.parent:null};
   const synAddChild=(t,nom,pid,c)=>{synOpen.add(pid);const id=uid(),n={t,nom:nom||'',parent:pid,o:Date.now()};if(c)n.c=c;synoD[derTab].nodes[id]=n;return id};
   $('syAdd').onclick=()=>{const v=derTab,t=$('syType').value,cv=$('syCanvas');
@@ -2462,7 +2506,7 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
     if(!nom)return;const did=uid(),dep={nom};if(key)dep.c=key;(n.deps=n.deps||{})[did]=dep;$('syDepNom').value='';synKey='';renderSyno();synSave({[v]:{nodes:{[synSel]:{deps:{[did]:dep}}}}})};
   $('syLink').onclick=()=>{if(synSel){synLink=synSel;renderSyno()}};
   $('syDel').onclick=()=>{const v=derTab,id=synSel;if(!id)return;const D=synoD[v],del=[id,...Object.keys(D.nodes).filter(k=>D.nodes[k].parent===id)];
-    if(!confirm(del.length>1?'Supprimer ce bâtiment, ses '+(del.length-1)+' bloc(s) intérieur(s) et leurs liaisons ?':'Supprimer cet élément et ses liaisons ?'))return;
+    if(!confirm((del.length>1?'Supprimer ce bâtiment, ses '+(del.length-1)+' bloc(s) intérieur(s) et leurs liaisons ?':'Supprimer cet élément et ses liaisons ?')+(D.nodes[id].t==='bat'?'\n\nLe bâtiment sera aussi supprimé de l’autre énergie (électricité / gaz).':'')))return;
     const o={nodes:{},links:{}};del.forEach(k=>{o.nodes[k]=deleteField();delete D.nodes[k]});Object.entries(D.links).forEach(([k,l])=>{if(del.includes(l.a)||del.includes(l.b)){o.links[k]=deleteField();delete D.links[k]}});
     if(!Object.keys(o.links).length)delete o.links; /* une map vide fusionnée écraserait toutes les liaisons */
     synSel=null;synKey='';renderSyno();synSave({[v]:o})};
