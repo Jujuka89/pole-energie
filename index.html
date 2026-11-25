@@ -2064,6 +2064,7 @@ function lastManual(k){const m=data.filter(d=>d[k]!=null).map(d=>d.m).sort().pop
 function histFill(){const ro=document.body.classList.contains('out'),act=document.activeElement;
   document.querySelectorAll('#cptRows [data-hist]').forEach(i=>{const on=!!histo[i.dataset.hist];if(i!==act)i.checked=on;i.disabled=ro;const l=i.closest('.hist');if(l)l.classList.toggle('ok',on)})}
 $('cptRows').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset||!t.dataset.hist)return;const k=t.dataset.hist,v=t.checked;
+  if(!v&&!confirm('Attention : vous allez décocher « Historique saisi » pour ce compteur.\n\nCette case indique que l’historique manuel a été entièrement saisi, pour tout le monde. La décocher la retire pour tous les utilisateurs.\n\nVoulez-vous vraiment la décocher ?')){t.checked=true;return}
   histo={...histo};if(v)histo[k]=true;else delete histo[k];histFill();
   setDoc(doc(db,'releves','_hist'),{h:{[k]:v?true:deleteField()}},{merge:true}).catch(()=>{refus();if(v)delete histo[k];else histo[k]=true;histFill()})});
 function cptModes(){
