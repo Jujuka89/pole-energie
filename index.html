@@ -2588,8 +2588,8 @@ function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:M
   nodes.addEventListener('change',ev=>{const q=ev.target.closest('.syq');if(!q||synRO())return;const t=q.value,b=q.closest('.synode');if(!t||!b)return;
     const v=derTab,id=synAddChild(t,'',b.dataset.id);synSel=id;synKey='';renderSyno();synSave({[v]:{nodes:{[id]:synoD[v].nodes[id]}}})});
   nodes.addEventListener('pointermove',ev=>{const d=synDrag;if(!d)return;const dx=ev.clientX-d.x,dy=ev.clientY-d.y;if(!d.moved&&Math.abs(dx)+Math.abs(dy)<5)return;d.moved=true;
-    if(d.colRes){const D0=synoD[derTab];D0.cols[d.i].w=Math.max(160,Math.min(900,Math.round(d.w0+dx)));synLayout();synDraw();return}
-    if(d.resize){if(!colMode()){d.e.style.maxWidth='none';d.e.style.width=Math.max(d.mw,d.w+dx)+'px'}d.e.style.minHeight=Math.max(60,d.h+dy)+'px';synDraw();return}
+    if(d.colRes){const D0=synoD[derTab];D0.cols[d.i].w=Math.max(160,Math.min(1800,Math.round(d.w0+dx)));synLayout();synDraw();return}
+    if(d.resize){d.e.style.maxWidth='none';d.e.style.width=Math.max(d.mw,d.w+dx)+'px';d.e.style.minHeight=Math.max(60,d.h+dy)+'px';synDraw();return}
     if(d.child){d.e.classList.add('dragging');d.e.style.transform=`translate(${dx}px,${dy}px)`;markDrop(dropTarget(ev,d));synDraw();return}
     d.e.style.left=Math.max(0,d.ox+dx)+'px';d.e.style.top=Math.max(0,d.oy+dy)+'px';if(colMode()){d.e.style.zIndex=30;markCol(colTarget(ev,d))}synDraw2()});
   const synDraw2=()=>{const v=derTab,D=synoD[v];if(synDrag){const n=D.nodes[synDrag.id];if(n){n.x=parseInt(synDrag.e.style.left);n.y=parseInt(synDrag.e.style.top)}}synDraw()};
