@@ -2421,7 +2421,9 @@ function renderSyno(){
   if(!dbx.hidden){const tc=$('syDepCpt').value;$('syDepCpt').innerHTML='<option value="">Sans compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');if(tc)$('syDepCpt').value=tc}
   if(!ins.hidden){const n=D.nodes[synSel];if(document.activeElement!==$('syNom'))$('syNom').value=n.nom||'';
     $('syCpt').innerHTML='<option value="">Aucun compteur</option>'+cs.map(c=>`<option value="${esc(c.key)}">${esc(c.nom)}</option>`).join('');$('syCpt').value=n.c||''}
-  synFloat();synLayout();synDraw()}
+  synEqual();synFloat();synLayout();synDraw()}
+/* tous les bâtiments repliés prennent la largeur du plus large d'entre eux */
+function synEqual(){const l=[...$('syNodes').querySelectorAll(':scope>.synode.bf.cl')];if(l.length<2)return;let w=0;l.forEach(e=>{e.style.width='';w=Math.max(w,e.offsetWidth)});if(w)l.forEach(e=>{e.style.width=w+'px'})}
 function synFloat(){const v=derTab,D=synoD[v],ch={};
   $('syNodes').querySelectorAll(':scope>.synode.bf').forEach(b=>{const sy=b.querySelector(':scope>.syin');if(!sy||b.classList.contains('cl'))return;
     const kids=[...sy.querySelectorAll(':scope>.synode.ch')],fl=kids.filter(k=>k.classList.contains('fl')),nf=kids.filter(k=>!k.classList.contains('fl'));
