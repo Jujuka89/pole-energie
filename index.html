@@ -2039,7 +2039,9 @@ function cptStatus(id,vals){const b=autoBadge(id);if(b)return b;const m=Object.k
   return `<span class="ast none">${m?'dernière valeur : '+MOISL[+m.slice(5)-1].toLowerCase()+' '+m.slice(0,4):'aucune valeur'}</span>`}
 /* compteur qui ne compte plus : l'index n'a pas bougé depuis STALL_DAYS jours ou plus (triangle jaune) */
 const STALL_DAYS=3,WARN_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 22.5 20.5H1.5Z" fill="#facc15" stroke="#a16207" stroke-width="1.5" stroke-linejoin="round"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#422006"/><circle cx="12" cy="17.6" r="1.2" fill="#422006"/></svg>';
-function idxStall(id){const m=autoMap[id]||{},ds=Object.keys(m).sort();if(ds.length<2)return null;
+/* compteurs volontairement à l'arrêt : pas d'alarme « ne compte plus » (ex. chaudière 2) */
+const STALL_OFF=['gaz-chaudiere-2'];
+function idxStall(id){if(STALL_OFF.includes(id))return null;const m=autoMap[id]||{},ds=Object.keys(m).sort();if(ds.length<2)return null;
   const L=ds[ds.length-1],v=m[L];let i=ds.length-1;while(i>0&&m[ds[i-1]]===v)i--;
   const days=Math.round((new Date(L+'T00:00')-new Date(ds[i]+'T00:00'))/864e5);
   return i<ds.length-1&&days>=STALL_DAYS?{since:ds[i],last:L,days}:null}
