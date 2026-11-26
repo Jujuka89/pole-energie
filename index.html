@@ -182,7 +182,7 @@ body.out .edit-only{display:none!important}
 .ctabs button.on[data-tab="m"]{border-color:var(--gaz);background:color-mix(in srgb,var(--gaz) 22%,var(--card))}
 .ctabs button.on[data-tab="g"]{border-color:var(--gaz);background:color-mix(in srgb,var(--gaz) 22%,var(--card))}
 .ctabs button.on[data-tab="o"]{border-color:var(--mute);background:var(--bg)}
-#cptRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
+[data-ccum][hidden],#cumPanel[hidden]{display:none!important}#cptRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-items:start}
 #cptRows #vCpt,#cptRows #cList,#cptRows #autoMeters{display:contents}
 #cptRows details.cp{margin-top:0}
 .ast{font-size:.78rem;font-weight:600;white-space:nowrap}.ast.ok{color:#15803d}.ast.late{color:#b45309}.rz{color:#b45309;font-weight:600;cursor:help}.ast.none{color:var(--mute);font-weight:500}
@@ -287,7 +287,8 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
 <section id="relTodo" hidden></section>
 
 <section id="cptSec">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span> <button type="button" class="link edit-only" id="mxReset" hidden style="font-weight:400"></button></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="search" id="autoQ" placeholder="Filtrer un compteur"></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Compteurs <span id="nC" class="badge"></span> <span id="autoCnt" class="note" style="font-weight:400"></span> <button type="button" class="link edit-only" id="mxReset" hidden style="font-weight:400"></button></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="main edit-only" id="cumBtn" title="Créer un compteur qui additionne plusieurs compteurs">➕ Cumul de compteurs</button><input type="search" id="autoQ" placeholder="Filtrer un compteur"></div></div>
+  <div id="cumPanel" class="edit-only" hidden style="margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card)"></div>
   <p class="note" style="margin:8px 0 10px">Tous les compteurs. Dans le détail jour par jour, la colonne Source indique si l’index est <span class="mode man">Manuel</span> (saisi à la main) ou <span class="mode aut">Automatique</span> (reçu par le fichier CSV) ou <span class="mode man">Manuel</span> <span class="mode csv">CSV</span> (importé depuis un fichier avec le bouton « Importer un CSV » du compteur). Cliquez sur un compteur pour voir ou saisir ses valeurs.</p>
   <div class="ctabs" id="cTabs"><button type="button" data-tab="e">⚡ Électricité <span class="badge" data-tn></span></button><button type="button" data-tab="g">🔥 Gaz MWh (Facture) <span class="badge" data-tn></span></button><button type="button" data-tab="m">🔥 Gaz m3 <span class="badge" data-tn></span></button><button type="button" data-tab="o" hidden>📟 Autres <span class="badge" data-tn></span></button></div>
   <div id="cptRows">
@@ -556,7 +557,7 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}{const oq=snap.docs.find(d=>d.id==='_ordre');cptOrd=oq&&Array.isArray(oq.data().l)?oq.data().l:[]}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};autoCsv={};autoCancel={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('X_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCancel[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('C_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCsv[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(()=>{const k0=cptKey;buildCpt();if(cptKey!==k0){fillCpt();cptTabs()}},'années des compteurs');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
+    {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}{const oq=snap.docs.find(d=>d.id==='_ordre');cptOrd=oq&&Array.isArray(oq.data().l)?oq.data().l:[]}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};autoCsv={};autoCancel={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('X_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCancel[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('C_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCsv[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');safe(cumulSomme,'cumul de compteurs');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(()=>{const k0=cptKey;buildCpt();if(cptKey!==k0){fillCpt();cptTabs()}},'années des compteurs');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(gazSync,'gaz mensuel');safe(renderDju,'DJU');safe(renderChr,'chronologie');
@@ -1583,7 +1584,7 @@ const openC=new Set(),initY=new Set();
 const ymKey=(y,m)=>y+'-'+String(m).padStart(2,'0');
 function listenCpt(){
   if(unsubC)unsubC();
-  unsubC=onSnapshot(collection(db,'compteurs'),snap=>{compteurs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.cree||0)-(b.cree||0));renderCpt();renderProj()},
+  unsubC=onSnapshot(collection(db,'compteurs'),snap=>{compteurs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.cree||0)-(b.cree||0));safe(cumulSomme,'cumul de compteurs');renderCpt();renderProj();safe(renderDer,'dérives')},
     ()=>{compteurs=[];$('cList').innerHTML='<p class="empty">Lecture impossible : vérifiez les règles Firestore (collection « compteurs »).</p>'});
 }
 function buildCpt(){
@@ -1596,7 +1597,7 @@ function buildCpt(){
       yh+=`<details class="yr" data-oc="${k}" ${openC.has(k)?'open':''}><summary><b>${y}</b> <span class="badge" data-cy="${k}"></span></summary><div class="scroll"><table class="gt"><thead><tr><th>Mois</th><th>Saisie manuelle de la consommation</th><th class="cax">Saisie automatique</th></tr></thead><tbody>${MOISL.map((mn,i)=>`<tr><td><button type="button" class="link cax" data-tgd="${c.id}|${ymKey(y,i+1)}" title="Voir les index jour par jour" style="padding:0 6px 0 0">▸</button>${mn}</td><td><input type="number" step="any" class="cell cv" placeholder="–" data-cv="${c.id}|${ymKey(y,i+1)}"><span class="note cax" data-cm="${c.id}|${ymKey(y,i+1)}" style="margin:0 0 0 6px"></span></td><td class="cax" data-ca="${c.id}|${ymKey(y,i+1)}"></td></tr><tr class="cadet cax" hidden><td colspan="3" data-cd="${c.id}|${ymKey(y,i+1)}"></td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td data-ct="${k}"></td><td class="cax" data-cat="${k}"></td></tr></tfoot></table></div></details>`}
     return `<details class="cp" data-oc="${c.id}" ${openC.has(c.id)?'open':''}><summary><b data-cname="${c.id}"></b> <span class="sub" data-cuni="${c.id}"></span><br><label class="hist" title="Cochez quand l’historique manuel de ce compteur a été saisi"><input type="checkbox" data-hist="${c.id}"> Historique saisi</label> <span class="badge" data-cn="${c.id}"></span> <span data-cst="${c.id}"></span></summary><div class="cpb">
       <div class="tools" style="align-items:end"><label>Nom <input type="text" maxlength="80" data-cnom="${c.id}"></label><label>Unité <input type="text" maxlength="20" data-cunit="${c.id}"></label><label>Énergie <select data-cene="${c.id}"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz MWh (Facture)</option><option value="m">Gaz m3</option></select></label><button class="link edit-only" data-delc="${c.id}">Supprimer le compteur</button></div>
-      <p class="note" data-cproj="${c.id}"></p>
+      <p class="note" data-cproj="${c.id}"></p><p class="note" data-ccum="${c.id}" hidden></p>
       <div class="tools" style="margin-top:10px"><label>Année <select id="cy-${c.id}" data-cyr="${c.id}"></select></label><label>Graphique <select id="cm-${c.id}" data-cmd="${c.id}"><option value="c">Consommation (comparée à l’année précédente)</option><option value="d">Consommation par DJU</option><option value="u">Consommation par DJU Unique</option></select></label></div><div id="cs-${c.id}" style="margin:4px 0 0"></div>
       <div class="box" style="height:280px;margin-top:6px"><canvas id="cc-${c.id}"></canvas></div>
       <h3 style="font-size:1rem;margin:14px 0 0">Saisie mensuelle</h3>${yh}<div class="edit-only" style="margin-top:10px"><button type="button" data-addyr="${c.id}" data-yr="${bot-1}">Ajouter l’année ${bot-1}</button></div></div></details>`}).join(''):'';
@@ -1671,6 +1672,7 @@ function fillCpt(){
     let e=q('data-cname');if(e)e.textContent=c.nom||'';e=q('data-cuni');if(e)e.textContent=c.unite?'('+c.unite+')':'';
     e=q('data-cn');if(e)e.textContent=cptCount(c);
     e=q('data-cnom');if(e&&e!==act)e.value=c.nom||'';e=q('data-cunit');if(e&&e!==act)e.value=c.unite||'';e=q('data-cene');if(e&&e!==act)e.value=c.energie||'';
+    e=q('data-ccum');if(e){const cu=Array.isArray(c.cumulSrc)&&c.cumulSrc.length;e.hidden=!cu;e.innerHTML=cu?cumulInfo(c):''}
     const lp=projets.filter(p=>usesC(p,c.id));e=q('data-cproj');
     if(e)e.innerHTML=lp.length?'Projets liés : '+lp.map(p=>esc(p.nom)+(p.termine?' (fin '+dfr(p.termine)+')':' (date de fin non renseignée)')).join(' · '):'Aucun projet n’utilise encore ce compteur.';
     document.querySelectorAll('#cList [data-ct^="'+c.id+'|"]').forEach(el=>{const y=el.dataset.ct.split('|')[1];let t=0,k=0;for(let m=1;m<=12;m++){const v=vals[ymKey(y,m)];if(v!=null){t+=v;k++}}
@@ -1717,6 +1719,7 @@ $('vCpt').onchange=ev=>{const t=ev.target,d=t.dataset;
   if(d.cene)updateDoc(doc(db,'compteurs',d.cene),{energie:t.value}).catch(refus);
 };
 $('vCpt').onclick=ev=>{const d=ev.target.dataset;
+  if(d.cumedit){cumOpen(d.cumedit);return}
   if(d.addyr){const y=+d.yr;if(y>=2000)updateDoc(doc(db,'compteurs',d.addyr),{anneeMin:y}).catch(refus);return}
   if(d.delc){const c=compteurs.find(x=>x.id===d.delc),n=projets.filter(p=>usesC(p,d.delc)).length;
     if(confirm('Supprimer le compteur « '+(c?c.nom:'')+' » et toutes ses valeurs ?'+(n?'\n'+n+' projet(s) l’utilisent : leur suivi sera perdu.':'')))deleteDoc(doc(db,'compteurs',d.delc)).catch(refus)}};
@@ -1951,6 +1954,34 @@ function gazSomme(){
     if(!GAZ_SOMME.every(id=>autoMap[id][d]!=null))return;
     g[d]=Math.round(GAZ_SOMME.reduce((t,id)=>t+autoMap[id][d],0)*GAZ_COEF*1000)/1000;gazDeriv[d]=1});
   if(!Object.keys(g).length)delete autoMap.g;else if(!autoNames.g)autoNames.g='Gaz'}
+/* ===== Cumul de compteurs : un compteur dont l'index de chaque jour = somme des index des compteurs choisis (cumulSrc) ===== */
+let cumDeriv={};
+const cumIsCum=c=>!!(c&&Array.isArray(c.cumulSrc)&&c.cumulSrc.length);
+function cumAid(k){if(k==='e'||k==='g')return k;if(k.startsWith('s:')){const c=compteurs.find(x=>x.id===k.slice(2));return c?slug(c.nom||''):null}if(k.startsWith('a:'))return k.slice(2);return null}
+function cumulSomme(){cumDeriv={};
+  compteurs.filter(cumIsCum).forEach(c=>{const id=slug(c.nom||''),ids=c.cumulSrc.map(cumAid);if(!id)return;cumDeriv[id]=1;
+    if(ids.some(a=>!a||a===id||!autoMap[a]||!Object.keys(autoMap[a]).length)){delete autoMap[id];return}
+    const m={};Object.keys(autoMap[ids[0]]).forEach(d=>{if(!ids.every(a=>autoMap[a][d]!=null))return;m[d]=Math.round(ids.reduce((t,a)=>t+autoMap[a][d],0)*1000)/1000});
+    if(Object.keys(m).length){autoMap[id]=m;if(!autoNames[id])autoNames[id]=c.nom}else delete autoMap[id]})}
+function cumulInfo(c){const L=c.cumulSrc.map(k=>{const x=derCounters().find(q=>q.key===k);return x?esc(x.nom):'<i>compteur supprimé</i>'});
+  return '<b>Cumul de :</b> '+L.join(' + ')+' <small>(l’index de chaque jour est la somme des index ; un jour est calculé quand tous ces compteurs ont un index ce jour-là)</small> <button type="button" class="link edit-only" data-cumedit="'+c.id+'">Modifier les compteurs cumulés</button>'}
+function cumOpen(editId){const box=$('cumPanel'),ed=editId?compteurs.find(x=>x.id===editId):null,cur=new Set(ed&&ed.cumulSrc||[]);
+  const cs=derCounters().filter(x=>{if(!x.aid||!Object.keys(autoMap[x.aid]||{}).length)return false;if(x.key.startsWith('s:')){const c=compteurs.find(q=>q.id===x.key.slice(2));if(cumIsCum(c)||(ed&&c&&c.id===ed.id))return false}return true}),
+    groups=[...new Set(cs.map(x=>x.g))];
+  box.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:8px"><b>${ed?'Modifier le cumul « '+esc(ed.nom||'')+' »':'Nouveau cumul de compteurs'}</b>${ed?'':'<label>Nom <input type="text" id="cumNom" maxlength="80" placeholder="ex. Gaz chaudières 1 + 2"></label><label>Énergie <select id="cumEne"><option value="">Autre</option><option value="e">Électricité</option><option value="g">Gaz MWh (Facture)</option><option value="m">Gaz m3</option></select></label><label>Unité <input type="text" id="cumUni" maxlength="20" placeholder="kWh" style="width:80px"></label>'}</div>
+    <p class="note" style="margin:0 0 6px">Cochez les compteurs à additionner (au moins 2). Seuls les compteurs qui ont des index jour par jour sont proposés, et ils doivent avoir la même unité.</p>
+    ${cs.length?groups.map(g=>`<div style="margin:4px 0"><b style="font-size:.85rem">${esc(g)}</b><div style="display:flex;flex-wrap:wrap;gap:4px 16px">${cs.filter(x=>x.g===g).map(x=>`<label style="display:flex;gap:5px;align-items:center;font-weight:400"><input type="checkbox" data-cumsrc="${esc(x.key)}"${cur.has(x.key)?' checked':''}> ${x.ic} ${esc(x.nom)}</label>`).join('')}</div></div>`).join(''):'<p class="note">Aucun compteur avec des index jour par jour pour le moment.</p>'}
+    <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="main" id="cumOk">${ed?'Enregistrer':'Créer le cumul'}</button><button type="button" id="cumNo">Annuler</button></div>`;
+  box.hidden=false;
+  $('cumNo').onclick=()=>{box.hidden=true;box.innerHTML=''};
+  $('cumOk').onclick=()=>{const keys=[...box.querySelectorAll('[data-cumsrc]:checked')].map(i=>i.dataset.cumsrc);
+    if(keys.length<2){alert('Cochez au moins 2 compteurs à cumuler.');return}
+    if(ed){updateDoc(doc(db,'compteurs',ed.id),{cumulSrc:keys}).then(()=>{box.hidden=true;box.innerHTML=''}).catch(refus);return}
+    const nom=($('cumNom').value||'').trim();if(!nom){alert('Donnez un nom au cumul.');return}
+    const sl=slug(nom);if(['e','g'].includes(sl)||compteurs.some(c=>slug(c.nom||'')===sl)||(autoMap[sl]&&!cumDeriv[sl])||autoNames[sl]){alert('Ce nom est déjà utilisé par un autre compteur : choisissez-en un autre.');return}
+    const cid='cum_'+Date.now().toString(36);openC.add(cid);
+    setDoc(doc(db,'compteurs',cid),{nom,unite:($('cumUni').value||'').trim(),energie:$('cumEne').value,valeurs:{},cree:Date.now(),cumulSrc:keys}).then(()=>{box.hidden=true;box.innerHTML='';setTimeout(()=>{const el=document.querySelector('[data-oc="'+cid+'"]');if(el){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}},500)}).catch(refus)}}
+$('cumBtn').onclick=()=>{const b=$('cumPanel');if(!b.hidden){b.hidden=true;b.innerHTML='';return}cumOpen()};
 /* enregistre la consommation mensuelle de gaz calculée (mois ayant un index de référence), seulement si elle change */
 function gazSync(){
   if(document.body.classList.contains('out'))return;
@@ -2017,8 +2048,8 @@ function fillDays(root,id,tot){const m=autoMap[id]||{},ds=Object.keys(m).sort();
       td.innerHTML=h+'</tbody></table><p class="note edit-only" style="margin:4px 0;white-space:normal;width:0;min-width:100%;text-align:left">Les index reçus automatiquement remplissent les cases. Complétez les jours manquants à la main ; videz une case pour supprimer l’index. <b>Comme dans Excel :</b> copiez une colonne de cases dans votre fichier, cliquez sur la case du premier jour et collez (Ctrl+V) ; les valeurs se répartissent sur les jours suivants. Entrée ou flèches ↑ ↓ pour passer d’une case à l’autre.</p>'}
     const manTot=tot&&tot(ym)!=null&&!ds.some(x=>x.slice(0,7)===ym),tdy2=today();
     td.querySelectorAll('[data-di]').forEach(inp=>{const d2=inp.dataset.di.split('|')[1],v=m[d2];if(document.activeElement!==inp)inp.value=v==null?'':v;
-      inp.disabled=manTot||d2>tdy2;inp.classList.toggle('lk',manTot);inp.title=manTot?'Verrouillé : le total du mois a été saisi à la main. Videz ce total pour saisir les jours.':''});
-    td.querySelectorAll('[data-dsrc]').forEach(c2=>{const d2=c2.dataset.dsrc.split('|')[1];c2.innerHTML=m[d2]==null?'':autoCsv[id+'|'+d2]?'<span class="mode man">Manuel</span> <span class="mode csv">CSV</span>':autoMan[id+'|'+d2]?'<span class="mode man">Manuel</span>':'<span class="mode aut">Automatique</span>'});
+      const cu=!!cumDeriv[id];inp.disabled=manTot||cu||d2>tdy2;inp.classList.toggle('lk',manTot||cu);inp.title=cu?'Calculé : somme des index des compteurs cumulés.':manTot?'Verrouillé : le total du mois a été saisi à la main. Videz ce total pour saisir les jours.':''});
+    td.querySelectorAll('[data-dsrc]').forEach(c2=>{const d2=c2.dataset.dsrc.split('|')[1];c2.innerHTML=m[d2]==null?'':cumDeriv[id]?'<span class="mode aut">Cumul</span>':autoCsv[id+'|'+d2]?'<span class="mode man">Manuel</span> <span class="mode csv">CSV</span>':autoMan[id+'|'+d2]?'<span class="mode man">Manuel</span>':'<span class="mode aut">Automatique</span>'});
     td.querySelectorAll('[data-dg]').forEach(c2=>{const d2=c2.dataset.dg.split('|')[1],pd=ds.filter(x=>x<d2).pop();c2.innerHTML=stepCell(id,d2,pd,m);c2.classList.toggle('xcell',!!autoCancel[id+'|'+d2])})})}
 /* tous les compteurs secondaires */
 function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),ds=Object.keys(autoMap[id]||{}),box=document.querySelector('[data-oc="'+c.id+'"]');if(!box)return;
