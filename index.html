@@ -67,6 +67,7 @@ th{font-size:.85rem;color:var(--mute);font-weight:600}
 .sgs{display:flex;gap:2px;height:100%;width:100%}.sgs i{flex:1;min-width:3px;background:color-mix(in srgb,var(--c) 24%,var(--line))}.sgs i.on{background:var(--c)}.sgs i.nx{background:var(--c);animation:sgb 1s ease-in-out infinite}.sgs i.m1{--c:var(--m1)}.sgs i.m2{--c:var(--m2)}.sgs i.m3{--c:var(--m3)}.sgs i{--c:var(--mute)}.sgs i.m1{--c:var(--m1)}.sgs i.m2{--c:var(--m2)}.sgs i.m3{--c:var(--m3)}
 @keyframes sgb{0%,100%{opacity:1}50%{opacity:.2}}@media (prefers-reduced-motion:reduce){.sgs i.nx{animation:none;outline:2px solid var(--ink);outline-offset:-2px}}
 .g2.sg .gt{color:var(--ink);text-shadow:0 0 3px var(--card),0 0 3px var(--card),0 0 3px var(--card)}.bar.sgb{background:none}.sgl{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;color:var(--mute);margin:-4px 0 8px}.sgl b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.prow.a{grid-template-columns:minmax(170px,2.2fr) 90px 100px 85px 85px 175px 130px;min-width:920px}.prow .ext{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.88rem;color:var(--ink);cursor:pointer}.prow .ext input{width:auto;margin:0;cursor:pointer}
 .tw{border-bottom:1px solid var(--line)}.tw>.task{border-bottom:0}.tgc{padding:0 6px!important;font-size:.9rem;line-height:1.3;color:var(--mute)}.tgc .ic{font-size:.8rem}.tcm{padding:0 0 10px 38px}.tcm textarea{width:100%;font-size:.92rem}.tcm .desc{margin:2px 0;font-size:.92rem}.task.dragging{opacity:.4}.task.ov-t{box-shadow:0 -2px 0 var(--accent)}.task.ov-b{box-shadow:0 2px 0 var(--accent)}
 details.pr{border-bottom:1px solid var(--line)}
 details.pr>summary{list-style:none;cursor:pointer}details.pr>summary::-webkit-details-marker{display:none}
@@ -346,6 +347,7 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
     <label>Durée approximative <div style="display:flex;gap:6px"><input type="number" id="pdur" min="0" step="any" style="width:100%"><select id="pdu"><option>jours</option><option>semaines</option><option>mois</option></select></div></label>
     <label>Coût approximatif (€) <input type="number" id="pcout" min="0" step="any"></label>
     <label>Gains potentiels (sur 5) <select id="pgain"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" id="pext" style="width:auto"> Entreprise extérieure</label>
     <label>Confort (sur 5) <select id="pconf"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
     <label style="grid-column:1/-1">Descriptif du projet <textarea id="pdesc" rows="6" maxlength="5000" placeholder="Objectifs, travaux prévus, contraintes, matériel, fournisseurs…"></textarea></label>
     <div class="tools"><button class="main" type="submit" id="pSubmit">Ajouter le projet</button></div>
@@ -757,7 +759,7 @@ function ecoRef(){
 async function dupProjet(id){
   const p=projets.find(x=>x.id===id);if(!p)return;const t=p.taches||[];
   if(!confirm('Dupliquer le projet « '+p.nom+' »'+(t.length?' avec ses '+t.length+' tâche'+(t.length>1?'s':''):'')+' ? La copie sera ajoutée aux projets à réaliser.'))return;
-  const copy={nom:p.nom+' (copie)',resp:p.resp||'',desc:p.desc||'',duree:p.duree||null,cout:p.cout!=null?p.cout:null,gain:p.gain!=null?p.gain:null,confort:p.confort!=null?p.confort:null,
+  const copy={nom:p.nom+' (copie)',resp:p.resp||'',desc:p.desc||'',duree:p.duree||null,cout:p.cout!=null?p.cout:null,gain:p.gain!=null?p.gain:null,confort:p.confort!=null?p.confort:null,ext:!!p.ext,
     statut:'a_realiser',rang:nextRang(),cree:Date.now(),taches:t.map(x=>({id:uid(),t:x.t,fait:false,ech:null,m:x.m||null}))};
   try{const r=await addDoc(collection(db,'projets'),copy);openA.add(r.id)}catch(e){refus()}
 }
@@ -1357,7 +1359,7 @@ let aOrder=[],pdrag=null;
 const nextRang=()=>Math.max(0,...projets.filter(x=>statutOf(x)==='a').map(x=>x.rang||0))+1;
 const durTxt=d=>fmt(d.n,1)+' '+(d.u==='mois'||d.n>1?d.u:d.u.replace(/s$/,''));
 const metiers=p=>{const st=new Set((p.taches||[]).map(x=>x.m).filter(Boolean)),l=['Élec','CVC','Plombier'].filter(m=>st.has(m));return l.length?l.map(m=>`<span class="badge ${MC[m]}">${m}</span>`).join(' '):'–'};
-const rowA=(p,ix)=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow" ${user?`draggable="true" data-pdrag="${p.id}"`:''}><span class="pn"><span class="rk">${ix+1}.</span>${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span></summary>${card(p)}</details>`;
+const rowA=(p,ix)=>`<details class="pr" data-id="${p.id}" ${openA.has(p.id)?'open':''}><summary class="prow a" ${user?`draggable="true" data-pdrag="${p.id}"`:''}><span class="pn"><span class="rk">${ix+1}.</span>${esc(p.nom)}</span><span>${p.duree?durTxt(p.duree):'–'}</span><span>${p.cout!=null?fmt(p.cout)+' €':'–'}</span><span>${p.gain!=null?euros(p.gain):'–'}</span><span>${p.confort!=null?stars(p.confort):'–'}</span><span>${metiers(p)}</span><span><label class="ext" title="Projet réalisé par une entreprise extérieure"><input type="checkbox" data-ext="${p.id}" ${p.ext?'checked':''} ${user?'':'disabled'}> Oui</label></span></summary>${card(p)}</details>`;
 $('vProj').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.id){d.open?openA.add(d.dataset.id):openA.delete(d.dataset.id)}if(d.dataset&&d.dataset.tkd){d.open?openT.add(d.dataset.tkd):openT.delete(d.dataset.tkd)}rsz()},true);
 /* jauge par tâche : couleur du métier, tâches faites pleines, prochaine tâche à faire qui clignote */
 function segs(p){const t=p.taches||[],nx=t.findIndex(x=>!x.fait);
@@ -1415,7 +1417,7 @@ function renderProj(){
   fill('lClos','nClos','clos','Aucun projet clôturé.');
   const A=projets.filter(x=>statutOf(x)==='a').sort((x,y)=>(x.rang??1e9)-(y.rang??1e9)||(y.gain??-1)-(x.gain??-1)||(y.confort??-1)-(x.confort??-1)||(x.cree||0)-(y.cree||0));
   aOrder=A.map(x=>x.id);$('nA').textContent=A.length;
-  $('aList').innerHTML=A.length?'<div class="prow head"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
+  $('aList').innerHTML=A.length?'<div class="prow head a"><span>Projet</span><span>Durée</span><span>Coût</span><span>Gains</span><span>Confort</span><span>Métiers</span><span>Entreprise extérieure</span></div>'+A.map(rowA).join(''):'<p class="empty">Aucun projet à réaliser. Cliquez sur « Proposer un projet » pour en ajouter.</p>';
   drawSuiviCharts();fillCpt();safe(sideCtl,'projets à contrôler');safe(renderSankey,'sankey');safe(sideProj,'projets en cours');safe(sideCpt,'compteurs à jour');
   if(key){const el=document.querySelector('[data-'+key[0]+'="'+key[1]+'"]');if(el)el.focus()}
 }
@@ -1504,7 +1506,7 @@ function sideEco(){
     $('sRef').innerHTML=ecoBoxes(REF,'Année '+year+' vs '+REF,fn)+(prov?'<p class="note" style="margin:0">Année '+year+' en cours : estimation de la consommation sur 12 mois (saisonnalité d’une année complète, sinon moyenne mensuelle) comparée à l’année complète '+REF+'.</p>':'')}
 }
 let editP=null;
-const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value)});
+const pData=()=>({nom:$('pn').value.trim(),resp:$('pr').value.trim(),desc:$('pdesc').value.trim(),duree:$('pdur').value===''?null:{n:+$('pdur').value,u:$('pdu').value},cout:num($('pcout').value),gain:num($('pgain').value),confort:num($('pconf').value),ext:$('pext').checked});
 function closeForm(){editP=null;$('pForm').reset();$('projForm').hidden=true;$('newP').textContent='Proposer un projet';$('pSubmit').textContent='Ajouter le projet';$('pTitle').textContent='Proposer un projet'}
 $('pForm').onsubmit=async ev=>{ev.preventDefault();
   try{if(editP)await updateDoc(doc(db,'projets',editP),pData());else await addDoc(collection(db,'projets'),{...pData(),statut:'a_realiser',rang:nextRang(),taches:[],cree:Date.now()});closeForm()}catch(e){refus()}};
@@ -1529,7 +1531,7 @@ $('vProj').onclick=ev=>{const d=ev.target.dataset;
   if(d.back&&confirm('Remettre ce projet dans les projets à réaliser ?'))updateDoc(doc(db,'projets',d.back),{statut:'a_realiser',rang:nextRang()}).catch(refus);
   if(d.editp){const p=projets.find(x=>x.id===d.editp);if(!p)return;ev.preventDefault();editP=p.id;
     $('pn').value=p.nom||'';$('pr').value=p.resp||'';$('pdesc').value=p.desc||'';$('pdur').value=p.duree?p.duree.n:'';$('pdu').value=p.duree?p.duree.u:'jours';
-    $('pcout').value=p.cout??'';$('pgain').value=p.gain==null?'':String(p.gain);$('pconf').value=p.confort==null?'':String(p.confort);
+    $('pcout').value=p.cout??'';$('pgain').value=p.gain==null?'':String(p.gain);$('pconf').value=p.confort==null?'':String(p.confort);$('pext').checked=!!p.ext;
     $('projForm').hidden=false;$('newP').textContent='Annuler';$('pSubmit').textContent='Enregistrer les modifications';$('pTitle').textContent='Modifier le projet';
     $('projForm').scrollIntoView({behavior:'smooth',block:'center'});$('pn').focus()}
   if(d.start){const pp=projets.find(z=>z.id===d.start);if(pp)addActu('pstart_'+d.start,'Projet démarré : '+pp.nom);updateDoc(doc(db,'projets',d.start),{statut:'en_cours',debut:today()}).catch(refus)}
@@ -1545,6 +1547,7 @@ $('vProj').onchange=ev=>{const d=ev.target.dataset,v=ev.target.value;
   if(d.sv){const[pid,i]=d.sv.split('|');w(pid,{['suivi.'+i]:v===''?null:+v})}
   if(d.sdate)w(d.sdate,{termine:v||null});
   if(d.pdesc)w(d.pdesc,{desc:v.trim()});
+  if(d.ext)w(d.ext,{ext:ev.target.checked});
   if(d.scpt)w(d.scpt,{compteurId:v||null});
   if(d.scpt2)w(d.scpt2,{compteurId2:v||null});
   if(d.sdebut)w(d.sdebut,{debut:v||null});
