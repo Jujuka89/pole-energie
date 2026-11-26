@@ -2401,9 +2401,9 @@ function renderSyno(){
     let val='';if(c)val=derDisp(c.key,c.aid,c.unit,false);else if(v==='e'&&n.t==='bat'&&BATS.includes(n.nom)){const h=derTot(n.nom,by);if(h)val=h.replace(/<small>[^]*?<\/small>/,'')}
     let tg='';if(n.t==='bat'){const ts=synTgbtSum(D,id,by);if(ts){val='';
       const dl=ts.hp?derDelta({prev:ts.p,base:ts.b,diff:ts.b-ts.p,pct:ts.p?(ts.b-ts.p)/ts.p*100:null},fE,''):'';
-      tg=`<div class="syv" style="margin:2px 0 4px" title="${esc((v==='c'?'Total des sous-stations':'Total des TGBT')+(ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':'')+(ts.hp?' · vs '+derCLab():derC!=='n'?' · pas de comparaison':''))}"><b style="font-size:1.05rem">${fE(ts.t)}</b>${dl?` <span style="font-size:1.05rem">${dl}</span>`:''}</div>`}}
+      tg=`<div class="syv" style="margin:2px 0 4px" title="${esc((v==='c'?'Total des sous-stations':'Total des TGBT')+(ts.parts.length>1?' : '+ts.parts.map(q=>q.nom+' '+(q.ok?fE(q.cur):'—')).join(' + '):'')+(ts.k<ts.n?' ('+ts.k+'/'+ts.n+' départs)':'')+(ts.hp?' · vs '+derCLab():derC!=='n'?' · pas de comparaison':''))}"><b style="font-size:1.05rem">${fE(ts.t)}</b>${dl?` <span style="font-size:1.05rem">${dl}</span>`:''}</div>`}}
     const ct=SYCT.includes(n.t),deps=n.deps||{},tcl=ct&&synTc.has(id);
-    let tsum='';if(tcl){let t=0,k=0;Object.values(deps).forEach(d=>{const x=d.c?synCv(by,d.c):null;if(x!=null){t+=x;k++}});if(k)tsum=`<div class="syv"><b>${fE(t)}</b></div>`}
+    let tsum='';if(tcl){let t=0,k=0;const ox=n.c?synCv(by,n.c):null;if(ox!=null){t=ox;k=1}else Object.values(deps).forEach(d=>{const x=d.c?synCv(by,d.c):null;if(x!=null){t+=x;k++}});if(k)tsum=`<div class="syv"><b>${fE(t)}</b></div>`}
     const rows=ct&&!tcl?`<div class="sydeps">${Object.entries(deps).map(([did,d])=>{const dc=d.c?by[d.c]:null,dv=dc?derDisp(dc.key,dc.aid,dc.unit,false):'';
       return `<div class="sydep" data-did="${did}"><span class="sdn" title="${esc(d.nom||'')}">${esc(d.nom||(dc?dc.nom:'Départ'))}</span><span class="sdv">${dv}</span><button type="button" class="edit-only sp${synLink===id&&synLinkP===did?' on':''}" data-sp="${did}" title="Relier ce départ à un autre élément">⇢</button><button type="button" class="edit-only" data-xd="${did}" title="Supprimer ce départ">✕</button></div>`}).join('')||'<small>Aucun départ : sélectionnez ce bloc puis « + Ajouter un départ ».</small>'}</div>`:'';
     const fr=n.t==='bat',kids=kidsOf(id),kh=kids.map(k=>html1(k,true)).join(''),cl=fr&&!synOpen.has(id);
@@ -2497,9 +2497,14 @@ function synDraw(){
 function synCv(by,key){const c=key?by[key]:null;if(!c)return null;const f=derFac(c);if(f==null)return null;const m=derMeasure(c);return m?Math.max(0,m.cur*f):null}
 function synCm(by,key){const c=key?by[key]:null;if(!c)return null;const f=derFac(c);if(f==null)return null;const m=derMeasure(c);return m?{cur:Math.max(0,m.cur*f),b:(m.base!=null?m.base:m.cur)*f,p:m.prev!=null?m.prev*f:null}:null}
 /* total général d'un bâtiment = somme des compteurs des départs de ses TGBT (avec comparaison à la période choisie) */
-function synTgbtSum(D,id,by){let t=0,k=0,n=0,b=0,p=0,hp=0;const add=key=>{n++;const x=synCm(by,key);if(x){t+=x.cur;k++;if(x.p!=null){b+=x.b;p+=x.p;hp++}}};
-  Object.keys(D.nodes).forEach(i=>{const c=D.nodes[i];if(c.parent!==id||(c.t!=='tgbt'&&c.t!=='ss'))return;const dp=Object.values(c.deps||{}).filter(d=>d.c);if(dp.length)dp.forEach(d=>add(d.c));else if(c.c)add(c.c)});
-  return k?{t,k,n,b,p,hp}:null}
+function synTgbtSum(D,id,by){let t=0,k=0,n=0,b=0,p=0,hp=0;const parts=[];
+  /* chaque TGBT (ou sous-station) du bâtiment compte pour son total : compteur propre s'il en a un, sinon somme de ses départs ; le total du bâtiment est la somme de tous */
+  Object.keys(D.nodes).filter(i=>{const c=D.nodes[i];return c.parent===id&&(c.t==='tgbt'||c.t==='ss')}).sort((x,y)=>(D.nodes[x].o||0)-(D.nodes[y].o||0)).forEach(i=>{const c=D.nodes[i],pt={nom:c.nom||(c.t==='ss'?'Sous-station':'TGBT'),cur:0,ok:false};
+    const add=key=>{n++;const x=synCm(by,key);if(x){t+=x.cur;k++;pt.cur+=x.cur;pt.ok=true;if(x.p!=null){b+=x.b;p+=x.p;hp++}}};
+    const own=c.c?synCm(by,c.c):null;
+    if(own)add(c.c);else{const dp=Object.values(c.deps||{}).filter(d=>d.c);if(dp.length)dp.forEach(d=>add(d.c));else if(c.c)add(c.c)}
+    parts.push(pt)});
+  return k?{t,k,n,b,p,hp,parts}:null}
 function synAdd(t,nom,x,y,c){const id=uid(),n={t,nom:nom||'',x:Math.round(x),y:Math.round(y)};if(c)n.c=c;{const D0=synoD[derTab];if(D0.cols&&D0.cols.length){const sn=synSel&&D0.nodes[synSel];n.col=sn&&sn.col&&D0.cols.some(q=>q.id===sn.col)?sn.col:D0.cols[0].id;n.o=Date.now()}}synoD[derTab].nodes[id]=n;return id}
 (function(){
   const nodes=$('syNodes');
