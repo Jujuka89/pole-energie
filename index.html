@@ -557,7 +557,7 @@ const status=t=>{$('status').textContent=t;$('status2').textContent=t};
 function listen(){
   if(unsub)unsub();
   unsub=onSnapshot(collection(db,'releves'),snap=>{
-    {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}{const oq=snap.docs.find(d=>d.id==='_ordre');cptOrd=oq&&Array.isArray(oq.data().l)?oq.data().l:[]}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};autoCsv={};autoCancel={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('X_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCancel[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('C_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCsv[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');safe(cumulSomme,'cumul de compteurs');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(()=>{const k0=cptKey;buildCpt();if(cptKey!==k0){fillCpt();cptTabs()}},'années des compteurs');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
+    {const hd=snap.docs.find(d=>d.id==='_hist');histo=hd&&hd.data().h?hd.data().h:{}}{const oq=snap.docs.find(d=>d.id==='_ordre');cptOrd=oq&&Array.isArray(oq.data().l)?oq.data().l:[]}const pd=snap.docs.find(d=>d.id==='_prix');prices=pd?pd.data():{};const td=snap.docs.find(d=>d.id==='_totaux');totaux=td?td.data():{};const dd=snap.docs.find(d=>d.id==='_dju');dju=dd&&dd.data().v?dd.data().v:{};const dc=snap.docs.find(d=>d.id==='_djuc');djuC=dc&&dc.data().v?dc.data().v:{};const ed=snap.docs.find(d=>d.id==='_evt');evts=ed&&ed.data().l?ed.data().l:{};const od=snap.docs.find(d=>d.id==='_objectif');objectif=od&&od.data().pct!=null?+od.data().pct:null;const ad=snap.docs.find(d=>d.id==='_actu');actu=ad&&ad.data().l?ad.data().l:{};{const dv=snap.docs.find(d=>d.id==='_derives'),o=dv?dv.data():{};derSync(o.ordre,o.deps);const sy=snap.docs.find(d=>d.id==='_syno');synSync(sy?sy.data():null)}autoMap={};autoNames={};autoMan={};autoCsv={};autoCancel={};snap.docs.filter(d=>d.id.startsWith('_idx_')).forEach(d=>{const ym=d.id.slice(5),o=d.data();Object.keys(o).forEach(f=>{if(f.startsWith('M_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoMan[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('X_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCancel[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('C_')){const q=f.slice(2).match(/^(.+)_(\d{2})$/);if(q&&o[f]===true)autoCsv[q[1]+'|'+ym+'-'+q[2]]=1;return}if(f.startsWith('N_')){autoNames[f.slice(2)]=o[f];return}const mm=f.match(/^(.+)_(\d{2})$/);if(mm&&typeof o[f]==='number')(autoMap[mm[1]]||(autoMap[mm[1]]={}))[ym+'-'+mm[2]]=o[f]})});safe(gazSomme,'gaz = chaudières 1 + 2');safe(cumulSomme,'cumul de compteurs');safe(()=>{if(compteurs.some(cumIsCum))fillCpt()},'cumul : valeurs mensuelles');const au=snap.docs.find(d=>d.id==='_auto');autoLast=au&&au.data().last?au.data().last:null;safe(()=>autoActu(ad),'actualité import auto');safe(()=>{const k0=cptKey;buildCpt();if(cptKey!==k0){fillCpt();cptTabs()}},'années des compteurs');safe(renderAuto,'relevés automatiques');safe(renderDer,'dérives');const ar=snap.docs.find(d=>d.id==='_archives');archs=ar&&ar.data().l?ar.data().l:{};{const mq=snap.docs.find(d=>d.id==='_masques');masques=mq&&mq.data().h?mq.data().h:{}}
     
     data=snap.docs.filter(d=>!d.id.startsWith('_')).map(d=>({m:d.id,...d.data()})).sort((a,b)=>a.m.localeCompare(b.m));
     if(first&&data.length){year=Math.max(...data.map(d=>+d.m.slice(0,4)))}first=false;status('');render();safe(gazSync,'gaz mensuel');safe(renderDju,'DJU');safe(renderChr,'chronologie');
@@ -1584,7 +1584,7 @@ const openC=new Set(),initY=new Set();
 const ymKey=(y,m)=>y+'-'+String(m).padStart(2,'0');
 function listenCpt(){
   if(unsubC)unsubC();
-  unsubC=onSnapshot(collection(db,'compteurs'),snap=>{compteurs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.cree||0)-(b.cree||0));safe(cumulSomme,'cumul de compteurs');renderCpt();renderProj();safe(renderDer,'dérives')},
+  unsubC=onSnapshot(collection(db,'compteurs'),snap=>{compteurs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.cree||0)-(b.cree||0));safe(cumulSomme,'cumul de compteurs');renderCpt();safe(cptAutoFill,'cumul : verrous');renderProj();safe(renderDer,'dérives')},
     ()=>{compteurs=[];$('cList').innerHTML='<p class="empty">Lecture impossible : vérifiez les règles Firestore (collection « compteurs »).</p>'});
 }
 function buildCpt(){
@@ -1955,14 +1955,29 @@ function gazSomme(){
     g[d]=Math.round(GAZ_SOMME.reduce((t,id)=>t+autoMap[id][d],0)*GAZ_COEF*1000)/1000;gazDeriv[d]=1});
   if(!Object.keys(g).length)delete autoMap.g;else if(!autoNames.g)autoNames.g='Gaz'}
 /* ===== Cumul de compteurs : un compteur dont l'index de chaque jour = somme des index des compteurs choisis (cumulSrc) ===== */
-let cumDeriv={};
+let cumDeriv={},cumHist={};
 const cumIsCum=c=>!!(c&&Array.isArray(c.cumulSrc)&&c.cumulSrc.length);
 function cumAid(k){if(k==='e'||k==='g')return k;if(k.startsWith('s:')){const c=compteurs.find(x=>x.id===k.slice(2));return c?slug(c.nom||''):null}if(k.startsWith('a:'))return k.slice(2);return null}
-function cumulSomme(){cumDeriv={};
+/* consommation d'un mois pour un compteur source, dans l'unité de son index : index du mois s'il y en a, sinon valeur saisie à la main (historique) */
+function cumMois(k,ym){const a=cumAid(k);
+  if(a&&Object.keys(autoMap[a]||{}).some(d=>d.slice(0,7)===ym)){const r=autoMonth(a,ym);if(r&&r.v!=null)return(a==='e'||a==='g')?r.v*AUTO_DIV:r.v}
+  if(k==='e'||k==='g'){const x=data.find(q=>q.m===ym);return x&&x[k]!=null?x[k]*AUTO_DIV:null}
+  if(k.startsWith('s:')){const c2=compteurs.find(q=>q.id===k.slice(2)),v=c2&&(c2._v0||c2.valeurs||{})[ym];return v!=null?v:null}
+  return null}
+function cumulSomme(){cumDeriv={};cumHist={};
   compteurs.filter(cumIsCum).forEach(c=>{const id=slug(c.nom||''),ids=c.cumulSrc.map(cumAid);if(!id)return;cumDeriv[id]=1;
-    if(ids.some(a=>!a||a===id||!autoMap[a]||!Object.keys(autoMap[a]).length)){delete autoMap[id];return}
-    const m={};Object.keys(autoMap[ids[0]]).forEach(d=>{if(!ids.every(a=>autoMap[a][d]!=null))return;m[d]=Math.round(ids.reduce((t,a)=>t+autoMap[a][d],0)*1000)/1000});
-    if(Object.keys(m).length){autoMap[id]=m;if(!autoNames[id])autoNames[id]=c.nom}else delete autoMap[id]})}
+    if(ids.some(a=>!a||a===id||!autoMap[a]||!Object.keys(autoMap[a]).length)){delete autoMap[id]}
+    else{const m={};Object.keys(autoMap[ids[0]]).forEach(d=>{if(!ids.every(a=>autoMap[a][d]!=null))return;m[d]=Math.round(ids.reduce((t,a)=>t+autoMap[a][d],0)*1000)/1000});
+      if(Object.keys(m).length){autoMap[id]=m;if(!autoNames[id])autoNames[id]=c.nom}else delete autoMap[id]}
+    /* historique : pour chaque mois sans index du cumul, somme des consommations mensuelles des compteurs cumulés (valeurs saisies à la main ou index) */
+    if(!c._v0)c._v0={...(c.valeurs||{})};
+    const mois=new Set(),own=new Set(Object.keys(autoMap[id]||{}).map(d=>d.slice(0,7)));
+    c.cumulSrc.forEach(k=>{const a=cumAid(k);Object.keys(autoMap[a]||{}).forEach(d=>mois.add(d.slice(0,7)));
+      if(k==='e'||k==='g')data.forEach(x=>{if(x[k]!=null)mois.add(x.m)});
+      else if(k.startsWith('s:')){const c2=compteurs.find(q=>q.id===k.slice(2));Object.keys((c2&&(c2._v0||c2.valeurs))||{}).forEach(ym=>{if((c2._v0||c2.valeurs)[ym]!=null)mois.add(ym)})}});
+    const v={...c._v0};
+    mois.forEach(ym=>{if(own.has(ym))return;const t=c.cumulSrc.map(k=>cumMois(k,ym));if(t.some(x=>x==null))return;v[ym]=Math.round(t.reduce((a,b)=>a+b,0)*1000)/1000;cumHist[c.id+'|'+ym]=1});
+    c.valeurs=v})}
 function cumulInfo(c){const L=c.cumulSrc.map(k=>{const x=derCounters().find(q=>q.key===k);return x?esc(x.nom):'<i>compteur supprimé</i>'});
   return '<b>Cumul de :</b> '+L.join(' + ')+' <small>(l’index de chaque jour est la somme des index ; un jour est calculé quand tous ces compteurs ont un index ce jour-là)</small> <button type="button" class="link edit-only" data-cumedit="'+c.id+'">Modifier les compteurs cumulés</button>'}
 function cumOpen(editId){const box=$('cumPanel'),ed=editId?compteurs.find(x=>x.id===editId):null,cur=new Set(ed&&ed.cumulSrc||[]);
@@ -2054,9 +2069,9 @@ function fillDays(root,id,tot){const m=autoMap[id]||{},ds=Object.keys(m).sort();
 /* tous les compteurs secondaires */
 function cptAutoFill(){compteurs.forEach(c=>{const id=slug(c.nom||''),ds=Object.keys(autoMap[id]||{}),box=document.querySelector('[data-oc="'+c.id+'"]');if(!box)return;
   box.setAttribute('data-auto','1');
-  box.querySelectorAll('[data-cv]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],lock=ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.classList.toggle('lk',lock);inp.title=lock?LOCKT:''});
+  box.querySelectorAll('[data-cv]').forEach(inp=>{const ym=inp.dataset.cv.split('|')[1],ch=!!cumHist[c.id+'|'+ym],lock=ch||ds.some(d=>d.slice(0,7)===ym);inp.disabled=lock;inp.classList.toggle('lk',lock);inp.title=ch?'Calculé : cumul des compteurs choisis (historique et index).':lock?LOCKT:''});
   fillAutoCells(box,id);
-  box.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1];sp.textContent=c.valeurs&&c.valeurs[ym]!=null?'total saisi':''});
+  box.querySelectorAll('[data-cm]').forEach(sp=>{const ym=sp.dataset.cm.split('|')[1];sp.textContent=cumHist[c.id+'|'+ym]?'cumul calculé':c.valeurs&&c.valeurs[ym]!=null?'total saisi':''});
   fillDays(box,id,ym=>c.valeurs?c.valeurs[ym]:null)})}
 /* gaz et électricité principaux */
 function gridAutoFill(){try{['e','g'].forEach(id=>{const root=$(id==='e'?'gridsE':'gridsG');if(!root)return;const ds=Object.keys(autoMap[id]||{});
