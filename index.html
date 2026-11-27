@@ -1149,17 +1149,20 @@ const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)windo
 function gazM3Tile(){const el=$('tileGazM3');if(!el)return;
   const now=new Date(),ym=ymKey(now.getFullYear(),now.getMonth()+1),ymL=ymKey(now.getFullYear()-1,now.getMonth()+1),
     mn=MOISL[now.getMonth()].toLowerCase();
-  let cs=compteurs.filter(c=>c.energie==='m'||enOf(c.nom)==='m');
-  const cu=cs.filter(cumIsCum);if(cu.length)cs=cu;
+  /* le compteur « Gaz total » (compteur secondaire ou automatique) ; sinon les compteurs Gaz m3 */
+  let cs;const gt=Object.keys(autoMap).find(a=>/gaz-total/.test(a)||/gaz-total/.test(slug(autoNames[a]||'')))||(compteurs.find(c=>/gaz-total/.test(slug(c.nom||'')))?slug(compteurs.find(c=>/gaz-total/.test(slug(c.nom||''))).nom):null);
+  if(gt)cs=[{...(compteurs.find(c=>slug(c.nom||'')===gt)||{valeurs:{}}),_id:gt}];
+  else{cs=compteurs.filter(c=>c.energie==='m'||enOf(c.nom)==='m');const cu=cs.filter(cumIsCum);if(cu.length)cs=cu}
   let cur=0,ly=0,lyOk=true,lyFull=false,n=0,lastD='';
-  cs.forEach(c=>{const id=slug(c.nom||''),m=autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym);if(!inM.length)return;
+  cs.forEach(c=>{const id=c._id||slug(c.nom||''),m=autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym);
+    if(!inM.length){const v=(c.valeurs||{})[ym];if(v!=null){cur+=v;n++;const w=(c.valeurs||{})[ymL];if(w!=null){ly+=w;lyFull=true}else lyOk=false}return}
     const end=inM[inM.length-1],base=ds.filter(d=>d<ym+'-01').pop()||inM[0];
     cur+=idxSum(m,base,end,id);n++;if(end>lastD)lastD=end;
     const dj=end.slice(8),inL=ds.filter(d=>d.slice(0,7)===ymL&&d.slice(8)<=dj),baseL=ds.filter(d=>d<ymL+'-01').pop()||inL[0];
     if(inL.length&&baseL&&baseL<inL[inL.length-1])ly+=idxSum(m,baseL,inL[inL.length-1],id);
     else{const v=(c.valeurs||{})[ymL];if(v!=null){ly+=v;lyFull=true}else lyOk=false}});
   const head=`<span class="tt">🔥 Gaz m³ · ${mn}</span>`;
-  if(!n){el.innerHTML=head+'<span class="tv">–</span><span class="ts">Pas encore d’index ce mois-ci pour un compteur « Gaz m3 ».</span>';return}
+  if(!n){el.innerHTML=head+'<span class="tv">–</span><span class="ts">Pas encore de valeur ce mois-ci pour le compteur « '+(gt?(autoNames[gt]||gt):'Gaz m3')+' ».</span>';return}
   const dd=lastD.slice(8)+'/'+lastD.slice(5,7);
   let h=head+`<span class="tv">${fmt(cur,0)} m³</span>`;
   if(!lyOk||!ly){h+=`<span class="ts">${mn} ${now.getFullYear()-1} : pas de données comparables</span>`}
