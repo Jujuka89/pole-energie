@@ -1191,11 +1191,18 @@ function djuTile(){const el=$('tileDju');if(!el)return;
   else h+=`<span class="tv">${f(ch)}</span><span class="ts">DJU chaud (Chauffagiste)</span><span class="tl"><span>DJU froid (Climaticien)</span><b>${f(fr)}</b></span><span class="tl"><span>DJU Unique</span><b>${(ch!=null||fr!=null)?(((ch||0)-(fr||0))>0?'+':'')+fmt((ch||0)-(fr||0),0):'–'}</b></span>`;
   el.innerHTML=h}
 /* DJU : la saisie se fait dans la page Relevés (catégorie Autre), compteurs « DJU chaud » et « DJU froid ». Les anciennes valeurs (releves/_dju et _djuc) ne servent que pour les mois absents des compteurs. */
+const djuMig=new Set();
 function djuMerge(){dju={...djuB};djuC={...djuCB};
   compteurs.forEach(c=>{const id=slug(c.nom||'');if(!/dju/.test(id))return;const T=/chaud/.test(id)?dju:/froid/.test(id)?djuC:null;if(!T)return;
     const v=c._v0||c.valeurs||{};Object.keys(v).forEach(k=>{if(/^\d{4}-\d{2}$/.test(k)&&v[k]!=null)T[k]=v[k]});
     const ms=new Set(Object.keys(autoMap[id]||{}).map(d=>d.slice(0,7)));
-    ms.forEach(ym=>{const r=autoMonth(id,ym);if(r&&r.v!=null&&r.v>=0)T[ym]=r.v})})}
+    ms.forEach(ym=>{const r=autoMonth(id,ym);if(r&&r.v!=null&&r.v>=0)T[ym]=r.v});
+    /* reprise de l'ancienne saisie manuelle : une seule fois, uniquement les mois que le compteur n'a pas encore (même vidés à la main) */
+    if(djuMig.has(c.id)||document.body.classList.contains('out'))return;
+    const old=T===dju?djuB:djuCB,cv=c.valeurs||{},add={};
+    Object.keys(old).forEach(k=>{if(/^\d{4}-\d{2}$/.test(k)&&old[k]!=null&&!(k in cv)&&!ms.has(k))add[k]=old[k]});
+    djuMig.add(c.id);
+    if(Object.keys(add).length)setDoc(doc(db,'compteurs',c.id),{valeurs:add},{merge:true}).catch(()=>{djuMig.delete(c.id)})})}
 function render(){
   safe(djuMerge,'DJU depuis les compteurs');
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),new Date().getFullYear(),year])].sort((a,b)=>b-a);
