@@ -1490,7 +1490,7 @@ function lateList(){
   const miss=last=>{if(!last||last>=need)return last?[]:[need];const o=[];let k=nx(last);while(k<=need&&o.length<12){o.push(k);k=nx(k)}return o.slice(-6)};
   const lastOf=k=>{let l=null;data.forEach(d=>{if(d[k]!=null&&(l==null||d.m>l))l=d.m});return l};
   const main=[['Électricité (compteur principal)','e'],['Gaz (compteur principal)','g']].map(([nom,k])=>{const last=lastOf(k);return{c:{nom,unite:'kWh'},k,last,miss:miss(last)}});
-  const sec=compteurs.map(c=>{const ks=Object.keys(c.valeurs||{}).filter(k=>c.valeurs[k]!=null).sort(),last=ks.length?ks[ks.length-1]:null;return{c,id:c.id,last,miss:miss(last)}});
+  const sec=compteurs.filter(c=>!/dju/.test(slug(c.nom||''))).map(c=>{const ks=Object.keys(c.valeurs||{}).filter(k=>c.valeurs[k]!=null).sort(),last=ks.length?ks[ks.length-1]:null;return{c,id:c.id,last,miss:miss(last)}});
   return{need,late:[...main,...sec].filter(o=>o.miss.length)}}
 function sideCpt(){
   const {late}=lateList();
@@ -2128,7 +2128,7 @@ function cptStatus(id,vals){const b=autoBadge(id);if(b)return b;const m=Object.k
 const STALL_DAYS=3,WARN_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 22.5 20.5H1.5Z" fill="#facc15" stroke="#a16207" stroke-width="1.5" stroke-linejoin="round"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#422006"/><circle cx="12" cy="17.6" r="1.2" fill="#422006"/></svg>';
 /* compteurs volontairement à l'arrêt : pas d'alarme « ne compte plus » (ex. chaudière 2) */
 const STALL_OFF=['gaz-chaudiere-2'];
-function idxStall(id){if(STALL_OFF.includes(id))return null;const m=autoMap[id]||{},ds=Object.keys(m).sort();if(ds.length<2)return null;
+function idxStall(id){if(STALL_OFF.includes(id)||/dju/.test(id))return null;const m=autoMap[id]||{},ds=Object.keys(m).sort();if(ds.length<2)return null;
   const L=ds[ds.length-1],v=m[L];let i=ds.length-1;while(i>0&&m[ds[i-1]]===v)i--;
   const days=Math.round((new Date(L+'T00:00')-new Date(ds[i]+'T00:00'))/864e5);
   return i<ds.length-1&&days>=STALL_DAYS?{since:ds[i],last:L,days}:null}
@@ -2136,7 +2136,7 @@ function stallIcon(id){const s=idxStall(id);return s?`<span class="stall" title=
 function stallBadge(){const bd=$('badgeRel');if(!bd)return;const l=Object.keys(autoMap).filter(id=>idxStall(id));
   if(!l.length){bd.hidden=true;bd.innerHTML='';bd.title='';bd.classList.remove('warn');return}
   bd.classList.add('warn');bd.innerHTML=WARN_SVG+'<span class="wn">'+l.length+'</span>';bd.hidden=false;bd.title='Compteur'+(l.length>1?'s':'')+' qui ne compte'+(l.length>1?'nt':'')+' plus : '+l.map(idxNom).join(', ')}
-function autoBadge(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d),ok=a<=1;
+function autoBadge(id){if(/dju/.test(id))return '';const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d),ok=a<=1;
   return stallIcon(id)+`<span class="ast ${ok?'ok':'late'}" title="Dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])}">● ${ok?'à jour':a+' j de retard'}</span>`}
 function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
   return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
