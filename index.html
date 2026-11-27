@@ -1192,8 +1192,8 @@ function djuTile(){const el=$('tileDju');if(!el)return;
   const m=cp?autoMap[cp.id]||{}:{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===k);
   let curV=cur;
   if(inM.length){const end=inM[inM.length-1],base=ds.filter(d=>d<k+'-01').pop()||inM[0],dj=end.slice(8),inL=ds.filter(d=>d.slice(0,7)===kL&&d.slice(8)<=dj),baseL=ds.filter(d=>d<kL+'-01').pop()||inL[0];
-    curV=idxSum(m,base,end,cp.id);lastD=end;
-    if(inL.length&&baseL&&baseL<inL[inL.length-1]){ly=idxSum(m,baseL,inL[inL.length-1],cp.id);same=true}}
+    curV=djuSum(m,cp.id,k);lastD=end;
+    if(inL.length){ly=djuSum(m,cp.id,kL,dj);same=true}}
   let h=`<span class="tt">🌡️ DJU ${chaud?'chaud':'froid'} · ${mn}</span><span class="tv">${fmt(curV,0)}</span><span class="ts">${chaud?'Chauffagiste':'Climaticien'}${lastD?' · au '+lastD.slice(8)+'/'+lastD.slice(5,7):''}</span>`;
   if(ly==null)h+=`<span class="ts">${mn} ${y-1} : pas de données comparables</span>`;
   else{const d=curV-ly,eq=Math.abs(d)<0.5,more=d>0,txt=eq?'Identique à':chaud?(more?'❄️ Plus froid que':'☀️ Plus doux que'):(more?'🔥 Plus chaud que':'🌤️ Moins chaud que');
@@ -2079,7 +2079,8 @@ function autoDates(id){return Object.keys(autoMap[id]||{}).sort()}
 /* remise à zéro d'un compteur : un index plus bas que le précédent = compteur reparti de 0, la consommation de la période est la valeur repartie de 0 */
 function idxSum(m,d0,d1,id){const ds=Object.keys(m).filter(d=>d>=d0&&d<=d1).sort();let t=0;for(let i=1;i<ds.length;i++){if(id&&autoCancel[id+'|'+ds[i]])continue;const x=m[ds[i]]-m[ds[i-1]];t+=x<0?m[ds[i]]:x}return t}
 /* écart d'un jour : annulable à la main (rouge, ne compte plus dans la consommation) */
-function stepCell(id,d,pd,m){if(!pd||m[d]==null)return '—';const x=!!autoCancel[id+'|'+d],b=`<button type="button" class="link edit-only" data-xc="${esc(id)}|${d}" title="${x?'Rétablir cet écart':'Annuler cet écart : il ne comptera plus dans la consommation'}">${x?'↩':'⊘'}</button>`;
+function stepCell(id,d,pd,m){if(isDju(id)&&m[d]!=null){const x=!!autoCancel[id+'|'+d],b=`<button type="button" class="link edit-only" data-xc="${esc(id)}|${d}" title="${x?'Rétablir ce jour':'Annuler ce jour : il ne comptera plus dans le total du mois'}">${x?'↩':'⊘'}</button>`;return x?`<span class="xc" title="Jour annulé manuellement : il ne compte pas dans le total"><s>${fIdx(m[d])}</s> annulé</span> ${b}`:'+'+fIdx(m[d])+' '+b}
+  if(!pd||m[d]==null)return '—';const x=!!autoCancel[id+'|'+d],b=`<button type="button" class="link edit-only" data-xc="${esc(id)}|${d}" title="${x?'Rétablir cet écart':'Annuler cet écart : il ne comptera plus dans la consommation'}">${x?'↩':'⊘'}</button>`;
   return x?`<span class="xc" title="Écart annulé manuellement : il ne compte pas dans la consommation"><s>${idxStep(m[pd],m[d])}</s> annulé</span> ${b}`:idxStep(m[pd],m[d])+' '+b}
 function idxStep(a,b){const x=b-a;if(x>=0)return(x>0?'+':'')+fIdx(x);return'<span class="rz" title="Remise à zéro du compteur : l’index a baissé, la consommation compte la valeur repartie de 0">+'+fIdx(b)+' ↺</span>'}
 function autoAge(d){const n=new Date();return Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-new Date(d+'T00:00'))/864e5)}
@@ -2095,8 +2096,12 @@ function autoDayForm(id,ym){const e=esc(id);let mn='',mx=today();if(ym){mn=ym+'-
   return `<div class="edit-only" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 8px"><span class="note" style="margin:0">Ajouter un index${ym?'':' d’avant la remontée'} :</span><input type="date" ${mn?'min="'+mn+'" ':''}max="${mx}" data-f="d" value="${val}"><input type="number" step="any" min="0" placeholder="Index" data-f="i" style="width:130px"><button type="button" data-addidx="${e}">Ajouter l’index</button></div>`}
 const cdOpen=new Set();
 const LOCKT='Verrouillé : des index ont été saisis pour ce mois, le total est calculé à partir des jours.';
+/* DJU : chaque jour est une valeur à additionner (pas un index) ; total d'un mois, éventuellement jusqu'à un jour donné */
+const isDju=id=>/dju/.test(id||'');
+function djuSum(m,id,ym,maxDay){let t=0;Object.keys(m).forEach(d=>{if(d.slice(0,7)!==ym||(maxDay&&d.slice(8)>maxDay)||m[d]==null||autoCancel[id+'|'+d])return;t+=m[d]});return Math.round(t*1000)/1000}
 function autoMonth(id,ym,mp){const m=mp||autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym),pv=ds.filter(d=>d.slice(0,7)<ym).pop();
-  if(!inM.length)return null;const dv=(id==='e'||id==='g')?AUTO_DIV:1,base=pv||inM[0],v=Math.round(idxSum(m,base,inM[inM.length-1],id)/dv*1000)/1000,nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
+  if(!inM.length)return null;
+  if(isDju(id)){const nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();return{v:djuSum(m,id,ym),partial:false,n:inM.length,left:Math.max(0,nd-inM.length)}}const dv=(id==='e'||id==='g')?AUTO_DIV:1,base=pv||inM[0],v=Math.round(idxSum(m,base,inM[inM.length-1],id)/dv*1000)/1000,nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
   return{v,partial:!pv,n:inM.length,left:Math.max(0,nd-inM.length)}}
 /* gaz / électricité : le total du mois suit le cumul des index */
 function syncMonth(id,ym,mm){if(id!=='e'&&id!=='g')return;const r=autoMonth(id,ym,mm);if(r&&r.v>=0)setDoc(doc(db,'releves',ym),{[id]:r.v},{merge:true}).catch(refus)}
@@ -2106,7 +2111,7 @@ function fillAutoCells(root,id){const tot={},kf=(id==='e'||id==='g')?AUTO_DIV:1,
 function fillDays(root,id,tot){const m=autoMap[id]||{},ds=Object.keys(m).sort();
   root.querySelectorAll('[data-cd]').forEach(td=>{const key=td.dataset.cd,ym=key.split('|')[1],open=cdOpen.has(key),bt=root.querySelector('[data-tgd="'+key+'"]');td.parentElement.hidden=!open;if(bt)bt.textContent=open?'▾':'▸';
     if(!open){td.innerHTML='';return}
-    if(!td.querySelector('table')){const nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),tdy=today();let h='<table class="gt xl"><thead><tr><th>Jour</th><th>Index (manuel)</th><th>Écart</th><th>Source</th></tr></thead><tbody>';
+    if(!td.querySelector('table')){const nd=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),tdy=today();let h='<table class="gt xl"><thead><tr><th>Jour</th><th>${isDju(id)?'DJU du jour (manuel)':'Index (manuel)'}</th><th>${isDju(id)?'Ajouté au total':'Écart'}</th><th>Source</th></tr></thead><tbody>';
       for(let dd=1;dd<=nd;dd++){const d2=ym+'-'+String(dd).padStart(2,'0');h+=`<tr><td>${esc(dfr(d2))}</td><td><input type="text" inputmode="decimal" autocomplete="off" class="cell" placeholder="–" data-di="${esc(id)}|${d2}"${d2>tdy?' disabled':''}></td><td data-dg="${esc(id)}|${d2}"></td><td data-dsrc="${esc(id)}|${d2}"></td></tr>`}
       td.innerHTML=h+'</tbody></table><p class="note edit-only" style="margin:4px 0;white-space:normal;width:0;min-width:100%;text-align:left">Les index reçus automatiquement remplissent les cases. Complétez les jours manquants à la main ; videz une case pour supprimer l’index. <b>Comme dans Excel :</b> copiez une colonne de cases dans votre fichier, cliquez sur la case du premier jour et collez (Ctrl+V) ; les valeurs se répartissent sur les jours suivants. Entrée ou flèches ↑ ↓ pour passer d’une case à l’autre.</p>'}
     const manTot=tot&&tot(ym)!=null&&!ds.some(x=>x.slice(0,7)===ym),tdy2=today();
