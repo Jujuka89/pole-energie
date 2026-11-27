@@ -14,6 +14,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
 main{max-width:1560px;margin:0 auto;padding:24px 16px 48px}
 #vRel,#vProj,#vCpt,#foot{max-width:1100px;margin-left:auto;margin-right:auto}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:16px}.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:150px;display:flex;flex-direction:column;gap:2px;min-width:0}.tile.vide{border:2px dashed var(--line);background:transparent}.tile.g{border-top:4px solid var(--gaz)}.tile .tt{font-size:.88rem;font-weight:700}.tile .tv{font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}.tile .ts{color:var(--mute);font-size:.82rem}.tile .tg{margin-top:auto;font-weight:700;font-size:.9rem;border-radius:8px;padding:4px 8px}.tile .tg.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}.tile .tg.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}@media (max-width:1300px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .dash{display:grid;grid-template-columns:minmax(220px,340px) minmax(0,1fr) minmax(220px,340px);gap:12px;justify-content:stretch;align-items:start}
 .dash>.centre{min-width:0}.side{align-self:start}
 .slot{border:2px dashed var(--line);border-radius:10px;padding:16px;color:var(--mute);text-align:center;font-size:.9rem;min-height:140px;display:flex;flex-direction:column;justify-content:center;gap:4px}
@@ -256,7 +257,8 @@ body.out .hist{cursor:default}body.out .hist input{cursor:default}
 <aside class="side"><section style="margin-top:0"><h2 id="sEcoT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sEco"></div></section><section id="sRefSec" style="margin-top:14px"><h2 id="sRefT" style="font-size:1.05rem;margin:0 0 10px"></h2><div id="sRef"></div></section></aside>
 <div class="centre">
 <div class="dcenter">
-<section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Cumul de l’énergie depuis janvier (MWh)</h2><label style="display:flex;flex-direction:row;align-items:center;gap:8px;font-size:.92rem;cursor:pointer;color:var(--ink)"><input type="checkbox" id="cumLanesChk" style="width:auto;margin:0"> Événements et projets</label></div><div class="box" id="cumBox" style="height:280px"><canvas id="cC"></canvas><div id="cumTip"></div></div><div id="cumInfo"></div></section>
+<div class="tiles" id="tiles"><div class="tile g" id="tileGazM3"></div><div class="tile vide"></div><div class="tile vide"></div><div class="tile vide"></div><div class="tile vide"></div></div>
+<section style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Cumul de l’énergie depuis janvier (MWh)</h2><label style="display:flex;flex-direction:row;align-items:center;gap:8px;font-size:.92rem;cursor:pointer;color:var(--ink)"><input type="checkbox" id="cumLanesChk" style="width:auto;margin:0"> Événements et projets</label></div><div class="box" id="cumBox" style="height:280px"><canvas id="cC"></canvas><div id="cumTip"></div></div><div id="cumInfo"></div></section>
 <section><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px"><h2 id="totTitle" style="margin:0">Énergie totale par mois : électricité + gaz (MWh)</h2><label>Affichage <select id="totMode"><option value="annee">Année affichée</option><option value="toutes">Toutes les années depuis 2018</option></select></label></div><p id="ecoRef" style="margin:0 0 12px"></p><div class="box"><canvas id="cT"></canvas></div><p class="note" id="totNote" hidden>Gain de chaque année par rapport à l’année précédente (2019 est comparée à 2018, l’année de référence) : vert = moins consommé, rouge = plus consommé.</p></section>
 <div class="kpis" id="kpisTop" style="margin-top:16px"></div>
 <div class="kpis" id="kpis" style="margin-top:16px"></div>
@@ -1169,10 +1171,32 @@ function grids(){
   gridAutoFill();safe(applyMasques,'lignes masquées');
 }
 const safe=(f,l)=>{try{f()}catch(e){console.error(l,e);if(window.__showErr)window.__showErr(l+' : '+(e&&e.message||e))}};
+
+/* Case « Gaz m³ du mois en cours » (page 1) : compare à la même période de l'an dernier */
+function gazM3Tile(){const el=$('tileGazM3');if(!el)return;
+  const now=new Date(),ym=ymKey(now.getFullYear(),now.getMonth()+1),ymL=ymKey(now.getFullYear()-1,now.getMonth()+1),
+    mn=MOISL[now.getMonth()].toLowerCase();
+  let cs=compteurs.filter(c=>c.energie==='m'||enOf(c.nom)==='m');
+  const cu=cs.filter(cumIsCum);if(cu.length)cs=cu;
+  let cur=0,ly=0,lyOk=true,lyFull=false,n=0,lastD='';
+  cs.forEach(c=>{const id=slug(c.nom||''),m=autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym);if(!inM.length)return;
+    const end=inM[inM.length-1],base=ds.filter(d=>d<ym+'-01').pop()||inM[0];
+    cur+=idxSum(m,base,end,id);n++;if(end>lastD)lastD=end;
+    const dj=end.slice(8),inL=ds.filter(d=>d.slice(0,7)===ymL&&d.slice(8)<=dj),baseL=ds.filter(d=>d<ymL+'-01').pop()||inL[0];
+    if(inL.length&&baseL&&baseL<inL[inL.length-1])ly+=idxSum(m,baseL,inL[inL.length-1],id);
+    else{const v=(c.valeurs||{})[ymL];if(v!=null){ly+=v;lyFull=true}else lyOk=false}});
+  const head=`<span class="tt">🔥 Gaz m³ · ${mn}</span>`;
+  if(!n){el.innerHTML=head+'<span class="tv">–</span><span class="ts">Pas encore d’index ce mois-ci pour un compteur « Gaz m3 ».</span>';return}
+  const dd=lastD.slice(8)+'/'+lastD.slice(5,7);
+  let h=head+`<span class="tv">${fmt(cur,0)} m³</span><span class="ts">au ${dd}</span>`;
+  if(!lyOk||!ly){h+=`<span class="ts">${mn} ${now.getFullYear()-1} : pas de données comparables</span>`}
+  else{const d=cur-ly,q=d/ly*100,ok=d<=0;
+    h+=`<span class="ts">${mn} ${now.getFullYear()-1}${lyFull?' (mois complet)':' à la même date'} : ${fmt(ly,0)} m³</span><span class="tg ${ok?'ok':'bad'}">${ok?'✔ En avance':'✖ En retard'} : ${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),0)} m³ (${q>0?'+':''}${fmt(q,1)} %)</span>`}
+  el.innerHTML=h}
 function render(){
   const ys=[...new Set([...data.map(d=>+d.m.slice(0,4)),...Object.keys(totaux).map(Number),new Date().getFullYear(),year])].sort((a,b)=>b-a);
   $('year').innerHTML=ys.map(y=>`<option ${y===year?'selected':''}>${y}</option>`).join('');
-  safe(kpis,'cartes');safe(sideEco,'économies');safe(renderSankey,'sankey');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');safe(cptEG,'graphiques compteurs principaux');$('pdf').textContent='Télécharger le rapport PDF '+year;
+  safe(kpis,'cartes');safe(gazM3Tile,'case gaz m3');safe(sideEco,'économies');safe(renderSankey,'sankey');safe(()=>draw('cE','e','--elec'),'graphique électricité');safe(()=>draw('cG','g','--gaz'),'graphique gaz');safe(drawCumul,'graphique cumul');safe(drawTotal,'graphique total');safe(grids,'relevés');safe(cptEG,'graphiques compteurs principaux');$('pdf').textContent='Télécharger le rapport PDF '+year;
 }
 const num=v=>v===''?null:+v;
 
