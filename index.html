@@ -1188,7 +1188,7 @@ function djuTile(){const el=$('tileDju');if(!el)return;
   const now=new Date(),y=now.getFullYear(),k=ymKey(y,now.getMonth()+1),kL=ymKey(y-1,now.getMonth()+1),mn=MOISL[now.getMonth()].toLowerCase(),ch=dju[k],fr=djuC[k];
   if(ch==null&&fr==null){const cps=djuCpts(),all=[...Object.keys(dju).filter(q=>dju[q]!=null&&q<=k).map(q=>[q,'chaud',dju[q]]),...Object.keys(djuC).filter(q=>djuC[q]!=null&&q<=k).map(q=>[q,'froid',djuC[q]])].sort((a,b)=>a[0].localeCompare(b[0])),l=all[all.length-1];
     el.innerHTML=`<span class="tt">🌡️ DJU · ${mn}</span><span class="tv">–</span><span class="ts">${!cps.length?'Aucun compteur « DJU chaud » ou « DJU froid » trouvé (page Relevés, catégorie Autre).':'Aucune valeur pour '+mn+' '+y+' dans les compteurs ('+cps.map(x=>esc(x.c.nom||x.id)).join(', ')+').'+(l?' Dernière valeur : '+MOISL[+l[0].slice(5)-1].toLowerCase()+' '+l[0].slice(0,4)+' ('+fmt(l[2],0)+' DJU '+l[1]+').':'')}</span>`;return}
-  const chaud=ch!=null&&(fr==null||ch>=fr),T=chaud?dju:djuC,cur=T[k],cp=djuCpts().find(x=>/chaud|chauffag/.test(x.id)===chaud);
+  const chaud=ch!=null&&(fr==null||ch>=fr),T=chaud?dju:djuC,cur=T[k],cp=djuCpts().find(x=>x.chaud===chaud);
   let ly=T[kL],same=false,lastD='';
   const m=cp?autoMap[cp.id]||{}:{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===k);
   let curV=cur;
@@ -1205,15 +1205,19 @@ const djuMig=new Set();let djuLoaded=false,djuSig='';
 function djuDoc(snap,kind){const d=snap.docs.find(x=>x.id.toLowerCase().replace(/^releves/,'').replace(/[^a-z]/g,'')===kind);if(!d)return{};
   const o=d.data()||{},v=o.v&&typeof o.v==='object'?o.v:o,r={};Object.keys(v).forEach(k=>{if(/^\d{4}-\d{2}$/.test(k)&&v[k]!=null&&!isNaN(+v[k]))r[k]=+v[k]});return r}
 /* DJU : la saisie se fait dans la page Relevés (catégorie Autre), compteurs « DJU chaud » et « DJU froid ». */
-function djuCpts(){return compteurs.map(c=>{const id=slug(c.nom||'');return /dju/.test(id)?{c,id,old:/chaud|chauffag/.test(id)?djuB:/froid|clim/.test(id)?djuCB:null}:null}).filter(x=>x&&x.old)}
+function djuCpts(){const L=[],seen=new Set(),kind=t=>/chaud|chauffag/.test(t)?1:/froid|clim/.test(t)?2:0;
+  compteurs.forEach(c=>{const id=slug(c.nom||''),k=/dju/.test(id)?kind(id):0;if(k){L.push({c,id,chaud:k===1,old:k===1?djuB:djuCB});seen.add(id)}});
+  /* compteurs automatiques (alimentés par l'import) : pas de tableau mensuel, seulement les valeurs de chaque jour */
+  Object.keys(autoMap).forEach(a=>{if(seen.has(a))return;const t=slug(autoNames[a]||'')+' '+a,k=/dju/.test(t)?kind(t):0;if(k)L.push({c:{nom:autoNames[a]||a,valeurs:{}},id:a,chaud:k===1,old:k===1?djuB:djuCB})});
+  return L}
 /* les anciens relevés manuels apparaissent dans les cases mensuelles du compteur (mois absents, hors index jour par jour) ; enregistrés une fois si le compte peut écrire */
 function djuInject(){if(!djuLoaded)return;
-  djuCpts().forEach(({c,id,old})=>{const cv=c.valeurs||{},ms=new Set(Object.keys(autoMap[id]||{}).map(d=>d.slice(0,7))),add={};
+  djuCpts().forEach(({c,id,old})=>{if(!c.id)return;const cv=c.valeurs||{},ms=new Set(Object.keys(autoMap[id]||{}).map(d=>d.slice(0,7))),add={};
     Object.keys(old).forEach(k=>{if(!(k in cv)&&!ms.has(k))add[k]=old[k]});
     if(!Object.keys(add).length)return;c.valeurs={...cv,...add};
     if(!djuMig.has(c.id)&&!document.body.classList.contains('out')){djuMig.add(c.id);setDoc(doc(db,'compteurs',c.id),{valeurs:add},{merge:true}).catch(()=>{djuMig.delete(c.id)})}})}
 function djuMerge(){djuInject();dju={...djuB};djuC={...djuCB};
-  djuCpts().forEach(({c,id})=>{const T=/chaud|chauffag/.test(id)?dju:djuC;
+  djuCpts().forEach(({c,id,chaud})=>{const T=chaud?dju:djuC;
     const v=c._v0||c.valeurs||{};Object.keys(v).forEach(k=>{if(/^\d{4}-\d{2}$/.test(k)&&v[k]!=null)T[k]=v[k]});
     new Set(Object.keys(autoMap[id]||{}).map(d=>d.slice(0,7))).forEach(ym=>{const r=autoMonth(id,ym);if(r&&r.v!=null&&r.v>=0)T[ym]=r.v})})}
 function render(){
@@ -2098,7 +2102,7 @@ function autoDayForm(id,ym){const e=esc(id);let mn='',mx=today();if(ym){mn=ym+'-
 const cdOpen=new Set();
 const LOCKT='Verrouillé : des index ont été saisis pour ce mois, le total est calculé à partir des jours.';
 /* DJU : chaque jour est une valeur à additionner (pas un index) ; total d'un mois, éventuellement jusqu'à un jour donné */
-const isDju=id=>/dju/.test(id||'');
+const isDju=id=>/dju/.test(id||'')||/dju/.test(slug(autoNames[id]||''));
 function djuSum(m,id,ym,maxDay){let t=0;Object.keys(m).forEach(d=>{if(d.slice(0,7)!==ym||(maxDay&&d.slice(8)>maxDay)||m[d]==null||autoCancel[id+'|'+d])return;t+=m[d]});return Math.round(t*1000)/1000}
 function autoMonth(id,ym,mp){const m=mp||autoMap[id]||{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===ym),pv=ds.filter(d=>d.slice(0,7)<ym).pop();
   if(!inM.length)return null;
@@ -2142,7 +2146,7 @@ function cptStatus(id,vals){const b=autoBadge(id);if(b)return b;const m=Object.k
 const STALL_DAYS=3,WARN_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 22.5 20.5H1.5Z" fill="#facc15" stroke="#a16207" stroke-width="1.5" stroke-linejoin="round"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#422006"/><circle cx="12" cy="17.6" r="1.2" fill="#422006"/></svg>';
 /* compteurs volontairement à l'arrêt : pas d'alarme « ne compte plus » (ex. chaudière 2) */
 const STALL_OFF=['gaz-chaudiere-2'];
-function idxStall(id){if(STALL_OFF.includes(id)||/dju/.test(id))return null;const m=autoMap[id]||{},ds=Object.keys(m).sort();if(ds.length<2)return null;
+function idxStall(id){if(STALL_OFF.includes(id)||isDju(id))return null;const m=autoMap[id]||{},ds=Object.keys(m).sort();if(ds.length<2)return null;
   const L=ds[ds.length-1],v=m[L];let i=ds.length-1;while(i>0&&m[ds[i-1]]===v)i--;
   const days=Math.round((new Date(L+'T00:00')-new Date(ds[i]+'T00:00'))/864e5);
   return i<ds.length-1&&days>=STALL_DAYS?{since:ds[i],last:L,days}:null}
@@ -2150,7 +2154,7 @@ function stallIcon(id){const s=idxStall(id);return s?`<span class="stall" title=
 function stallBadge(){const bd=$('badgeRel');if(!bd)return;const l=Object.keys(autoMap).filter(id=>idxStall(id));
   if(!l.length){bd.hidden=true;bd.innerHTML='';bd.title='';bd.classList.remove('warn');return}
   bd.classList.add('warn');bd.innerHTML=WARN_SVG+'<span class="wn">'+l.length+'</span>';bd.hidden=false;bd.title='Compteur'+(l.length>1?'s':'')+' qui ne compte'+(l.length>1?'nt':'')+' plus : '+l.map(idxNom).join(', ')}
-function autoBadge(id){if(/dju/.test(id))return '';const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d),ok=a<=1;
+function autoBadge(id){if(isDju(id))return '';const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d),ok=a<=1;
   return stallIcon(id)+`<span class="ast ${ok?'ok':'late'}" title="Dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])}">● ${ok?'à jour':a+' j de retard'}</span>`}
 function autoStat(id){const ds=autoDates(id),d=ds[ds.length-1];if(!d)return '';const a=autoAge(d);
   return `dernier relevé ${esc(dfr(d))} · index ${fIdx(autoMap[id][d])} · <span style="color:${a<=1?'#15803d':'#b45309'}">${a<=1?'à jour':a+' j de retard'}</span>`}
