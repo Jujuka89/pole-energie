@@ -1183,14 +1183,22 @@ function elecTile(){const el=$('tileElec');if(!el)return;
   else{const d=cur-ly,q=d/ly*100,ok=d<=0;
     h+=`<span class="ts">${mn} ${y-1}${lyFull?' (mois complet)':' à la même date'} : ${fmt(ly,1)} MWh</span><span class="tg ${ok?'ok':'bad'}">${ok?'✔ En avance':'✖ En retard'} : ${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),1)} MWh (${q>0?'+':''}${fmt(q,1)} %)</span>`}
   el.innerHTML=h}
-/* Case « DJU du mois en cours » (page 1) : pas de comparaison avec l'an dernier */
+/* Case « DJU du mois en cours » (page 1) : DJU chaud ou froid selon le mois, comparé au même mois de l'an dernier */
 function djuTile(){const el=$('tileDju');if(!el)return;
-  const now=new Date(),k=ymKey(now.getFullYear(),now.getMonth()+1),mn=MOISL[now.getMonth()].toLowerCase(),ch=dju[k],fr=djuC[k],f=v=>v==null?'–':fmt(v,0);
-  let h=`<span class="tt">🌡️ DJU · ${mn}</span>`;
-  if(ch==null&&fr==null)h+='<span class="tv">–</span><span class="ts">DJU du mois pas encore saisis.</span>';
-  else h+=`<span class="tv">${f(ch)}</span><span class="ts">DJU chaud (Chauffagiste)</span><span class="tl"><span>DJU froid (Climaticien)</span><b>${f(fr)}</b></span><span class="tl"><span>DJU Unique</span><b>${(ch!=null||fr!=null)?(((ch||0)-(fr||0))>0?'+':'')+fmt((ch||0)-(fr||0),0):'–'}</b></span>`;
+  const now=new Date(),y=now.getFullYear(),k=ymKey(y,now.getMonth()+1),kL=ymKey(y-1,now.getMonth()+1),mn=MOISL[now.getMonth()].toLowerCase(),ch=dju[k],fr=djuC[k];
+  if(ch==null&&fr==null){el.innerHTML=`<span class="tt">🌡️ DJU · ${mn}</span><span class="tv">–</span><span class="ts">DJU du mois pas encore saisis.</span>`;return}
+  const chaud=ch!=null&&(fr==null||ch>=fr),T=chaud?dju:djuC,cur=T[k],cp=djuCpts().find(x=>/chaud/.test(x.id)===chaud);
+  let ly=T[kL],same=false,lastD='';
+  const m=cp?autoMap[cp.id]||{}:{},ds=Object.keys(m).sort(),inM=ds.filter(d=>d.slice(0,7)===k);
+  let curV=cur;
+  if(inM.length){const end=inM[inM.length-1],base=ds.filter(d=>d<k+'-01').pop()||inM[0],dj=end.slice(8),inL=ds.filter(d=>d.slice(0,7)===kL&&d.slice(8)<=dj),baseL=ds.filter(d=>d<kL+'-01').pop()||inL[0];
+    curV=idxSum(m,base,end,cp.id);lastD=end;
+    if(inL.length&&baseL&&baseL<inL[inL.length-1]){ly=idxSum(m,baseL,inL[inL.length-1],cp.id);same=true}}
+  let h=`<span class="tt">🌡️ DJU ${chaud?'chaud':'froid'} · ${mn}</span><span class="tv">${fmt(curV,0)}</span><span class="ts">${chaud?'Chauffagiste':'Climaticien'}${lastD?' · au '+lastD.slice(8)+'/'+lastD.slice(5,7):''}</span>`;
+  if(ly==null)h+=`<span class="ts">${mn} ${y-1} : pas de données comparables</span>`;
+  else{const d=curV-ly,eq=Math.abs(d)<0.5,more=d>0,txt=eq?'Identique à':chaud?(more?'❄️ Plus froid que':'☀️ Plus doux que'):(more?'🔥 Plus chaud que':'🌤️ Moins chaud que');
+    h+=`<span class="ts">${mn} ${y-1}${same?' à la même date':' (mois complet)'} : ${fmt(ly,0)}</span><span class="tg ${eq?'':more?'bad':'ok'}">${txt} ${mn} ${y-1} (${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),0)})</span>`}
   el.innerHTML=h}
-/* DJU : la saisie se fait dans la page Relevés (catégorie Autre), compteurs « DJU chaud » et « DJU froid ». Les anciennes valeurs (releves/_dju et _djuc) ne servent que pour les mois absents des compteurs. */
 const djuMig=new Set();let djuLoaded=false,djuSig='';
 /* anciennes valeurs : document « _dju » (chaud) / « _djuc » (froid) de la collection releves ; nom toléré avec ou sans « _ », « releves- » */
 function djuDoc(snap,kind){const d=snap.docs.find(x=>x.id.toLowerCase().replace(/^releves/,'').replace(/[^a-z]/g,'')===kind);if(!d)return{};
