@@ -1161,10 +1161,10 @@ function gazM3Tile(){const el=$('tileGazM3');if(!el)return;
   const head=`<span class="tt">🔥 Gaz m³ · ${mn}</span>`;
   if(!n){el.innerHTML=head+'<span class="tv">–</span><span class="ts">Pas encore d’index ce mois-ci pour un compteur « Gaz m3 ».</span>';return}
   const dd=lastD.slice(8)+'/'+lastD.slice(5,7);
-  let h=head+`<span class="tv">${fmt(cur,0)} m³</span><span class="ts">au ${dd}</span>`;
+  let h=head+`<span class="tv">${fmt(cur,0)} m³</span>`;
   if(!lyOk||!ly){h+=`<span class="ts">${mn} ${now.getFullYear()-1} : pas de données comparables</span>`}
   else{const d=cur-ly,q=d/ly*100,ok=d<=0;
-    h+=`<span class="ts">${mn} ${now.getFullYear()-1}${lyFull?' (mois complet)':' à la même date'} : ${fmt(ly,0)} m³</span><span class="tg ${ok?'ok':'bad'}">${ok?'✔ En avance':'✖ En retard'} : ${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),0)} m³ (${q>0?'+':''}${fmt(q,1)} %)</span>`}
+    h+=`<span class="tg ${ok?'ok':'bad'}">${ok?'✔ En avance':'✖ En retard'} : ${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),0)} m³ (${q>0?'+':''}${fmt(q,1)} %)</span>`}
   el.innerHTML=h}
 
 /* Case « Électricité du mois en cours » (page 1) : compare à la même période de l'an dernier */
@@ -1178,10 +1178,10 @@ function elecTile(){const el=$('tileElec');if(!el)return;
   else cur=mv(ym);
   if(ly==null){ly=mv(ymL);lyFull=ly!=null}
   if(cur==null){el.innerHTML=head+'<span class="tv">–</span><span class="ts">Pas encore de relevé électricité ce mois-ci.</span>';return}
-  let h=head+`<span class="tv">${fmt(cur,1)} MWh</span><span class="ts">${lastD?'au '+lastD.slice(8)+'/'+lastD.slice(5,7):'total du mois saisi'}</span>`;
+  let h=head+`<span class="tv">${fmt(cur,1)} MWh</span>`;
   if(!ly)h+=`<span class="ts">${mn} ${y-1} : pas de données comparables</span>`;
   else{const d=cur-ly,q=d/ly*100,ok=d<=0;
-    h+=`<span class="ts">${mn} ${y-1}${lyFull?' (mois complet)':' à la même date'} : ${fmt(ly,1)} MWh</span><span class="tg ${ok?'ok':'bad'}">${ok?'✔ En avance':'✖ En retard'} : ${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),1)} MWh (${q>0?'+':''}${fmt(q,1)} %)</span>`}
+    h+=`<span class="tg ${ok?'ok':'bad'}">${ok?'✔ En avance':'✖ En retard'} : ${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),1)} MWh (${q>0?'+':''}${fmt(q,1)} %)</span>`}
   el.innerHTML=h}
 /* Case « DJU du mois en cours » (page 1) : DJU chaud ou froid selon le mois, comparé au même mois de l'an dernier */
 function djuTile(){const el=$('tileDju');if(!el)return;
@@ -1195,10 +1195,10 @@ function djuTile(){const el=$('tileDju');if(!el)return;
   if(inM.length){const end=inM[inM.length-1],base=ds.filter(d=>d<k+'-01').pop()||inM[0],dj=end.slice(8),inL=ds.filter(d=>d.slice(0,7)===kL&&d.slice(8)<=dj),baseL=ds.filter(d=>d<kL+'-01').pop()||inL[0];
     curV=djuSum(m,cp.id,k);lastD=end;
     if(inL.length){ly=djuSum(m,cp.id,kL,dj);same=true}}
-  let h=`<span class="tt">🌡️ DJU ${chaud?'chaud':'froid'} · ${mn}</span><span class="tv">${fmt(curV,0)}</span><span class="ts">${chaud?'Chauffagiste':'Climaticien'}${lastD?' · au '+lastD.slice(8)+'/'+lastD.slice(5,7):''}</span>`;
+  let h=`<span class="tt">🌡️ DJU ${chaud?'chaud':'froid'} · ${mn}</span><span class="tv">${fmt(curV,0)}</span>`;
   if(ly==null)h+=`<span class="ts">${mn} ${y-1} : pas de données comparables</span>`;
   else{const d=curV-ly,eq=Math.abs(d)<0.5,more=d>0,txt=eq?'Identique à':chaud?(more?'❄️ Plus froid que':'☀️ Plus doux que'):(more?'🔥 Plus chaud que':'🌤️ Moins chaud que');
-    h+=`<span class="ts">${mn} ${y-1}${same?' à la même date':' (mois complet)'} : ${fmt(ly,0)}</span><span class="tg ${eq?'':more?'bad':'ok'}">${txt} ${mn} ${y-1} (${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),0)})</span>`}
+    h+=`<span class="tg ${eq?'':more?'bad':'ok'}">${txt} ${mn} ${y-1} (${d>0?'+':d<0?'-':''}${fmt(Math.abs(d),0)})</span>`}
   el.innerHTML=h}
 const djuMig=new Set();let djuLoaded=false,djuSig='';
 /* anciennes valeurs : document « _dju » (chaud) / « _djuc » (froid) de la collection releves ; nom toléré avec ou sans « _ », « releves- » */
